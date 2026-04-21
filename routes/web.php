@@ -9,6 +9,7 @@ use App\Http\Controllers\UserTrainingController;
 use App\Http\Controllers\MasterController;
 use App\Http\Controllers\TrainingSessionController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\UserExamController;
 use App\Http\Controllers\MasterDocumentController;
@@ -42,6 +43,8 @@ Route::get('/system-update', function () {
 
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('login', [LoginController::class, 'login'])->name('login.post');
+Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+Route::post('register', [RegisterController::class, 'register'])->name('register.post');
 Route::any('logout', [LoginController::class, 'logout'])->name('logout');
 
 

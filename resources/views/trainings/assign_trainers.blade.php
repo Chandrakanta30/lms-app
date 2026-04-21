@@ -27,7 +27,7 @@
                                     <select name="trainers[{{ $index }}][user_id]" class="form-control" required>
                                         @foreach($allUsers as $user)
                                             <option value="{{ $user->id }}" {{ $user->id == $trainer->id ? 'selected' : '' }}>
-                                                {{ $user->name }} ({{ $user->department ?? 'N/A' }})
+                                                {{ $user->name }} ({{ $user->department->name ?? 'N/A' }})
                                             </option>
                                         @endforeach
                                     </select>
@@ -85,7 +85,7 @@
                 <select name="trainers[${trainerCount}][user_id]" class="form-control" required>
                     <option value="">-- Choose User --</option>
                     @foreach($allUsers as $user)
-                        <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->department }})</option>
+                        <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->department->name }})</option>
                     @endforeach
                 </select>
             </td>

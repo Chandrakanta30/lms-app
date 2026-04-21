@@ -18,6 +18,17 @@
                         </div>
 
                         <div class="form-group">
+                            <label>Workflow Status</label>
+                            <select name="status" class="form-control" required>
+                                @foreach($statusOptions as $statusOption)
+                                    <option value="{{ $statusOption }}" {{ old('status', $training->status ?? 'created') === $statusOption ? 'selected' : '' }}>
+                                        {{ ucfirst($statusOption) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="form-group">
                             <label>Training Type</label>
                             <select name="training_type" id="training_type" class="form-control">
                                 <option value="classroom" {{ $training->training_type == 'classroom' ? 'selected' : '' }}>Classroom / Instructor Led</option>
@@ -33,7 +44,7 @@
                             <input type="date" 
                                 name="start_date" 
                                 class="form-control" 
-                                value="{{ isset($module->start_date) ? $module->start_date->format('Y-m-d') : '' }}" 
+                                value="{{ old('start_date', $training->start_date ? \Illuminate\Support\Carbon::parse($training->start_date)->format('Y-m-d') : '') }}" 
                                 required>
                         </div>
 
@@ -42,7 +53,7 @@
                             <input type="date" 
                                 name="end_date" 
                                 class="form-control" 
-                                value="{{ isset($module->end_date) ? $module->end_date->format('Y-m-d') : '' }}" 
+                                value="{{ old('end_date', $training->end_date ? \Illuminate\Support\Carbon::parse($training->end_date)->format('Y-m-d') : '') }}" 
                                 required>
                         </div>
 
@@ -52,18 +63,29 @@
 
                         <hr>
                         <h5>Departmental Steps</h5>
+                        <p class="text-muted small">Optional. Leave this blank if the training program does not need step-by-step departmental breakdown.</p>
                         <div id="step-container">
-                            @foreach($training->steps as $index => $step)
-                            <div class="input-group mb-2 step-row">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text step-index">{{ $index + 1 }}</span>
+                            @forelse($training->steps as $index => $step)
+                                <div class="input-group mb-2 step-row">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text step-index">{{ $index + 1 }}</span>
+                                    </div>
+                                    <input type="text" name="step_names[]" class="form-control" value="{{ $step->name }}">
+                                    <div class="input-group-append">
+                                        <button type="button" class="btn btn-danger remove-step"><i class="mdi mdi-delete"></i></button>
+                                    </div>
                                 </div>
-                                <input type="text" name="step_names[]" class="form-control" value="{{ $step->name }}" required>
-                                <div class="input-group-append">
-                                    <button type="button" class="btn btn-danger remove-step"><i class="mdi mdi-delete"></i></button>
+                            @empty
+                                <div class="input-group mb-2 step-row">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text step-index">1</span>
+                                    </div>
+                                    <input type="text" name="step_names[]" class="form-control" placeholder="Optional step name">
+                                    <div class="input-group-append">
+                                        <button type="button" class="btn btn-danger remove-step"><i class="mdi mdi-delete"></i></button>
+                                    </div>
                                 </div>
-                            </div>
-                            @endforeach
+                            @endforelse
                         </div>
                         <button type="button" class="btn btn-outline-info btn-sm mt-2" id="add-step">+ Add Step</button>
 
@@ -89,7 +111,7 @@
         const div = document.createElement('div');
         div.className = "input-group mb-2 step-row";
         div.innerHTML = `<div class="input-group-prepend"><span class="input-group-text step-index">${rowCount}</span></div>
-            <input type="text" name="step_names[]" class="form-control" required>
+            <input type="text" name="step_names[]" class="form-control">
             <div class="input-group-append"><button type="button" class="btn btn-danger remove-step"><i class="mdi mdi-delete"></i></button></div>`;
         container.appendChild(div);
     });
@@ -122,6 +144,10 @@
         const section = document.getElementById('self_training_section');
         const tbody = document.querySelector('#docTable tbody');
 
+        if (!section || !tbody) {
+            return;
+        }
+
         if (this.value === 'self_training') {
             section.style.display = 'block';
             if (tbody.children.length === 0) tbody.insertAdjacentHTML('beforeend', getDocRowHtml(Date.now()));
@@ -132,6 +158,9 @@
     });
 
     $(document).on('click', '.addRow', function() {
+        if (!document.querySelector('#docTable tbody')) {
+            return;
+        }
         $('#docTable tbody').append(getDocRowHtml(Date.now()));
     });
 

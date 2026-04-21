@@ -234,16 +234,25 @@
             <li class="nav-item" data-nav-item data-nav-text="training schedule list exam list">
               <a class="nav-link" href="{{ route('exam.list') }}" data-route-match="exam.list">Schedule list</a>
             </li>
+            @can('result-history')
             <li class="nav-item" data-nav-item data-nav-text="results history">
               <a class="nav-link" href="{{ route('exams.history') }}" data-route-match="exams.history">Results history</a>
             </li>
+            @endcan
+
+            @can('admin-logs')
             <li class="nav-item" data-nav-item data-nav-text="admin logs">
               <a class="nav-link" href="{{ route('admin.exams.logs') }}" data-route-match="admin.exams.logs|admin.exams.details">Admin logs</a>
             </li>
+            @endcan
+
+
+
           </ul>
         </div>
       </li>
 
+      @can('documents')
       <li class="nav-item" data-nav-item data-nav-text="documents question banks">
         <a class="nav-link" data-bs-toggle="collapse" data-toggle="collapse" href="#nav-documents" aria-expanded="false" aria-controls="nav-documents">
           <i class="mdi mdi-file-document-multiple-outline menu-icon"></i>
@@ -258,6 +267,7 @@
           </ul>
         </div>
       </li>
+      @endcan
 
       @can('view-exam-list')
       <li class="nav-item" data-nav-item data-nav-text="exam question banks papers">

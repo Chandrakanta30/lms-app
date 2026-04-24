@@ -4,7 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\TrainingSessions;
+use APP\Modals\TrainingModule;
+use APP\Models\UserTraining;
+use App\Models\TrainingModule as ModelsTrainingModule;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+
 
 class TrainingSessionController extends Controller
 {
@@ -60,19 +65,69 @@ class TrainingSessionController extends Controller
         return view('training_sessions.user_report', compact('user', 'sessions'));
     }
 
-    public function approve($id)
-    {
-        $session = TrainingSessions::findOrFail($id);
+    // public function approve($id)
+    // {
+    //     $session = TrainingSessions::findOrFail($id);
 
-        // Update the session with the signer's ID and timestamp
-        $session->update([
-            'is_approved' => true,
-            'approved_by' => auth()->id(), // The person clicking the button
-            'approved_at' => now()
-        ]);
+    //     // Update the session with the signer's ID and timestamp
+    //     $session->update([
+    //         'is_approved' => true,
+    //         'approved_by' => auth()->id(), // The person clicking the button
+    //         'approved_at' => now()
+    //     ]);
 
-        return back()->with('success', 'Digital signature applied successfully.');
+    //     return back()->with('success', 'Digital signature applied successfully.');
+    // }
+ public function approve($id)
+{
+    $session = TrainingSessions::findOrFail($id);
+
+    if ($session->is_approved) {
+        return back()->with('info', 'This session is already approved.');
     }
+
+  
+    $session->update([
+        'is_approved'  => true,
+        'approved_by'  => Auth::id(),
+        'approved_at'  => now(),
+    ]);
+
+    // Get trainee user
+    $user = $session->trainee;
+
+    if ($user) {
+       
+        if ($user->hasRole('trainee')) {
+            $user->removeRole('trainee');
+        }
+
+        $user->assignRole('regular');
+
+    }
+
+    return back()->with('success', 'Session approved successfully and trainee promoted to regular.');
+}
+
+public function userRegister()
+{
+    $trainerId = Auth::id();
+
+    // Step 1: Get module IDs assigned to trainer
+    $moduleIds = UserTraining::where('user_id', $trainerId)
+        ->pluck('training_module_id')
+        ->unique();
+
+    // Step 2: Get all trainees grouped by module
+    $modules = ModelsTrainingModule::with(['users' => function ($q) {
+            $q->where('is_trainer', 0);
+        }])
+        ->whereIn('id', $moduleIds)
+        ->get();
+
+    return view('training_sessions.user_register', compact('modules'));
+}
+
 
 
 }

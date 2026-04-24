@@ -61,7 +61,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-6">
+         <div class="col-md-6">
                         <div class="form-group">
                             <label>Assign Roles</label>
                             <select name="roles[]" class="form-control js-example-basic-multiple" multiple="multiple" style="width:100%">
@@ -141,7 +141,7 @@
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Highest Qualification</label>
+                            <label>Qualification</label>
                             <input
                                 type="text"
                                 name="qualification"
@@ -183,3 +183,4 @@
     </div>
 </div>
 @endsection
+

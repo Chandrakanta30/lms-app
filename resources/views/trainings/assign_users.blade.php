@@ -32,7 +32,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($allUsers as $index => $user)
+                              @foreach($module->trainees as $index => $user)
                                 @php 
                                     $enrolled = $module->trainees->where('id', $user->id)->first();
                                 @endphp
@@ -43,7 +43,7 @@
                                         <input type="hidden" name="users[{{ $index }}][user_id]" value="{{ $user->id }}">
                                     </td>
                                     <td><strong>{{ $user->name }}</strong></td>
-                                    <td>{{ $user->department->name }}</td>
+                                    <!-- <td>{{ $user->department->name }}</td> -->
                                     <td>
                                         <input type="date" name="users[{{ $index }}][start_date]" 
                                             value="{{ $enrolled ? $enrolled->pivot->start_date : $module->start_date }}" 

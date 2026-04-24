@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\TrainingModule;
 use App\Models\ExamResult;
 
+
+
 class UserExamController extends Controller
 {
     public function index()

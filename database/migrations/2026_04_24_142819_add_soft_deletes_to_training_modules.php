@@ -6,17 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::table('training_modules', function (Blueprint $table) {
-            $table->string('status')->default('created')->after('training_type');
+            $table->softDeletes(); // ✅ adds deleted_at
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::table('training_modules', function (Blueprint $table) {
-            $table->dropColumn('status');
+            $table->dropSoftDeletes();
         });
     }
 };

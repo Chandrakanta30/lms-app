@@ -123,36 +123,74 @@ class UserTrainingController extends Controller
     //     return view('user_trainings.show', compact('user', 'programs', 'completedIds'));
     // }
 
+
+
+// making some changes here to log the interaction details in the user_trainings table instead of just marking it as completed. This way, we can capture who interacted with the trainee, their designation, and any comments about the interaction.
+
     // // Log the interaction
-    public function store(Request $request, User $user,TrainingModule $training)
-    {
-        if (auth()->user()?->hasRole('Trainee') && auth()->id() !== $user->id) {
-            abort(403, 'You are not allowed to update another trainee\'s progress.');
-        }
-
-        // $user->trainings()->syncWithoutDetaching([
-        //     $request->module_id => [
-        //         'interacted_person' => $request->interacted_person,
-        //         'designation'       => $request->designation,
-        //         'comments'          => $request->comments,
-        //         'is_completed'      => true,
-        //         'completed_at'      => now(),
-        //     ]
-        // ]);
-
-        \Illuminate\Support\Facades\DB::table('user_trainings')->updateOrInsert(
-            ['user_id' => $user->id, 'training_module_id' => $request->module_id],
-            [
-                'interacted_person' => $request->interacted_person,
-                'designation'       => $request->designation,
-                'comments'          => $request->comments,
-                'is_completed'      => 1,
-                'updated_at'        => now()
-            ]
-        );
-
-        return back()->with('success', 'Step Logged!');
+  public function store(Request $request, User $user, TrainingModule $training)
+{
+    if (auth()->user()?->hasRole('Trainee') && auth()->id() !== $user->id) {
+        abort(403, 'You are not allowed to update another trainee\'s progress.');
     }
+
+    \Illuminate\Support\Facades\DB::table('user_trainings')->updateOrInsert(
+        ['user_id' => $user->id, 'training_module_id' => $request->module_id],
+        [
+            'interacted_person' => $request->interacted_person,
+            'designation'       => $request->designation,
+            'comments'          => $request->comments,
+            'is_completed'      => 1,
+            'updated_at'        => now()
+        ]
+    );
+
+
+    // 1. Get current step
+    $currentStep = \App\Models\TrainingModule::find($request->module_id);
+
+    // 2. Get parent training (main program)
+    $parentTraining = $currentStep->parent;
+
+    // If no parent, it means this is parent itself
+    if (!$parentTraining) {
+        $parentTraining = $currentStep;
+    }
+
+    // 3. Get all steps under this training
+    $stepIds = \App\Models\TrainingModule::where('parent_id', $parentTraining->id)
+        ->pluck('id')
+        ->toArray();
+
+    // 4. Count completed steps
+    $completedCount = \Illuminate\Support\Facades\DB::table('user_trainings')
+        ->where('user_id', $user->id)
+        ->whereIn('training_module_id', $stepIds)
+        ->where('is_completed', 1)
+        ->count();
+
+    // 5. If ALL steps completed → update role
+    if (
+    count($stepIds) > 0 &&
+    $completedCount === count($stepIds) &&
+    strtolower($parentTraining->name) === 'induction training'
+) {
+
+    // 🔥 CHANGE ROLE (Trainee → Employee)
+    $user->syncRoles(['Employee']);
+
+    // Optional: flash message
+    session()->flash('success', 'User promoted to Regular (Employee)');
+}
+
+
+
+    return back()->with('success', 'Step Logged!');
+}
+
+
+
+
 
 
 

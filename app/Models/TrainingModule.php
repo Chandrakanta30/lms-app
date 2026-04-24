@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity; // v4 uses this, but let's check the implementation
+use Illuminate\Database\Eloquent\SoftDeletes;  //soft delete 
 
 class TrainingModule extends Model
 {
     use LogsActivity;
+     use SoftDeletes;
 
     public const STATUSES = ['created', 'inreview', 'reviewed', 'approved'];
 

@@ -6,6 +6,7 @@ use App\Models\TrainingDocument;
 use App\Models\TrainingModule;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Spatie\Activitylog\Models\Activity;
 
 class TrainingModuleController extends Controller
 {
@@ -256,4 +257,14 @@ class TrainingModuleController extends Controller
 
         return back()->with('success', "Training {$status} successfully!");
     }
+
+    public function auditLogs($id)
+{
+    $logs = Activity::where('subject_type', 'App\\Models\\TrainingModule')
+        ->where('subject_id', $id)
+        ->latest()
+        ->get();
+
+    return view('trainings.audit_logs', compact('logs'));
+}
 }

@@ -18,37 +18,65 @@
                             <th>Doc Number</th>
                             <th>Name</th>
                             <th>Type</th>
+                            <th>Uploaded By</th>
+                            <th>Reviewed By</th>
+                            <th>Reviewed At</th>
                             <th>Pool</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
+
+
                     <tbody>
-                        @forelse($documents as $doc)
-                        <tr>
-                            <td><strong>{{ $doc->doc_number }}</strong></td>
-                            <td>{{ $doc->doc_name }}</td>
-                            <td><span class="badge badge-outline-info text-dark">{{ $doc->doc_type }}</span></td>
-                            <td>
-                                <a href="{{ route('master-questions.index', $doc->id) }}" class="btn btn-sm btn-dark">
-                                    Manage Pool ({{ $doc->questions_count }})
-                                </a>
-                            </td>
-                            <td>
-                                <div class="btn-group">
-                                    <a href="{{ asset('storage/' . $doc->file_path) }}" target="_blank" class="btn btn-info btn-sm">View</a>
-                                    <form action="{{ route('master-documents.destroy', $doc->id) }}" method="POST" onsubmit="return confirm('Delete this document?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="5" class="text-center">No documents found in the master pool.</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
+    @forelse($documents as $doc)
+    <tr>
+        <td><strong>{{ $doc->doc_number }}</strong></td>
+        <td>{{ $doc->doc_name }}</td>
+        <td>
+            <span class="badge badge-outline-info text-dark">
+                {{ $doc->doc_type }}
+            </span>
+        </td>
+
+        <!-- ✅ NEW COLUMNS -->
+        <td>{{ $doc->uploader->name ?? 'N/A' }}</td>
+        <td>{{ $doc->reviewer->name ?? 'Not Reviewed' }}</td>
+        <td>
+            {{ $doc->reviewed_at 
+            ? $doc->reviewed_at->diffForHumans() 
+            : 'Not Reviewed' 
+            }}
+        </td>
+        <td>
+            <a href="{{ route('master-questions.index', $doc->id) }}" class="btn btn-sm btn-dark">
+                Manage Pool ({{ $doc->questions_count }})
+            </a>
+        </td>
+
+        <td>
+            <div class="btn-group">
+                <a href="{{ asset('storage/' . $doc->file_path) }}" target="_blank" class="btn btn-info btn-sm">View</a>
+
+                <form action="{{ route('master-documents.destroy', $doc->id) }}" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+            </div>
+        </td>
+    </tr>
+
+    @empty
+    <tr>
+        <td colspan="8" class="text-center">
+            No documents found in the master pool.
+        </td>
+    </tr>
+    @endforelse
+</tbody>
+
+
+
                 </table>
             </div>
         </div>

@@ -11,7 +11,9 @@ class MasterDocumentController extends Controller
 {
     public function index()
     {
-        $documents = MasterDocument::withCount('questions')->get();
+        $documents = MasterDocument::with(['uploader', 'reviewer'])
+            ->withCount('questions')
+            ->get();
         return view('documents.index', compact('documents'));
     }
 
@@ -31,6 +33,8 @@ class MasterDocumentController extends Controller
             'version'    => $request->version ?? '1.0',
             'doc_type'   => $request->doc_type,
             'file_path'  => $path,
+                //  added this line to track who uploaded the document
+            'uploaded_by'  => auth()->id(),
         ]);
 
         return back()->with('success', 'Master Document added to Global Pool.');

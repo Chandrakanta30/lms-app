@@ -361,12 +361,12 @@
                         @csrf
 
                         <div class="form-group">
-                            <label class="login-label">User ID</label>
+                            <label class="login-label">Corporate ID</label>
                             <div class="login-input-wrap">
                                 <i class="mdi mdi-account-outline"></i>
-                                <input type="text" name="user_id" class="login-control @error('user_id') is-invalid @enderror" placeholder="Enter your employee or user ID" value="{{ old('user_id') }}" required autofocus>
+                                <input type="text" name="corporate_id" class="login-control @error('corporate_id') is-invalid @enderror" placeholder="Enter your corporate ID" value="{{ old('corporate_id') }}" required autofocus>
                             </div>
-                            @error('user_id')
+                            @error('corporate_id')
                                 <span class="text-danger small d-block mt-2">{{ $message }}</span>
                             @enderror
                         </div>

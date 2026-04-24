@@ -3,11 +3,41 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MasterDocument extends Model
 {
 
-    protected $fillable = ['doc_name', 'doc_number', 'version', 'doc_type', 'file_path'];
+    use SoftDeletes;
+        
+    protected $fillable = [
+    'doc_name',
+    'doc_number',
+    'version',
+    'file_path',
+    'doc_type',
+    'uploaded_by', //added this line to track who uploaded the document
+    'reviewed_by',
+    'reviewed_at'
+];
+
+protected $casts = [
+        'reviewed_at' => 'datetime', // ✅ important
+    ];
+
+
+
+// Who uploaded
+public function uploader()
+{
+    return $this->belongsTo(User::class, 'uploaded_by');
+}
+
+// Who reviewed
+public function reviewer()
+{
+    return $this->belongsTo(User::class, 'reviewed_by');
+}
 
     public function questions() {
         return $this->hasMany(MasterQuestion::class);

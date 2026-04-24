@@ -747,6 +747,16 @@
       display: none !important;
     }
 
+
+    .sidebar-email {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    color: #a0a0a0;
+}
+
     @media (max-width: 1199.98px) {
       .page-body-wrapper {
         padding-left: 16px;

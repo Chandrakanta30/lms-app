@@ -44,6 +44,10 @@ class TrainingSessionController extends Controller
         ]);
 
         TrainingSessions::create($request->all());
+        $user = User::find($request->trainee_id);
+        $traineeRole = Role::findOrCreate('Trainee', 'web');
+        $user->assignRole($traineeRole);
+
 
         return back()->with('success', 'Training Register updated successfully.');
     }

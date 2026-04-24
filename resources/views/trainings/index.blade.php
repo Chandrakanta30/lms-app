@@ -45,10 +45,7 @@
                                 <span class="badge {{ $statusMeta['class'] }} ml-2">{{ $statusMeta['label'] }}</span>
                             </div>
 
-                            <div class="btn-group flex-wrap">
-                                 <a href="{{ route('trainings.show', $training->id) }}" class="btn btn-sm btn-outline-dark" title="View Training">
-                                    <i class="mdi mdi-eye-outline"></i> View
-                                </a>
+                            <div class="action-buttons">
                                 <a href="{{ route('trainings.show', $training->id) }}" class="btn btn-sm btn-outline-dark" title="View Training">
                                     <i class="mdi mdi-eye-outline"></i> View
                                 </a>
@@ -61,13 +58,35 @@
                                 <a href="{{ route('manage-users', $training->id) }}" class="btn btn-sm btn-outline-success">
                                     Users <span class="badge badge-success ml-1">{{ $training->trainees->count() }}</span>
                                 </a>
+
+                                <a href="{{ route('audit.logs.module', $training->id) }}" 
+                                        class="btn btn-sm btn-outline-warning">
+                                        <i class="mdi mdi-history"></i> Audit
+                                </a>
+
+
                                 <form action="{{ route('trainings.toggle-status', $training->id) }}" method="POST" class="mr-2">
                                     @csrf
                                     @method('PATCH')
-                                    <button type="submit" class="btn btn-sm {{ $training->is_active ? 'btn-success' : 'btn-secondary' }}" title="{{ $training->is_active ? 'Click to Disable' : 'Click to Enable' }}">
+
+
+                                    <!-- <button type="submit" class="btn btn-sm {{ $training->is_active ? 'btn-success' : 'btn-secondary' }}" title="{{ $training->is_active ? 'Click to Disable' : 'Click to Enable' }}">
                                         {{ $training->is_active ? 'Active' : 'Inactive' }}
+                                    </button> -->
+
+                                    <button type="submit" class="status-toggle-btn {{ $training->is_active ? 'active' : 'inactive' }}">
+                                        <span class="status-indicator"></span>
+                                        <span class="status-text">
+                                                {{ $training->is_active ? 'Active' : 'Inactive' }}
+                                        </span>
                                     </button>
+
+
+
                                 </form>
+
+
+                                
                                 <a href="{{ route('trainings.edit', $training->id) }}" class="btn btn-sm btn-light ml-1 text-info"><i class="mdi mdi-pencil"></i></a>
                                 <form action="{{ route('trainings.destroy', $training->id) }}" method="POST" class="d-inline ml-1">
                                     @csrf
@@ -180,5 +199,78 @@
     .nav-pills .nav-link { font-size: 0.85rem; color: #6c757d; border: 1px solid transparent; }
     .nav-pills .nav-link.active { background-color: #4b49ac !important; color: white; }
     .badge-outline-secondary { border: 1px solid #6c757d; color: #6c757d; background: transparent; }
+
+    .status-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 20px;
+    padding: 6px 12px;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Active */
+.status-toggle-btn.active {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+/* Inactive */
+.status-toggle-btn.inactive {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+}
+
+/* Circle indicator */
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+/* Hover effect */
+.status-toggle-btn:hover {
+    transform: scale(1.05);
+}
+
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* All buttons same size */
+.action-buttons .btn,
+.action-buttons form button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;          /* smaller height */
+    padding: 0 8px;        /* compact */
+    font-size: 11px;       /* smaller text */
+    border-radius: 6px;
+    white-space: nowrap;   /* prevent breaking */
+}
+/* Icon spacing */
+.action-buttons .btn i {
+    margin-right: 4px;
+}
+
+/* Fix form button alignment */
+.action-buttons form {
+    margin: 0;
+}
+
+.action-buttons {
+    display: flex;
+    flex-wrap: nowrap;     /* force single line */
+    gap: 6px;
+    overflow-x: auto;      /* scroll if needed */
+}
 </style>
 @endsection

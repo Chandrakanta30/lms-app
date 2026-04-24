@@ -25,11 +25,11 @@ class RegisterController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $generatedUserId = $this->generateUserId();
+        $generatedCorporateId = $this->generateCorporateId(); // renamed method to reflect corporate ID generation
 
         $user = User::create([
             'name' => $validated['name'],
-            'user_id' => $generatedUserId,
+            'corporate_id' => $generatedCorporateId, //  FIXED
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
@@ -42,17 +42,17 @@ class RegisterController extends Controller
 
         return redirect()
             ->route('dashboard')
-            ->with('success', 'Registration completed successfully. Your user ID is ' . $generatedUserId . '.');
+            ->with('success', 'Registration completed successfully. Your Corporate ID is ' . $generatedCorporateId . '.');
     }
 
-    private function generateUserId(): string
+    private function generateCorporateId(): string
     {
         $nextId = (User::max('id') ?? 0) + 1;
 
         do {
             $candidate = 'TRN' . str_pad((string) $nextId, 5, '0', STR_PAD_LEFT);
             $nextId++;
-        } while (User::where('user_id', $candidate)->exists());
+        } while (User::where('corporate_id', $candidate)->exists());  //fixed
 
         return $candidate;
     }

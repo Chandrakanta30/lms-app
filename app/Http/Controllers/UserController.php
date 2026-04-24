@@ -25,7 +25,7 @@ class UserController extends Controller
         $search = $request->search;
         $query->where(function($q) use ($search) {
             $q->where('name', 'LIKE', "%$search%")
-              ->orWhere('user_id', 'LIKE', "%$search%")
+              ->orWhere('corporate_id', 'LIKE', "%$search%")
               ->orWhere('email', 'LIKE', "%$search%");
         });
     }
@@ -55,7 +55,7 @@ class UserController extends Controller
         $roles = Role::all();
 
         $departments = Department::all();
-    $designations = Designation::all();
+        $designations = Designation::all();
 
         return view('users.create', compact('roles','departments','designations'));
     }
@@ -64,10 +64,12 @@ class UserController extends Controller
     public function store(Request $request) {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'user_id'  => 'required|string|unique:users,user_id',
+            'email' => 'nullable|email|unique:users,email',   // make email nullable
+            'corporate_id'  => 'required|string|unique:users,corporate_id',
+            'internal_id' => 'nullable|string|unique:users,internal_id',  // add interanl id
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'roles' => 'required|array',
+            'roles.*' => 'exists:roles,name',  //for internalid validation
             'department_id' => 'nullable|exists:departments,id',
             'designation_id' => 'nullable|exists:designations,id',
             'qualification' => 'nullable|string',
@@ -75,7 +77,14 @@ class UserController extends Controller
         ]);
 
 
-        $userData = $request->only(['name', 'email', 'department_id', 'designation_id', 'qualification', 'experience_years','user_id']);
+        $userData = $request->only(['name',
+                                    'email',
+                                    'department_id', 
+                                    'designation_id', 
+                                    'qualification', 
+                                    'experience_years',
+                                    'corporate_id',
+                                    'internal_id']);
 
         if ($request->filled('password')) {
             $userData['password'] = Hash::make($request->password);
@@ -106,8 +115,9 @@ class UserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,'.$user->id,
-            'user_id'  => 'required|string|unique:users,user_id,' . ($user->id ?? ''),
+            'email' => 'nullable|email|unique:users,email,'.$user->id,  // make email nullable and allow current user's email
+            'corporate_id'  => 'required|string|unique:users,corporate_id,' . ($user->id ?? ''),
+            'internal_id' => 'nullable|string|unique:users,internal_id,' . $user->id,   // add internal id updataion
             'roles' => 'required|array',
             'department_id' => 'nullable|exists:departments,id',
             'designation_id' => 'nullable|exists:designations,id',
@@ -123,7 +133,7 @@ class UserController extends Controller
             'designation_id', 
             'qualification', 
             'experience_years',
-            'user_id'
+            'corporate_id',
         ]);
     
         // 2. Handle password only if it's provided

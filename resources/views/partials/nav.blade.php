@@ -1,3 +1,5 @@
+
+
 @php
   $currentRoute = request()->route()?->getName() ?? '';
   $user = auth()->user();
@@ -77,7 +79,9 @@
     <div class="sidebar-user">
       <div class="sidebar-caption mb-2">Signed in as</div>
       <div class="h5 mb-1">{{ $user->name }}</div>
-      <small>{{ $user->email ?? 'Secure workspace access' }}</small>
+      <div class="sidebar-email">
+          <small>{{ $user->email ?? 'Secure workspace access' }}</small>
+      </div>
       <div class="user-role-pill">{{ $primaryRole }}</div>
     </div>
 
@@ -93,14 +97,11 @@
       @canany(['user-create', 'user-list', 'trainer-list'])
         <li class="sidebar-section-label">People</li>
         <li class="nav-item" data-nav-item data-nav-text="users people trainers employees roles">
-          <!-- <a class="nav-link" data-bs-toggle="collapse" data-toggle="collapse" href="#nav-users" aria-expanded="false" aria-controls="nav-users"> -->
-<a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#nav-users">
-  <span onclick="window.location='{{ route('users.index') }}'" style="cursor:pointer;">
-    <i class="mdi mdi-account-group-outline menu-icon"></i>
-    <span class="menu-title">Users</span>
-  </span>
-  <i class="menu-arrow"></i>
-</a>
+          <a class="nav-link" data-bs-toggle="collapse" data-toggle="collapse" href="#nav-users" aria-expanded="false" aria-controls="nav-users">
+            <i class="mdi mdi-account-group-outline menu-icon"></i>
+            <span class="menu-title">Users</span>
+            <i class="menu-arrow"></i> 
+          </a>
           <div class="collapse" id="nav-users">
             <ul class="nav flex-column sub-menu">
               @can('user-create')

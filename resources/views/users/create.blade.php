@@ -36,17 +36,32 @@
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>User ID / Employee ID</label>
-                            <input
-                                type="text"
-                                name="user_id"
-                                class="form-control"
-                                value="{{ old('user_id', $user->user_id ?? '') }}"
-                                placeholder="e.g. EMP101"
-                                required
-                            >
+                            <label>Corporate ID</label>
+                                <input
+                                    type="text"
+                                    name="corporate_id"
+                                    class="form-control"
+                                    value="{{ old('corporate_id', $user->corporate_id ?? '') }}"
+                                    required
+                                >
                         </div>
                     </div>
+
+
+                    <div class="col-md-6">
+                            <div class="form-group">
+                            <label>Internal ID</label>
+                                <input
+                                    type="text"
+                                    name="internal_id"
+                                    class="form-control"
+                                    value="{{ old('internal_id', $user->internal_id ?? '') }}"
+                                >
+                            </div>
+                    </div>
+
+
+                    <!--make changes in email field -->
 
                     <div class="col-md-6">
                         <div class="form-group">
@@ -56,14 +71,17 @@
                                 name="email"
                                 class="form-control"
                                 value="{{ old('email', $user->email ?? '') }}"
-                                required
+                                placeholder="Optional"
                             >
                         </div>
                     </div>
 
-         <div class="col-md-6">
+
+
+
+                    <div class="col-md-6">
                         <div class="form-group">
-                            <label>Assign Roles</label>
+                            <label>Job Role</label>
                             <select name="roles[]" class="form-control js-example-basic-multiple" multiple="multiple" style="width:100%">
                                 @foreach($roles as $role)
                                     <option

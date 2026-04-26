@@ -37,9 +37,10 @@ Route::get('/system-update', function () {
 
 
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-Route::post('login', [LoginController::class, 'login'])->name('login.post');
 Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
 Route::post('register', [RegisterController::class, 'register'])->name('register.post');
+
+Route::post('login', [LoginController::class, 'login'])->name('login.post');
 Route::any('logout', [LoginController::class, 'logout'])->name('logout');
 
 
@@ -53,10 +54,12 @@ Route::group(['middleware' => ['auth']], function () {
         return view('home');
     })->name('dashboard');
 
-    Route::resource('users', UserController::class);
-    Route::resource('roles', RoleController::class);
-    Route::resource('permissions', PermissionController::class);
-    Route::resource('trainings', TrainingModuleController::class);
+Route::resource('users', UserController::class);
+Route::resource('roles', RoleController::class);
+Route::resource('permissions', PermissionController::class);
+Route::resource('trainings', TrainingModuleController::class);
+Route::get('attendace/{id}', [TrainingModuleController::class ,'traineeAttendace'])->name('attendance');
+Route::get('training-list',[TrainingModuleController::class ,'traininglist'])->name('training-list');
 
     Route::get('trainee-progress', [UserTrainingController::class, 'index'])->name('user.training.index');
 
@@ -75,6 +78,8 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::get('training-register', [TrainingSessionController::class, 'index'])->name('sessions.index');
     Route::post('training-register', [TrainingSessionController::class, 'store'])->name('sessions.store');
+    Route::get('report/training-card/{user}', [TrainingSessionController::class, 'userReport'])->name('user.training.card');
+    Route::get('trainee-register',[TrainingSessionController::class,'userRegister'])->name('user.register');
     Route::get('report/training-card/{user}', [TrainingSessionController::class, 'userReport'])->name('user.training.card');
     Route::patch('training-register/{id}/approve', [TrainingSessionController::class, 'approve'])->name('sessions.approve');
 

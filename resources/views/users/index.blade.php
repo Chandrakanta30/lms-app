@@ -92,14 +92,14 @@
 
                             <td>{{ $user->created_at->format('M d, Y') }}</td>
                             <td>
-                                <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-dark">Edit</a>
+                                <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-dark">      <i class="fa-solid fa-pen-to-square"></i></a>
 
-                                <a href="{{ route('user.training.card', $user->id) }}" class="btn btn-sm btn-dark">Show Report</a>
+                                <a href="{{ route('user.training.card', $user->id) }}" class="btn btn-sm btn-dark">   <i class="fa-solid fa-file-lines"></i></a>
 
 
                                 <form action="{{ route('users.destroy', $user->id) }}" method="POST" class="d-inline">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this user?')">Delete</button>
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this user?')">  <i class="fa-solid fa-trash"></i></button>
                                 </form>
                             </td>
                         </tr>

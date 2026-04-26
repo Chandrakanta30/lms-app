@@ -85,4 +85,11 @@ class TrainingModule extends Model
             ->dontSubmitEmptyLogs() // Don't save a log if no tracked fields changed
             ->useLogName('training_management'); // Categorize these logs
     }
+
+    
+public function users()
+{
+    return $this->belongsToMany(User::class, 'training_user', 'training_module_id', 'user_id')
+                ->withPivot('is_trainer', 'role_id');
+}
 }

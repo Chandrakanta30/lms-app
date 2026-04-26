@@ -159,7 +159,7 @@
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Highest Qualification</label>
+                            <label>Qualification</label>
                             <input
                                 type="text"
                                 name="qualification"
@@ -201,3 +201,4 @@
     </div>
 </div>
 @endsection
+

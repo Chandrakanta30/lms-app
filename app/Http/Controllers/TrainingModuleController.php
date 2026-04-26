@@ -6,6 +6,7 @@ use App\Models\TrainingDocument;
 use App\Models\TrainingModule;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Spatie\Activitylog\Models\Activity;
 
 class TrainingModuleController extends Controller
@@ -177,11 +178,59 @@ class TrainingModuleController extends Controller
 
     public function destroy(TrainingModule $training)
     {
+
         $training->delete();
 
         return redirect()->route('trainings.index')->with('success', 'Training deleted.');
     }
+    public function traininglist(Request $request){
+           $user=Auth::user();
+    if(!$user){
+        return("unauthorized user,user not found plz check");
+    }
+//  $modules = $user->modules->pluck('name');
+ $modules = $user->modules;
+    return view('trainings.module_list', compact('modules'));
 
+    }
+// public function traineeAttendace(Request $request){
+//     $user=Auth::user();
+//     if(!$user){
+//         return("unauthorized user,user not found plz check");
+      
+//     }
+//     $module = TrainingModule::find($request->id);
+//     // $module=TrainingModule::where('id', $request->id)->first();
+//     // dd($module);
+  
+
+
+//   $users = $module->users()
+//     ->wherePivot('is_trainer', 0)
+//     ->select('users.id', 'users.name')
+//     ->get();
+
+
+//     return view('trainings.attendace_sheet', compact('users'));
+// }
+public function traineeAttendace($id)
+{
+    $user = Auth::user();
+
+    if (!$user) {
+        return "unauthorized user, user not found";
+    }
+
+    $module = TrainingModule::findOrFail($id);
+
+    $users = User::where('is_trainer', 0)
+    ->whereHas('modules', function ($q) use ($id) {
+        $q->where('training_modules.id', $id);
+    })
+    ->paginate(20);
+    // dd($users);
+    return view('trainings.ttendace_sheet', compact('users'));
+}
     public function manageTrainers($id)
     {
         $module = TrainingModule::with('trainers')->findOrFail($id);

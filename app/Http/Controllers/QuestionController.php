@@ -80,7 +80,12 @@ class QuestionController extends Controller
         'answers' => 'required|array',
     ]);
 
-    $module = TrainingModule::findOrFail($moduleId);
+
+    $module = TrainingModule::with('documents')->findOrFail($moduleId);
+    $expectedQuestionCount = $module->documents->sum(function ($document) {
+        return (int) ($document->pivot->question_quota ?? 0);
+    });
+
     $userAnswers = $request->input('answers'); // Format: [question_id => "Yes/No"]
     $questionIds = array_keys($userAnswers);
 
@@ -89,6 +94,7 @@ class QuestionController extends Controller
     $questions = \App\Models\MasterQuestion::whereIn('id', $questionIds)->get();
 
     $totalQuestions = $questions->count();
+
     $correctCount = 0;
     $details = []; // Optional: To store which specific ones they got wrong
 
@@ -111,21 +117,21 @@ class QuestionController extends Controller
     }
 
     // 4. Calculate Percentage
-    $percentage = ($totalQuestions > 0) ? ($correctCount / $totalQuestions) * 100 : 0;
+    $percentage = ($expectedQuestionCount > 0) ? ($correctCount / $expectedQuestionCount) * 100 : 0;
     
     // Passing criteria (e.g., 80%)
-    $passMark = 80;
+    $passMark = 60;
     $isPassed = $percentage >= $passMark;
 
     // 5. Save the Result to the Database
     $result = \App\Models\ExamResult::create([
         'user_id'            => auth()->id(),
         'training_module_id' => $module->id,
-        'total_questions_attempted' => $totalQuestions,
+        'total_questions_attempted' => $expectedQuestionCount,
         'correct_answers'    => $correctCount,
         'percentage'         => $percentage,
         'is_passed'          => $isPassed,
-        // 'details'         => json_encode($details), // Uncomment if you added a 'details' column
+        'details'            => $details,
     ]);
 
     // 6. Redirect to the result view
@@ -137,10 +143,9 @@ class QuestionController extends Controller
 public function showResult($resultId)
 {
     // Load the result along with the module name to display to the user
-    $result = \App\Models\ExamResult::with('module')->findOrFail($resultId);
+    $result = \App\Models\ExamResult::with(['user', 'module'])->findOrFail($resultId);
 
-    // Security: Ensure users can only see their own results
-    if ($result->user_id !== auth()->id() && !auth()->user()->is_admin) {
+    if (!$this->canViewExamResult($result)) {
         abort(403, 'Unauthorized action.');
     }
 
@@ -160,6 +165,10 @@ public function userHistory()
 
 public function adminLogs()
 {
+    if (!$this->canViewAllExamResults()) {
+        abort(403, 'Unauthorized action.');
+    }
+
     // Fetch stats for the top cards
     $stats = [
         'total'  => \App\Models\ExamResult::count(),
@@ -179,13 +188,56 @@ public function showExamDetails($resultId)
     // Fetch the result with related user and module
     $result = \App\Models\ExamResult::with(['user', 'module'])->findOrFail($resultId);
 
-    // If you saved the answers in a 'details' JSON column, decode it
-    // If not, this view will just show the summary
-    $details = json_decode($result->details, true) ?? [];
+    if (!$this->canViewExamResult($result)) {
+        abort(403, 'Unauthorized action.');
+    }
 
-    return view('admin.exams.details', compact('result', 'details'));
+    $details = is_array($result->details)
+        ? $result->details
+        : (json_decode($result->details, true) ?? []);
+
+    $canViewAllExamResults = $this->canViewAllExamResults();
+
+    return view('admin.exams.details', compact('result', 'details', 'canViewAllExamResults'));
 }
 
+private function canViewExamResult(\App\Models\ExamResult $result): bool
+{
+    return $result->user_id === auth()->id() || $this->canViewAllExamResults();
+}
 
+private function canViewAllExamResults(): bool
+{
+    $user = auth()->user();
+
+    if (!$user) {
+        return false;
+    }
+
+    try {
+        if (method_exists($user, 'getRoleNames')) {
+            $adminRoles = ['admin', 'super admin', 'super-admin'];
+            $hasAdminRole = $user->getRoleNames()
+                ->map(fn ($role) => strtolower($role))
+                ->intersect($adminRoles)
+                ->isNotEmpty();
+
+            if ($hasAdminRole) {
+                return true;
+            }
+        }
+
+        if (method_exists($user, 'getAllPermissions')) {
+            return $user->getAllPermissions()
+                ->pluck('name')
+                ->intersect(['admin-logs', 'exam-logs', 'exams'])
+                ->isNotEmpty();
+        }
+    } catch (\Throwable $exception) {
+        return false;
+    }
+
+    return false;
+}
 
 }

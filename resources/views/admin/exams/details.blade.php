@@ -4,8 +4,8 @@
 <div class="content-wrapper">
     <div class="page-header">
         <h3 class="page-title">Assessment Breakdown</h3>
-        <a href="{{ route('admin.exams.logs') }}" class="btn btn-light btn-sm">
-            <i class="mdi mdi-arrow-left"></i> Back to Logs
+        <a href="{{ $canViewAllExamResults ? route('admin.exams.logs') : route('exams.history') }}" class="btn btn-light btn-sm">
+            <i class="mdi mdi-arrow-left"></i> {{ $canViewAllExamResults ? 'Back to Logs' : 'Back to My History' }}
         </a>
     </div>
 

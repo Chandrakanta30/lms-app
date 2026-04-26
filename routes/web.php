@@ -99,8 +99,23 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::resource('master-documents', MasterDocumentController::class);
 
-    Route::get('/master-documents/{docId}/questions', [MasterQuestionController::class, 'index'])
-        ->name('master-questions.index');
+Route::get('/exam/list', [UserExamController::class, 'index'])->name('exam.list');
+Route::get('/exams/take/{moduleId}', [QuestionController::class, 'takeExam'])->name('exams.take');
+
+Route::post('/exams/submit/{moduleId}', [QuestionController::class, 'submitExam'])->name('exams.submit');
+
+Route::get('/exams/result/{resultId}', [QuestionController::class, 'showResult'])->name('exams.result');
+Route::get('/exams/details/{resultId}', [QuestionController::class, 'showExamDetails'])->name('exams.details');
+Route::get('/exams/my-history', [QuestionController::class, 'userHistory'])->name('exams.history');
+
+Route::get('/admin/exam-logs', [QuestionController::class, 'adminLogs'])->name('admin.exams.logs');
+
+Route::resource('master-documents', MasterDocumentController::class);
+
+
+Route::get('/master-documents/{docId}/questions', [MasterQuestionController::class, 'index'])
+         ->name('master-questions.index');
+         
     Route::post('/master-documents/{docId}/questions/sync', [MasterQuestionController::class, 'sync'])
         ->name('master-questions.sync');
 

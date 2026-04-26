@@ -32,6 +32,7 @@ class RegisterController extends Controller
             'corporate_id' => $generatedCorporateId, //  FIXED
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'deparment_id' => 1
         ]);
 
         $traineeRole = Role::findOrCreate('Trainee', 'web');

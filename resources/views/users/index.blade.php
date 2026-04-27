@@ -91,15 +91,21 @@
                             <td>{{ $user->designation->name ?? 'N/A' }}</td>
 
                             <td>{{ $user->created_at->format('M d, Y') }}</td>
-                            <td>
-                                <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-dark">Edit</a>
+                            <td class="text-nowrap">
+                                <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-dark mr-1" title="Edit" aria-label="Edit">
+                                    <i class="mdi mdi-pencil"></i>
+                                </a>
 
-                                <a href="{{ route('user.training.card', $user->id) }}" class="btn btn-sm btn-dark">Show Report</a>
+                                <a href="{{ route('user.training.card', $user->id) }}" class="btn btn-sm btn-dark mr-1" title="Show Report" aria-label="Show Report">
+                                    <i class="mdi mdi-file-document-outline"></i>
+                                </a>
 
 
                                 <form action="{{ route('users.destroy', $user->id) }}" method="POST" class="d-inline">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this user?')">Delete</button>
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this user?')" title="Delete" aria-label="Delete">
+                                        <i class="mdi mdi-delete"></i>
+                                    </button>
                                 </form>
                             </td>
                         </tr>
@@ -107,8 +113,8 @@
                     </tbody>
                 </table>
             </div>
-            <div class="mt-4">
-                {{ $users->links() }} {{-- Pagination links --}}
+            <div class="d-flex justify-content-center mt-4">
+                {{ $users->appends(request()->query())->onEachSide(1)->links('pagination::bootstrap-4') }} {{-- Pagination links --}}
             </div>
         </div>
     </div>

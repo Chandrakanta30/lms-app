@@ -57,6 +57,10 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('roles', RoleController::class);
     Route::resource('permissions', PermissionController::class);
     Route::resource('trainings', TrainingModuleController::class);
+    
+    Route::get('training-list',[TrainingModuleController::class ,'traininglist'])->name('training-list');
+    Route::get('attendace/{id}', [TrainingModuleController::class ,'traineeAttendace'])->name('attendance');
+    Route::post('attendace/{id}', [TrainingModuleController::class ,'submitAttendace'])->name('attendance.submit');
 
     Route::get('trainee-progress', [UserTrainingController::class, 'index'])->name('user.training.index');
 

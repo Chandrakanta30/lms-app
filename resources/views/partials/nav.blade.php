@@ -97,30 +97,42 @@
       @canany(['user-create', 'user-list', 'trainer-list'])
         <li class="sidebar-section-label">People</li>
         <li class="nav-item" data-nav-item data-nav-text="users people trainers employees roles">
-          <a class="nav-link" data-bs-toggle="collapse" data-toggle="collapse" href="#nav-users" aria-expanded="false" aria-controls="nav-users">
-            <i class="mdi mdi-account-group-outline menu-icon"></i>
-            <span class="menu-title">Users</span>
-            <i class="menu-arrow"></i> 
-          </a>
-          <div class="collapse" id="nav-users">
-            <ul class="nav flex-column sub-menu">
-              @can('user-create')
-                <li class="nav-item" data-nav-item data-nav-text="create user employee add">
-                  <a class="nav-link" href="{{ route('users.create') }}" data-route-match="users.create">Create user</a>
-                </li>
-              @endcan
-              @can('user-list')
-                <li class="nav-item" data-nav-item data-nav-text="list users manage people">
-                  <a class="nav-link" href="{{ route('users.index') }}" data-route-match="users.index|users.edit">List users</a>
-                </li>
-              @endcan
-              @can('trainer-list')
-                <li class="nav-item" data-nav-item data-nav-text="trainers faculty">
-                  <a class="nav-link" href="{{ route('masters.trainers') }}" data-route-match="masters.trainers">List trainers</a>
-                </li>
-              @endcan
-            </ul>
+          <div class="nav-link d-flex align-items-center justify-content-between">
+            <a class="d-flex align-items-center flex-grow-1 text-reset text-decoration-none"
+               href="{{ route('users.index') }}"
+               data-route-match="users.index|users.edit">
+              <i class="mdi mdi-account-group-outline menu-icon"></i>
+              <span class="menu-title">Users</span>
+            </a>
+            @canany(['user-create', 'trainer-list'])
+              <button class="btn p-0 border-0 bg-transparent"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#nav-users"
+                      aria-expanded="false"
+                      aria-controls="nav-users"
+                      style="line-height: 1;">
+                <i class="menu-arrow"></i>
+              </button>
+            @endcanany
           </div>
+
+          @canany(['user-create', 'trainer-list'])
+            <div class="collapse" id="nav-users">
+              <ul class="nav flex-column sub-menu">
+                @can('user-create')
+                  <li class="nav-item" data-nav-item data-nav-text="create user employee add">
+                    <a class="nav-link" href="{{ route('users.create') }}" data-route-match="users.create">Create user</a>
+                  </li>
+                @endcan
+                @can('trainer-list')
+                  <li class="nav-item" data-nav-item data-nav-text="trainers faculty">
+                    <a class="nav-link" href="{{ route('masters.trainers') }}" data-route-match="masters.trainers">List trainers</a>
+                  </li>
+                @endcan
+              </ul>
+            </div>
+          @endcanany
         </li>
       @endcanany
 
@@ -238,6 +250,11 @@
             <li class="nav-item" data-nav-item data-nav-text="training schedule list exam list">
               <a class="nav-link" href="{{ route('exam.list') }}" data-route-match="exam.list">Schedule list</a>
             </li>
+            @can('training-list')
+            <li class="nav-item" data-nav-item data-nav-text="training list modules programs">
+              <a class="nav-link" href="{{ route('training-list') }}" data-route-match="trainings.index|trainings.edit|manage-trainers|manage-users|questions.*">Training List</a>
+            </li>
+            @endcan
             @can('result-history')
             <li class="nav-item" data-nav-item data-nav-text="results history">
               <a class="nav-link" href="{{ route('exams.history') }}" data-route-match="exams.history">Results history</a>

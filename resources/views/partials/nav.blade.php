@@ -92,40 +92,40 @@
           <i class="mdi mdi-view-dashboard-outline menu-icon"></i>
           <span class="menu-title">Dashboard</span>
         </a>
-      </li>
+      </li>    
 
      @canany(['user-create', 'user-list', 'trainer-list'])
-  <li class="sidebar-section-label">People</li>
+ <li class="sidebar-section-label">People</li>
 
-  <li class="nav-item" data-nav-item data-nav-text="users people trainers employees roles">
-    
-    <!-- Main clickable Users -->
-    <a class="nav-link" href="{{ route('users.index') }}" data-route-match="users.*">
-      <i class="mdi mdi-account-group-outline menu-icon"></i>
-      <span class="menu-title">Users</span>
-      <i class="menu-arrow"></i>
-    </a>
+<li class="nav-item" data-nav-item data-nav-text="users people trainers employees roles">
 
-    <!-- Submenu (always open) -->
-    <div class="collapse show" id="nav-users">
-      <ul class="nav flex-column sub-menu">
 
-        @can('user-create')
-          <li class="nav-item">
-            <a class="nav-link" href="{{ route('users.create') }}">Create user</a>
-          </li>
-        @endcan
+  <a class="nav-link user-toggle" href="{{ route('users.index') }}">
 
-        @can('trainer-list')
-          <li class="nav-item">
-            <a class="nav-link" href="{{ route('masters.trainers') }}">List trainers</a>
-          </li>
-        @endcan
+  <i class="mdi mdi-account-group-outline menu-icon"></i>
+  <span class="menu-title">Users</span>
+  <i class="menu-arrow"></i>
+</a>
+  <!-- Collapse -->
 
-      </ul>
-    </div>
+  <div class="collapse {{ str_contains($currentRoute, 'users') ? 'show' : '' }}" id="nav-users">
+  <ul class="nav flex-column sub-menu">
 
-  </li>
+    @can('user-create')
+      <li class="nav-item">
+        <a class="nav-link" href="{{ route('users.create') }}">Create user</a>
+      </li>
+    @endcan
+
+    @can('trainer-list')
+      <li class="nav-item">
+        <a class="nav-link" href="{{ route('masters.trainers') }}">List trainers</a>
+      </li>
+    @endcan
+
+  </ul>
+</div>
+</li>
 @endcanany  
 
 

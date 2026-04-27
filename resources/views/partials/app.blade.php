@@ -373,7 +373,7 @@
 
     .sidebar .nav {
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
     }
 
     .sidebar-section-label {
@@ -397,6 +397,7 @@
 
     .sidebar .nav-item {
       width: 100%;
+      margin-bottom: 2px;
     }
 
     .sidebar .nav-link {
@@ -405,7 +406,9 @@
       gap: 12px;
       min-height: 50px;
       margin: 0;
-      padding: 11px 14px;
+      padding: 6px 15px;
+      font-size: 13px;
+
       border-radius: 16px;
       color: #334155;
       border: 1px solid transparent;
@@ -469,7 +472,8 @@
 
     .sidebar .sub-menu .nav-link {
       min-height: 40px;
-      padding: 9px 12px;
+      padding: 5px 25px;
+      font-size: 12.5px;
       border-radius: 14px;
       color: var(--text-soft);
       background: transparent;
@@ -891,6 +895,33 @@
   <script src="{{ asset('assets/js/dashboard.js') }}"></script>
   <script src="{{ asset('assets/js/proBanner.js') }}"></script>
   <script src="{{ asset('assets/js/jquery.cookie.js') }}" type="text/javascript"></script>
+
+
+  <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const userLink = document.querySelector(".user-toggle");
+    const collapseDiv = document.getElementById("nav-users");
+
+    let isOpen = collapseDiv.classList.contains("show");
+
+    userLink.addEventListener("click", function (e) {
+        if (isOpen) {
+            // SECOND CLICK → CLOSE ONLY (no navigation)
+            e.preventDefault();
+            collapseDiv.classList.remove("show");
+            isOpen = false;
+        } else {
+            // FIRST CLICK → allow navigation + open
+            collapseDiv.classList.add("show");
+            isOpen = true;
+        }
+    });
+});
+</script>
+
+
+
+
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       var body = document.body;

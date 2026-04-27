@@ -68,6 +68,7 @@
       min-height: calc(100vh - 116px);
       width: 100%;
       background: transparent;
+      margin-left: calc(var(--sidebar-width) + 40px);
     }
 
     .content-wrapper {
@@ -288,21 +289,24 @@
     }
 
     .sidebar {
-      position: sticky;
-      top: 96px;
-      width: var(--sidebar-width);
-      min-width: var(--sidebar-width);
-      max-height: calc(100vh - 116px);
-      padding: 18px 14px;
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.88);
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.96)),
-        radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 28%);
-      box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
-      overflow-y: auto;
-    }
+  position: fixed;              
+  top: 82px;                    
+  left: 20px;                   
+  width: var(--sidebar-width);
+  height: calc(100vh - 82px);   
+  
+  padding: 18px 14px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.88);
 
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.96)),
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 28%);
+
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
+
+  overflow-y: auto;  /* smooth scroll */
+}
     .sidebar::-webkit-scrollbar {
       width: 8px;
     }
@@ -691,6 +695,30 @@
       color: var(--text-main);
       font-weight: 600;
     }
+
+    /* Force password + confirm password to stay in same row */
+.password-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.password-row > div {
+    flex: 1;
+    min-width: 48%;
+}
+
+/* Fix alignment for department + experience */
+.align-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.align-row > div {
+    flex: 1;
+    min-width: 30%;
+}
 
     .form-group {
       margin-bottom: 1.15rem;

@@ -94,35 +94,43 @@
         </a>
       </li>
 
-      @canany(['user-create', 'user-list', 'trainer-list'])
-        <li class="sidebar-section-label">People</li>
-        <li class="nav-item" data-nav-item data-nav-text="users people trainers employees roles">
-          <a class="nav-link" data-bs-toggle="collapse" data-toggle="collapse" href="#nav-users" aria-expanded="false" aria-controls="nav-users">
-            <i class="mdi mdi-account-group-outline menu-icon"></i>
-            <span class="menu-title">Users</span>
-            <i class="menu-arrow"></i> 
-          </a>
-          <div class="collapse" id="nav-users">
-            <ul class="nav flex-column sub-menu">
-              @can('user-create')
-                <li class="nav-item" data-nav-item data-nav-text="create user employee add">
-                  <a class="nav-link" href="{{ route('users.create') }}" data-route-match="users.create">Create user</a>
-                </li>
-              @endcan
-              @can('user-list')
-                <li class="nav-item" data-nav-item data-nav-text="list users manage people">
-                  <a class="nav-link" href="{{ route('users.index') }}" data-route-match="users.index|users.edit">List users</a>
-                </li>
-              @endcan
-              @can('trainer-list')
-                <li class="nav-item" data-nav-item data-nav-text="trainers faculty">
-                  <a class="nav-link" href="{{ route('masters.trainers') }}" data-route-match="masters.trainers">List trainers</a>
-                </li>
-              @endcan
-            </ul>
-          </div>
-        </li>
-      @endcanany
+     @canany(['user-create', 'user-list', 'trainer-list'])
+  <li class="sidebar-section-label">People</li>
+
+  <li class="nav-item" data-nav-item data-nav-text="users people trainers employees roles">
+    
+    <!-- Main clickable Users -->
+    <a class="nav-link" href="{{ route('users.index') }}" data-route-match="users.*">
+      <i class="mdi mdi-account-group-outline menu-icon"></i>
+      <span class="menu-title">Users</span>
+      <i class="menu-arrow"></i>
+    </a>
+
+    <!-- Submenu (always open) -->
+    <div class="collapse show" id="nav-users">
+      <ul class="nav flex-column sub-menu">
+
+        @can('user-create')
+          <li class="nav-item">
+            <a class="nav-link" href="{{ route('users.create') }}">Create user</a>
+          </li>
+        @endcan
+
+        @can('trainer-list')
+          <li class="nav-item">
+            <a class="nav-link" href="{{ route('masters.trainers') }}">List trainers</a>
+          </li>
+        @endcan
+
+      </ul>
+    </div>
+
+  </li>
+@endcanany  
+
+
+
+
 
       @canany(['role-create', 'role-list', 'permission-create', 'permission-list'])
         <li class="sidebar-section-label">Access</li>

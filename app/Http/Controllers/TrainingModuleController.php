@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+
+use Illuminate\Support\Facades\Auth;
+
 use App\Models\TrainingDocument;
 use App\Models\TrainingModule;
 use App\Models\User;
@@ -266,5 +269,93 @@ class TrainingModuleController extends Controller
         ->get();
 
     return view('trainings.audit_logs', compact('logs'));
+}
+  public function traininglist(Request $request){
+           $user=Auth::user();
+    if(!$user){
+        return("unauthorized user,user not found plz check");
+    }
+//  $modules = $user->modules->pluck('name');
+ $modules = $user->modules;
+    return view('trainings.assign_training_list', compact('modules'));
+
+    }
+    public function traineeAttendace($id)
+{
+    $user = Auth::user();
+
+    if (!$user) {
+        return "unauthorized user, user not found";
+    }
+
+    $module = TrainingModule::findOrFail($id);
+    if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
+        abort(403, 'Unauthorized access to this module attendance sheet.');
+    }
+
+    $users = $module->trainees()
+        ->where('users.is_trainer', 0)
+        ->with(['department', 'designation'])
+        ->orderBy('users.name')
+        ->paginate(20)
+        ->withQueryString();
+
+    $latestSignedAttendance = $module->trainees()
+        ->whereNotNull('training_user.attendance_marked_by')
+        ->orderByDesc('training_user.attendance_marked_at')
+        ->first();
+
+    $attendanceSignerName = null;
+    $attendanceSignedAt = null;
+
+    if ($latestSignedAttendance && $latestSignedAttendance->pivot) {
+        $attendanceSignerName = User::where('id', $latestSignedAttendance->pivot->attendance_marked_by)->value('name');
+        $attendanceSignedAt = $latestSignedAttendance->pivot->attendance_marked_at;
+    }
+
+    return view('trainings.attendace_sheet', compact('users', 'module', 'attendanceSignerName', 'attendanceSignedAt'));
+}
+
+public function submitAttendace(Request $request, $id)
+{
+    $user = Auth::user();
+    if (!$user) {
+        return "unauthorized user, user not found";
+    }
+
+    $module = TrainingModule::findOrFail($id);
+    if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
+        abort(403, 'Unauthorized access to submit this module attendance.');
+    }
+
+    $validated = $request->validate([
+        'listed_user_ids' => 'required|array|min:1',
+        'listed_user_ids.*' => 'integer|exists:users,id',
+        'attendance' => 'nullable|array',
+        'attendance.*' => 'in:0,1',
+    ]);
+
+    $listedUserIds = collect($validated['listed_user_ids'])->map(fn ($userId) => (int) $userId)->unique()->values();
+    $enrolledUserIds = $module->trainees()
+        ->whereIn('users.id', $listedUserIds)
+        ->pluck('users.id')
+        ->map(fn ($userId) => (int) $userId)
+        ->values();
+    $attendanceMap = $validated['attendance'] ?? [];
+
+    // Update only trainees that belong to this module.
+    $submittedAt = now();
+    foreach ($enrolledUserIds as $userId) {
+        $isPresent = isset($attendanceMap[$userId]) && (string) $attendanceMap[$userId] === '1';
+        $module->trainees()->updateExistingPivot($userId, [
+            'attendance_status' => $isPresent ? 'present' : 'absent',
+            'attendance_marked_at' => $submittedAt,
+            'attendance_marked_by' => $user->id,
+        ]);
+    }
+
+    return redirect()
+        ->route('attendance', ['id' => $module->id, 'page' => $request->query('page')])
+        ->with('success', 'Attendance submitted successfully.');
 }
 }

@@ -62,5 +62,14 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Designation::class);
     }
+            public function modules(){
+        return $this->belongsToMany(
+            TrainingModule::class,
+            'training_user',
+            'user_id',
+            'training_module_id'
+        )->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by');
+    }
+
 
 }

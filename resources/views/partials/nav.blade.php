@@ -132,33 +132,23 @@
 
 
 
-      @canany(['role-create', 'role-list', 'permission-create', 'permission-list'])
-        <li class="sidebar-section-label">Access</li>
-      @endcanany
+     @canany(['role-create', 'role-list', 'permission-create', 'permission-list'])
+  <li class="sidebar-section-label">Access</li>
+@endcanany
 
-      @canany(['role-create', 'role-list'])
-        <li class="nav-item" data-nav-item data-nav-text="roles permissions access">
-          <a class="nav-link" data-bs-toggle="collapse" data-toggle="collapse" href="#nav-roles" aria-expanded="false" aria-controls="nav-roles">
-            <i class="mdi mdi-shield-account-outline menu-icon"></i>
-            <span class="menu-title">Roles</span>
-            <i class="menu-arrow"></i>
-          </a>
-          <div class="collapse" id="nav-roles">
-            <ul class="nav flex-column sub-menu">
-              @can('role-create')
-                <li class="nav-item" data-nav-item data-nav-text="create role">
-                  <a class="nav-link" href="{{ route('roles.create') }}" data-route-match="roles.create">Create role</a>
-                </li>
-              @endcan
-              @can('role-list')
-                <li class="nav-item" data-nav-item data-nav-text="list roles">
-                  <a class="nav-link" href="{{ route('roles.index') }}" data-route-match="roles.index|roles.edit">List roles</a>
-                </li>
-              @endcan
-            </ul>
-          </div>
-        </li>
-      @endcanany
+@canany(['role-create', 'role-list'])
+  <li class="nav-item" data-nav-item data-nav-text="roles permissions access">
+    
+    <a class="nav-link" href="{{ route('roles.index') }}" data-route-match="roles.index|roles.edit">
+      <i class="mdi mdi-shield-account-outline menu-icon"></i>
+      <span class="menu-title">Roles</span>
+    </a>
+
+  </li>
+@endcanany
+
+
+      
 
       @canany(['permission-create', 'permission-list'])
         <li class="nav-item" data-nav-item data-nav-text="permissions access policies">

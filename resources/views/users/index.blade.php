@@ -11,7 +11,7 @@
         <form method="GET" action="{{ route('users.index') }}" class="row">
             <div class="col-md-3">
                 <div class="form-group">
-                    <label>Search Name/Corporate ID/Email</label>  
+                    <label>Search Name/Corporate ID</label>  
                     <input type="text" name="search" class="form-control" value="{{ request('search') }}" placeholder="Enter keyword...">
                 </div>
             </div>
@@ -67,7 +67,6 @@
                         <tr>
                             <th>Name</th>
                             <th>Corporate ID</th>
-                            <th>Email</th>
                             <th>Roles</th>
                             <th>Department</th>
                             <th>Designation</th>
@@ -80,7 +79,6 @@
                         <tr>
                             <td>{{ $user->name }}</td>
                             <td>{{ $user->corporate_id }}</td>
-                            <td>{{ $user->email }}</td>
                             <td>
                                 @foreach($user->getRoleNames() as $role)
                                     <label class="badge badge-info">{{ $role }}</label>

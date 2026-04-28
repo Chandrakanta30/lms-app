@@ -73,6 +73,7 @@ class UserController extends Controller
             'department_id' => 'nullable|exists:departments,id',
             'designation_id' => 'nullable|exists:designations,id',
             'qualification' => 'nullable|string',
+            'job_description'=>'nullable|string',
             'experience_years' => 'nullable|integer',
         ]);
 
@@ -82,6 +83,7 @@ class UserController extends Controller
                                     'department_id', 
                                     'designation_id', 
                                     'qualification', 
+                                    'job_description',
                                     'experience_years',
                                     'corporate_id',
                                     'internal_id']);
@@ -122,6 +124,7 @@ class UserController extends Controller
             'department_id' => 'nullable|exists:departments,id',
             'designation_id' => 'nullable|exists:designations,id',
             'qualification' => 'nullable|string',
+            'job_description'=>'nullable|string',
             'experience_years' => 'nullable|integer|min:0',
         ]);
     
@@ -132,6 +135,7 @@ class UserController extends Controller
             'department_id', 
             'designation_id', 
             'qualification', 
+            'job_description',
             'experience_years',
             'corporate_id',
         ]);

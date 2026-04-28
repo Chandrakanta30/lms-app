@@ -62,7 +62,9 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Designation::class);
     }
-    //         public function modules(){
+
+
+    // public function modules(){
     //     return $this->belongsToMany(
     //         TrainingModule::class,
     //         'training_user',

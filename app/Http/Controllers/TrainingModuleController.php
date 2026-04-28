@@ -6,6 +6,7 @@ use App\Models\TrainingDocument;
 use App\Models\TrainingModule;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Spatie\Activitylog\Models\Activity;
 
 class TrainingModuleController extends Controller
@@ -34,7 +35,7 @@ class TrainingModuleController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'training_type' => 'required|in:classroom,self_training',
-            'status' => 'required|in:' . implode(',', TrainingModule::STATUSES),
+            'status' => 'required|in:'.implode(',', TrainingModule::STATUSES),
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'step_names' => 'nullable|array',
@@ -71,7 +72,7 @@ class TrainingModuleController extends Controller
 
         if ($request->training_type === 'self_training' && $request->has('docs')) {
             foreach ($request->docs as $doc) {
-                if (isset($doc['file']) && $doc['file'] instanceof \Illuminate\Http\UploadedFile) {
+                if (isset($doc['file']) && $doc['file'] instanceof UploadedFile) {
                     $path = $doc['file']->store('training_materials', 'public');
 
                     TrainingDocument::create([
@@ -85,6 +86,18 @@ class TrainingModuleController extends Controller
                 }
             }
         }
+
+        activity()
+            ->performedOn($parent)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'attributes' => [
+                    'name' => $parent->name,
+                    'status' => $parent->status,
+                    'training_type' => $parent->training_type,
+                ],
+            ])
+            ->log('created');
 
         return redirect()->route('trainings.index')->with('success', 'Training program and materials created successfully.');
     }
@@ -126,12 +139,20 @@ class TrainingModuleController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'training_type' => 'required|in:classroom,self_training',
-            'status' => 'required|in:' . implode(',', TrainingModule::STATUSES),
+            'status' => 'required|in:'.implode(',', TrainingModule::STATUSES),
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'step_names' => 'nullable|array',
             'step_names.*' => 'nullable|string|max:255',
             'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
+        ]);
+
+        $oldData = $training->only([
+            'name',
+            'training_type',
+            'status',
+            'start_date',
+            'end_date',
         ]);
 
         $training->update([
@@ -143,7 +164,27 @@ class TrainingModuleController extends Controller
             'updated_by' => auth()->id(),
         ]);
 
+        $newData = $training->only([
+            'name',
+            'training_type',
+            'status',
+            'start_date',
+            'end_date',
+        ]);
+
+        activity()
+            ->performedOn($training)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'attributes' => $newData,
+            ])
+            ->log('updated');
+
+        $oldSteps = implode(', ', $training->steps()->pluck('name')->toArray());
+
         $training->steps()->delete();
+
         foreach (array_values(array_filter($request->input('step_names', []), fn ($stepName) => filled($stepName))) as $index => $stepName) {
             $training->steps()->create([
                 'name' => $stepName,
@@ -155,9 +196,26 @@ class TrainingModuleController extends Controller
             ]);
         }
 
+        $newSteps = implode(', ', $training->steps()->pluck('name')->toArray());
+
+        if ($oldSteps !== $newSteps) {
+            activity()
+                ->performedOn($training)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'old' => ['steps' => $oldSteps],
+                    'attributes' => ['steps' => $newSteps],
+                ])
+                ->log('steps updated');
+        }
+
         if ($request->training_type === 'self_training' && $request->has('docs')) {
+
+            $docNames = [];
+
             foreach ($request->docs as $doc) {
-                if (isset($doc['file']) && $doc['file'] instanceof \Illuminate\Http\UploadedFile) {
+                if (isset($doc['file']) && $doc['file'] instanceof UploadedFile) {
+
                     $path = $doc['file']->store('training_materials', 'public');
 
                     TrainingDocument::create([
@@ -168,7 +226,21 @@ class TrainingModuleController extends Controller
                         'doc_version' => $doc['version'] ?? 'v1.0',
                         'file_path' => $path,
                     ]);
+
+                    $docNames[] = $doc['name'];
                 }
+            }
+
+            if (! empty($docNames)) {
+                activity()
+                    ->performedOn($training)
+                    ->causedBy(auth()->user())
+                    ->withProperties([
+                        'attributes' => [
+                            'documents' => implode(', ', $docNames),
+                        ],
+                    ])
+                    ->log('documents updated');
             }
         }
 
@@ -177,6 +249,18 @@ class TrainingModuleController extends Controller
 
     public function destroy(TrainingModule $training)
     {
+        activity()
+            ->performedOn($training)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'attributes' => [
+                    'name' => $training->name,
+                    'training_type' => $training->training_type,
+                    'status' => $training->status,
+                ],
+            ])
+            ->log('deleted');
+
         $training->delete();
 
         return redirect()->route('trainings.index')->with('success', 'Training deleted.');
@@ -201,6 +285,10 @@ class TrainingModuleController extends Controller
     public function saveTrainers(Request $request, $id)
     {
         $module = TrainingModule::findOrFail($id);
+
+        // OLD trainers (names)
+        $oldTrainers = $module->trainers()->pluck('name')->toArray();
+
         $syncData = [];
 
         if ($request->has('trainers')) {
@@ -214,12 +302,28 @@ class TrainingModuleController extends Controller
 
         $module->trainers()->sync($syncData);
 
+        // NEW trainers (names)
+        $newTrainers = $module->trainers()->pluck('name')->toArray();
+
+        activity()
+            ->performedOn($module)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => ['trainers' => $oldTrainers],
+                'new' => ['trainers' => $newTrainers],
+            ])
+            ->log('Trainers assigned/updated');
+
         return back()->with('success', 'Trainers updated.');
     }
 
     public function saveUsers(Request $request, $id)
     {
         $module = TrainingModule::findOrFail($id);
+
+        // OLD trainees
+        $oldUsers = $module->trainees()->pluck('name')->toArray();
+
         $syncData = [];
 
         if ($request->has('users')) {
@@ -236,6 +340,19 @@ class TrainingModuleController extends Controller
 
         $module->trainees()->sync($syncData);
 
+        // NEW trainees
+        $newUsers = $module->trainees()->pluck('name')->toArray();
+
+        // ✅ LOG
+        activity()
+            ->performedOn($module)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => ['trainees' => $oldUsers],
+                'new' => ['trainees' => $newUsers],
+            ])
+            ->log('Trainees assigned/updated');
+
         return back()->with('success', 'Trainee enrollment and individual dates updated.');
     }
 
@@ -243,7 +360,9 @@ class TrainingModuleController extends Controller
     {
         $training = TrainingModule::findOrFail($id);
 
-        $training->is_active = !$training->is_active;
+        $oldStatus = $training->is_active;
+
+        $training->is_active = ! $training->is_active;
         $training->updated_by = auth()->id();
 
         if ($training->is_active) {
@@ -253,18 +372,27 @@ class TrainingModuleController extends Controller
 
         $training->save();
 
-        $status = $training->is_active ? 'Activated' : 'Deactivated';
+        $newStatus = $training->is_active;
 
-        return back()->with('success', "Training {$status} successfully!");
+        activity()
+            ->performedOn($training)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => ['status' => $oldStatus ? 'Active' : 'Inactive'],
+                'attributes' => ['status' => $newStatus ? 'Active' : 'Inactive'],
+            ])
+            ->log('status updated');
+
+        return back()->with('success', 'Training status updated!');
     }
 
     public function auditLogs($id)
-{
-    $logs = Activity::where('subject_type', 'App\\Models\\TrainingModule')
-        ->where('subject_id', $id)
-        ->latest()
-        ->get();
+    {
+        $logs = Activity::where('subject_type', 'App\\Models\\TrainingModule')
+            ->where('subject_id', $id)
+            ->latest()
+            ->get();
 
-    return view('trainings.audit_logs', compact('logs'));
-}
+        return view('trainings.audit_logs', compact('logs'));
+    }
 }

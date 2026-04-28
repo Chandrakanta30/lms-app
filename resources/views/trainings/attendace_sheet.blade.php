@@ -60,6 +60,8 @@
                             <tr>
                                 <th width="70">S.No.</th>
                                 <th>Trainee Name</th>
+                                <th>Corporate Id</th>
+                                <th>Email</th>
                                 <th width="180">Attendance</th>
                                 <th width="180">Current Status</th>
                             </tr>
@@ -72,6 +74,8 @@
                                 <tr data-user-id="{{ $user->id }}">
                                     <td>{{ $users->firstItem() + $loop->index }}</td>
                                     <td>{{ $user->name }}</td>
+                                    <td>{{ $user->corporate_id ?? '-' }}</td>
+                                    <td>{{ $user->email ?? '-' }}</td>
                                     <td>
                                         <input type="hidden" name="listed_user_ids[]" value="{{ $user->id }}">
                                         <input type="hidden" name="attendance[{{ $user->id }}]" value="{{ $isPresent ? '1' : '0' }}" class="attendance-input">
@@ -84,6 +88,7 @@
                                             <span class="toggle-knob"></span>
                                         </button>
                                     </td>
+                                    
                                     <td>
                                         <span class="badge status-badge {{ $isPresent ? 'badge-success' : 'badge-danger' }}">
                                             {{ $isPresent ? 'Present' : 'Absent' }}
@@ -92,7 +97,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="text-center">No trainees found for this module.</td>
+                                    <td colspan="6" class="text-center">No trainees found for this module.</td>
                                 </tr>
                             @endforelse
                         </tbody>

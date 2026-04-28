@@ -36,7 +36,7 @@
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Corporate ID</label>
+                            <label>Employee ID</label>
                                 <input
                                     type="text"
                                     name="corporate_id"
@@ -63,18 +63,7 @@
 
                     <!--make changes in email field -->
 
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Email Address</label>
-                            <input
-                                type="email"
-                                name="email"
-                                class="form-control"
-                                value="{{ old('email', $user->email ?? '') }}"
-                                placeholder="Optional"
-                            >
-                        </div>
-                    </div>
+                 
 
 
 

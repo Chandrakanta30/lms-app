@@ -11,7 +11,7 @@
         <form method="GET" action="{{ route('users.index') }}" class="row">
             <div class="col-md-3">
                 <div class="form-group">
-                    <label>Search Name/Corporate ID</label>  
+                    <label>Search Name/Employee ID</label>  
                     <input type="text" name="search" class="form-control" value="{{ request('search') }}" placeholder="Enter keyword...">
                 </div>
             </div>
@@ -66,7 +66,7 @@
                     <thead>
                         <tr>
                             <th>Name</th>
-                            <th>Corporate ID</th>
+                            <th>Employee ID</th>
                             <th>Roles</th>
                             <th>Department</th>
                             <th>Designation</th>

@@ -7,9 +7,11 @@ use Illuminate\Support\Facades\Auth;
 
 use App\Models\TrainingDocument;
 use App\Models\TrainingModule;
+use App\Models\TrainingSessions;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
+use Carbon\Carbon;
 
 class TrainingModuleController extends Controller
 {
@@ -352,6 +354,30 @@ public function submitAttendace(Request $request, $id)
             'attendance_marked_at' => $submittedAt,
             'attendance_marked_by' => $user->id,
         ]);
+
+
+
+        $payload = [
+            'training_date' => Carbon::now()->format('Y-m-d'),
+            'trainee_id'    => $userId,
+            'trainer_id'    => $module->trainers()->firstOrFail()->id,
+            'topic'         => 'Laravel Validation and Eloquent Basics',
+            'register_no'   => 'REG-2026-001',
+            'page_no'       => '45',
+        ];
+        
+        TrainingSessions::updateOrCreate(
+            [
+                'training_date' => $payload['training_date'],
+                'trainee_id'    => $payload['trainee_id'],
+                'trainer_id'    => $payload['trainer_id'],
+            ],
+            $payload
+        );
+
+
+
+        
     }
 
     return redirect()

@@ -70,7 +70,7 @@
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Job Role</label>
+                            <label>User Role</label>
                             <select name="roles[]" class="form-control js-example-basic-multiple" multiple="multiple" style="width:100%">
                                 @foreach($roles as $role)
                                     <option

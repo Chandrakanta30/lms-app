@@ -90,6 +90,10 @@
 
                             <td>{{ $user->created_at->format('M d, Y') }}</td>
                             <td class="text-nowrap">
+                                <a href="{{ route('users.show', $user->id) }}" class="btn btn-sm btn-info mr-1" title="View" aria-label="View">
+                                    <i class="mdi mdi-eye"></i>
+                                </a>
+
                                 <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-dark mr-1" title="Edit" aria-label="Edit">
                                     <i class="mdi mdi-pencil"></i>
                                 </a>

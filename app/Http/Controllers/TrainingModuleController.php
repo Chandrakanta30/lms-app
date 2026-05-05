@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\TrainingDocument;
 use App\Models\TrainingModule;
 use App\Models\User;
+use App\Models\Venue;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
 
@@ -61,7 +62,7 @@ class TrainingModuleController extends Controller
             'activated_by' => auth()->id(),
         ]);
 
-        foreach (array_values(array_filter($request->input('step_names', []), fn ($stepName) => filled($stepName))) as $index => $stepName) {
+        foreach (array_values(array_filter($request->input('step_names', []), fn($stepName) => filled($stepName))) as $index => $stepName) {
             $parent->steps()->create([
                 'name' => $stepName,
                 'step_number' => $index + 1,
@@ -147,7 +148,7 @@ class TrainingModuleController extends Controller
         ]);
 
         $training->steps()->delete();
-        foreach (array_values(array_filter($request->input('step_names', []), fn ($stepName) => filled($stepName))) as $index => $stepName) {
+        foreach (array_values(array_filter($request->input('step_names', []), fn($stepName) => filled($stepName))) as $index => $stepName) {
             $training->steps()->create([
                 'name' => $stepName,
                 'step_number' => $index + 1,
@@ -187,10 +188,15 @@ class TrainingModuleController extends Controller
 
     public function manageTrainers($id)
     {
-        $module = TrainingModule::with('trainers')->findOrFail($id);
-        $allUsers = User::orderBy('name', 'asc')->where('is_trainer', 1)->get();
+        $module = TrainingModule::with(['trainers', 'venues'])->findOrFail($id);
 
-        return view('trainings.assign_trainers', compact('module', 'allUsers'));
+        $allUsers = User::orderBy('name', 'asc')
+            ->where('is_trainer', 1)
+            ->get();
+
+        $allVenues = Venue::orderBy('name', 'asc')->get();
+
+        return view('trainings.assign_trainers', compact('module', 'allUsers', 'allVenues'));
     }
 
     public function manageUsers($id)
@@ -216,8 +222,26 @@ class TrainingModuleController extends Controller
         }
 
         $module->trainers()->sync($syncData);
+        $venueData = [];
 
-        return back()->with('success', 'Trainers updated.');
+        if ($request->filled('venues')) {
+            foreach ($request->venues as $venue) {
+
+                if (empty($venue['venue_id']))
+                    continue;
+
+                $venueData[] = $venue['venue_id'];
+            }
+        }
+
+   
+        $module->venues()->sync($venueData);
+
+
+    
+        return back()->with('success', 'Trainers and venues updated successfully!');
+
+      
     }
 
     public function saveUsers(Request $request, $id)
@@ -238,6 +262,7 @@ class TrainingModuleController extends Controller
         }
 
         $module->trainees()->sync($syncData);
+
 
         return back()->with('success', 'Trainee enrollment and individual dates updated.');
     }
@@ -262,100 +287,101 @@ class TrainingModuleController extends Controller
     }
 
     public function auditLogs($id)
-{
-    $logs = Activity::where('subject_type', 'App\\Models\\TrainingModule')
-        ->where('subject_id', $id)
-        ->latest()
-        ->get();
+    {
+        $logs = Activity::where('subject_type', 'App\\Models\\TrainingModule')
+            ->where('subject_id', $id)
+            ->latest()
+            ->get();
 
-    return view('trainings.audit_logs', compact('logs'));
-}
-  public function traininglist(Request $request){
-           $user=Auth::user();
-    if(!$user){
-        return("unauthorized user,user not found plz check");
+        return view('trainings.audit_logs', compact('logs'));
     }
-//  $modules = $user->modules->pluck('name');
- $modules = $user->modules;
-    return view('trainings.assign_training_list', compact('modules'));
+    public function traininglist(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return ("unauthorized user,user not found plz check");
+        }
+        //  $modules = $user->modules->pluck('name');
+        $modules = $user->modules;
+        return view('trainings.assign_training_list', compact('modules'));
 
     }
     public function traineeAttendace($id)
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    if (!$user) {
-        return "unauthorized user, user not found";
+        if (!$user) {
+            return "unauthorized user, user not found";
+        }
+
+        $module = TrainingModule::findOrFail($id);
+        if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
+            abort(403, 'Unauthorized access to this module attendance sheet.');
+        }
+
+        $users = $module->trainees()
+            ->where('users.is_trainer', 0)
+            ->with(['department', 'designation'])
+            ->orderBy('users.name')
+            ->paginate(20)
+            ->withQueryString();
+
+        $latestSignedAttendance = $module->trainees()
+            ->whereNotNull('training_user.attendance_marked_by')
+            ->orderByDesc('training_user.attendance_marked_at')
+            ->first();
+
+        $attendanceSignerName = null;
+        $attendanceSignedAt = null;
+
+        if ($latestSignedAttendance && $latestSignedAttendance->pivot) {
+            $attendanceSignerName = User::where('id', $latestSignedAttendance->pivot->attendance_marked_by)->value('name');
+            $attendanceSignedAt = $latestSignedAttendance->pivot->attendance_marked_at;
+        }
+
+        return view('trainings.attendace_sheet', compact('users', 'module', 'attendanceSignerName', 'attendanceSignedAt'));
     }
 
-    $module = TrainingModule::findOrFail($id);
-    if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
-        abort(403, 'Unauthorized access to this module attendance sheet.');
-    }
+    public function submitAttendace(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return "unauthorized user, user not found";
+        }
 
-    $users = $module->trainees()
-        ->where('users.is_trainer', 0)
-        ->with(['department', 'designation'])
-        ->orderBy('users.name')
-        ->paginate(20)
-        ->withQueryString();
+        $module = TrainingModule::findOrFail($id);
+        if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
+            abort(403, 'Unauthorized access to submit this module attendance.');
+        }
 
-    $latestSignedAttendance = $module->trainees()
-        ->whereNotNull('training_user.attendance_marked_by')
-        ->orderByDesc('training_user.attendance_marked_at')
-        ->first();
-
-    $attendanceSignerName = null;
-    $attendanceSignedAt = null;
-
-    if ($latestSignedAttendance && $latestSignedAttendance->pivot) {
-        $attendanceSignerName = User::where('id', $latestSignedAttendance->pivot->attendance_marked_by)->value('name');
-        $attendanceSignedAt = $latestSignedAttendance->pivot->attendance_marked_at;
-    }
-
-    return view('trainings.attendace_sheet', compact('users', 'module', 'attendanceSignerName', 'attendanceSignedAt'));
-}
-
-public function submitAttendace(Request $request, $id)
-{
-    $user = Auth::user();
-    if (!$user) {
-        return "unauthorized user, user not found";
-    }
-
-    $module = TrainingModule::findOrFail($id);
-    if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
-        abort(403, 'Unauthorized access to submit this module attendance.');
-    }
-
-    $validated = $request->validate([
-        'listed_user_ids' => 'required|array|min:1',
-        'listed_user_ids.*' => 'integer|exists:users,id',
-        'attendance' => 'nullable|array',
-        'attendance.*' => 'in:0,1',
-    ]);
-
-    $listedUserIds = collect($validated['listed_user_ids'])->map(fn ($userId) => (int) $userId)->unique()->values();
-    $enrolledUserIds = $module->trainees()
-        ->whereIn('users.id', $listedUserIds)
-        ->pluck('users.id')
-        ->map(fn ($userId) => (int) $userId)
-        ->values();
-    $attendanceMap = $validated['attendance'] ?? [];
-
-    // Update only trainees that belong to this module.
-    $submittedAt = now();
-    foreach ($enrolledUserIds as $userId) {
-        $isPresent = isset($attendanceMap[$userId]) && (string) $attendanceMap[$userId] === '1';
-        $module->trainees()->updateExistingPivot($userId, [
-            'attendance_status' => $isPresent ? 'present' : 'absent',
-            'attendance_marked_at' => $submittedAt,
-            'attendance_marked_by' => $user->id,
+        $validated = $request->validate([
+            'listed_user_ids' => 'required|array|min:1',
+            'listed_user_ids.*' => 'integer|exists:users,id',
+            'attendance' => 'nullable|array',
+            'attendance.*' => 'in:0,1',
         ]);
-    }
 
-    return redirect()
-        ->route('attendance', ['id' => $module->id, 'page' => $request->query('page')])
-        ->with('success', 'Attendance submitted successfully.');
-}
+        $listedUserIds = collect($validated['listed_user_ids'])->map(fn($userId) => (int) $userId)->unique()->values();
+        $enrolledUserIds = $module->trainees()
+            ->whereIn('users.id', $listedUserIds)
+            ->pluck('users.id')
+            ->map(fn($userId) => (int) $userId)
+            ->values();
+        $attendanceMap = $validated['attendance'] ?? [];
+
+        // Update only trainees that belong to this module.
+        $submittedAt = now();
+        foreach ($enrolledUserIds as $userId) {
+            $isPresent = isset($attendanceMap[$userId]) && (string) $attendanceMap[$userId] === '1';
+            $module->trainees()->updateExistingPivot($userId, [
+                'attendance_status' => $isPresent ? 'present' : 'absent',
+                'attendance_marked_at' => $submittedAt,
+                'attendance_marked_by' => $user->id,
+            ]);
+        }
+
+        return redirect()
+            ->route('attendance', ['id' => $module->id, 'page' => $request->query('page')])
+            ->with('success', 'Attendance submitted successfully.');
+    }
 }

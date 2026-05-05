@@ -10,11 +10,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;  //soft delete
 class TrainingModule extends Model
 {
     use LogsActivity;
-     use SoftDeletes;
+    use SoftDeletes;
 
     public const STATUSES = ['created', 'inreview', 'reviewed', 'approved'];
 
-    protected $fillable = ['name', 'parent_id', 'step_number','training_type','start_date','end_date','status','created_by','updated_by','activated_at','activated_by'];
+    protected $fillable = ['name', 'parent_id', 'step_number', 'training_type', 'start_date', 'end_date', 'status', 'created_by', 'updated_by', 'activated_at', 'activated_by'];
 
     // Get the Main Training (Parent)
     public function parent()
@@ -36,10 +36,10 @@ class TrainingModule extends Model
     public function documents()
     {
         return $this->belongsToMany(MasterDocument::class, 'module_document_pivot')
-                    ->withPivot('question_quota') // Crucial: allows access to the quota
-                    ->withTimestamps();
+            ->withPivot('question_quota') // Crucial: allows access to the quota
+            ->withTimestamps();
     }
-    
+
     public function questions()
     {
         // A Training Module HAS MANY Questions
@@ -53,27 +53,38 @@ class TrainingModule extends Model
     public function trainers()
     {
         return $this->belongsToMany(User::class, 'trainer_training', 'training_module_id', 'user_id')
-                    ->withPivot('start_date', 'end_date')
-                    ->withTimestamps();
+            ->withPivot('start_date', 'end_date')
+            ->withTimestamps();
     }
-
+    public function venues()
+    {
+        return $this->belongsToMany(
+            Venue::class,
+            'module_venue',
+            'training_module_id',
+            'venue_id'
+        );
+    }
     // Relationship for Trainees (Enrollment)
     public function trainees()
     {
         return $this->belongsToMany(User::class, 'training_user', 'training_module_id', 'user_id')
-                    ->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by')
-                    ->withTimestamps();
+            ->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by')
+            ->withTimestamps();
     }
 
-    public function creator() {
+    public function creator()
+    {
         return $this->belongsTo(User::class, 'created_by');
     }
-    
-    public function editor() {
+
+    public function editor()
+    {
         return $this->belongsTo(User::class, 'updated_by');
     }
-    
-    public function activator() {
+
+    public function activator()
+    {
         return $this->belongsTo(User::class, 'activated_by');
     }
 
@@ -86,8 +97,8 @@ class TrainingModule extends Model
             ->useLogName('training_management'); // Categorize these logs
     }
     public function users()
-{
-    return $this->belongsToMany(User::class, 'training_user', 'training_module_id', 'user_id')
-                ->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by');
-}
+    {
+        return $this->belongsToMany(User::class, 'training_user', 'training_module_id', 'user_id')
+            ->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by');
+    }
 }

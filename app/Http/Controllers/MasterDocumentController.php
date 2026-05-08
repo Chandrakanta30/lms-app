@@ -17,6 +17,18 @@ class MasterDocumentController extends Controller
         return view('documents.index', compact('documents'));
     }
 
+    public function show($id)
+    {
+        $document = MasterDocument::with(['uploader', 'reviewer', 'modules'])
+            ->withCount('questions')
+            ->findOrFail($id);
+
+        $extension = strtolower(pathinfo($document->file_path, PATHINFO_EXTENSION));
+        $isPreviewable = in_array($extension, ['pdf']);
+
+        return view('documents.show', compact('document', 'isPreviewable'));
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -38,6 +50,17 @@ class MasterDocumentController extends Controller
         ]);
 
         return back()->with('success', 'Master Document added to Global Pool.');
+    }
+
+    public function review($id)
+    {
+        $document = MasterDocument::findOrFail($id);
+        $document->update([
+            'reviewed_by' => auth()->id(),
+            'reviewed_at' => now(),
+        ]);
+
+        return back()->with('success', 'Document review submitted successfully.');
     }
 
     public function destroy($id)

@@ -62,13 +62,17 @@
                                     @IF(!$doc->reviewed_by)
                                     
                                     
-                                    <form action="{{ route('master-documents.review', $doc->id) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="btn btn-success btn-sm">
-                                            <i class="mdi mdi-check-decagram"></i>
-                                            {{ $doc->reviewed_by ? 'Re-Review' : 'Review' }}
-                                        </button>
-                                    </form>
+                                    <button
+                                        type="button"
+                                        class="btn btn-success btn-sm open-review-sign-modal"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#reviewSignModal"
+                                        data-doc-id="{{ $doc->id }}"
+                                        data-doc-name="{{ $doc->doc_name }}"
+                                        data-review-url="{{ route('master-documents.review', $doc->id) }}">
+                                        <i class="mdi mdi-check-decagram"></i>
+                                        {{ $doc->reviewed_by ? 'Re-Review' : 'Review' }}
+                                    </button>
                                     @ENDIF
 
                                     <form action="{{ route('master-documents.destroy', $doc->id) }}" method="POST">
@@ -144,4 +148,75 @@
         </form>
     </div>
 </div>
+
+<div class="modal fade" id="reviewSignModal" tabindex="-1" aria-labelledby="reviewSignModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reviewSignModalLabel">Review & Approve Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2 text-muted">You are about to review:</p>
+                <h6 id="reviewTargetDocName" class="mb-3"></h6>
+
+                <div id="reviewSignaturePreview" class="d-none">
+                    <div class="signature-box p-2 text-center" style="border: 1px dashed #28a745; background: #f0fff4; border-radius: 4px;">
+                        <i class="fas fa-certificate text-success mb-1" title="Verified Signature"></i>
+                        <div class="signature-text" style="font-family: 'Dancing Script', cursive; font-size: 1.2rem; color: #003366;">
+                            {{ auth()->user()->name ?? 'Reviewer' }}
+                        </div>
+                    </div>
+                    <small class="text-muted d-block mt-2">Digital signature captured. Finalizing review...</small>
+                </div>
+
+                <form id="reviewSignForm" method="POST" class="d-none">
+                    @csrf
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="reviewSignApproveBtn">
+                    <i class="fas fa-signature mr-1"></i> Sign & Approve
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var reviewSignModal = document.getElementById('reviewSignModal');
+        var reviewTargetDocName = document.getElementById('reviewTargetDocName');
+        var reviewSignForm = document.getElementById('reviewSignForm');
+        var reviewSignaturePreview = document.getElementById('reviewSignaturePreview');
+        var reviewSignApproveBtn = document.getElementById('reviewSignApproveBtn');
+        var selectedReviewUrl = null;
+
+        document.querySelectorAll('.open-review-sign-modal').forEach(function (button) {
+            button.addEventListener('click', function () {
+                selectedReviewUrl = this.getAttribute('data-review-url');
+                reviewTargetDocName.textContent = this.getAttribute('data-doc-name') || 'Selected Document';
+                reviewSignaturePreview.classList.add('d-none');
+                reviewSignApproveBtn.disabled = false;
+            });
+        });
+
+        reviewSignApproveBtn.addEventListener('click', function () {
+            if (!selectedReviewUrl) {
+                return;
+            }
+
+            this.disabled = true;
+            reviewSignaturePreview.classList.remove('d-none');
+            reviewSignForm.setAttribute('action', selectedReviewUrl);
+
+            setTimeout(function () {
+                var modalInstance = bootstrap.Modal.getOrCreateInstance(reviewSignModal);
+                modalInstance.hide();
+                reviewSignForm.submit();
+            }, 700);
+        });
+    })();
+</script>
 @endsection

@@ -47,48 +47,64 @@
 
                             {{-- CHANGES --}}
                             <td>
-                                @php
-                                    $new = $log->properties['attributes'] ?? [];
-                                    $old = $log->properties['old'] ?? [];
-                                @endphp
+    @php
+        $attributes = $log->properties['attributes'] ?? [];
+        $old = $log->properties['old'] ?? [];
+        $new = $log->properties['new'] ?? [];
+    @endphp
 
-                                @if(count($new))
-                                    @foreach($new as $key => $value)
-                                        @php
-                                            $oldValue = $old[$key] ?? null;
+    {{-- CASE 1: Default Laravel updates (attributes) --}}
+    @if(count($attributes))
+        @foreach($attributes as $key => $value)
+            @php
+                $oldValue = $old[$key] ?? null;
 
-                                            // Default values
-                                            $formattedNew = $value;
-                                            $formattedOld = $oldValue;
+                $formattedNew = $value;
+                $formattedOld = $oldValue;
 
-                                            // Custom formatting
-                                            if ($key == 'is_active') {
-                                                $formattedNew = $value ? 'Active' : 'Inactive';
-                                                $formattedOld = isset($oldValue) ? ($oldValue ? 'Active' : 'Inactive') : null;
-                                            }
+                if ($key == 'is_active') {
+                    $formattedNew = $value ? 'Active' : 'Inactive';
+                    $formattedOld = isset($oldValue) ? ($oldValue ? 'Active' : 'Inactive') : null;
+                }
 
-                                            if ($key == 'training_type') {
-                                                $formattedNew = ucfirst(str_replace('_', ' ', $value));
-                                                $formattedOld = isset($oldValue) ? ucfirst(str_replace('_', ' ', $oldValue)) : null;
-                                            }
-                                        @endphp
+                if ($key == 'training_type') {
+                    $formattedNew = ucfirst(str_replace('_', ' ', $value));
+                    $formattedOld = isset($oldValue) ? ucfirst(str_replace('_', ' ', $oldValue)) : null;
+                }
+            @endphp
 
-                                        <div>
-                                            <strong>
-                                                    {{ $key == 'is_active' ? 'Status' : ucfirst(str_replace('_',' ', $key)) }}:
-                                            </strong>
+            <div>
+                <strong>{{ ucfirst(str_replace('_',' ', $key)) }}:</strong>
 
-                                            @if(!is_null($formattedOld))
-                                                <span class="text-danger">{{ $formattedOld }}</span> →
-                                            @endif
+                @if(!is_null($formattedOld))
+                    <span class="text-danger">{{ $formattedOld }}</span> →
+                @endif
 
-                                            <span class="text-success">{{ $formattedNew }}</span>
-                                        </div>
-                                    @endforeach
-                                @else
-                                    <span class="text-muted">No visible changes</span>
-                                @endif
-                            </td>
+                <span class="text-success">{{ $formattedNew }}</span>
+            </div>
+        @endforeach
+
+    {{-- CASE 2: Custom logs (trainers / trainees) --}}
+    @elseif(count($new))
+        @foreach($new as $key => $value)
+            <div>
+                <strong>{{ ucfirst($key) }}:</strong>
+
+                <span class="text-danger">
+                    {{ implode(', ', $old[$key] ?? []) }}
+                </span>
+                →
+                <span class="text-success">
+                    {{ implode(', ', $value ?? []) }}
+                </span>
+            </div>
+        @endforeach
+
+    {{-- CASE 3: Nothing --}}
+    @else
+        <span class="text-muted">No visible changes</span>
+    @endif
+</td>
 
                             {{-- DATE --}}
                             <td>

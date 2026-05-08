@@ -20,7 +20,7 @@ class AuditLogController extends Controller
         return view('audit_logs.index', compact('logs'));
     }
 
-    // ✅ THIS METHOD MUST EXIST
+  
     public function moduleLogs($id)
     {
         $logs = Activity::with('causer')

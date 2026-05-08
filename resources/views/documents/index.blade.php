@@ -28,52 +28,66 @@
 
 
                     <tbody>
-    @forelse($documents as $doc)
-    <tr>
-        <td><strong>{{ $doc->doc_number }}</strong></td>
-        <td>{{ $doc->doc_name }}</td>
-        <td>
-            <span class="badge badge-outline-info text-dark">
-                {{ $doc->doc_type }}
-            </span>
-        </td>
+                        @forelse($documents as $doc)
+                        <tr>
+                            <td><strong>{{ $doc->doc_number }}</strong></td>
+                            <td>{{ $doc->doc_name }}</td>
+                            <td>
+                                <span class="badge badge-outline-info text-dark">
+                                    {{ $doc->doc_type }}
+                                </span>
+                            </td>
 
-        <!-- ✅ NEW COLUMNS -->
-        <td>{{ $doc->uploader->name ?? 'N/A' }}</td>
-        <td>{{ $doc->reviewer->name ?? 'Not Reviewed' }}</td>
-        <td>
-            {{ $doc->reviewed_at 
-            ? $doc->reviewed_at->diffForHumans() 
-            : 'Not Reviewed' 
-            }}
-        </td>
-        <td>
-            <a href="{{ route('master-questions.index', $doc->id) }}" class="btn btn-sm btn-dark">
-                Manage Pool ({{ $doc->questions_count }})
-            </a>
-        </td>
+                            <!-- ✅ NEW COLUMNS -->
+                            <td>{{ $doc->uploader->name ?? 'N/A' }}</td>
+                            <td>{{ $doc->reviewer->name ?? 'Not Reviewed' }}</td>
+                            <td>
+                                {{ $doc->reviewed_at 
+                                ? $doc->reviewed_at->diffForHumans() 
+                                : 'Not Reviewed' 
+                                }}
+                            </td>
+                            <td>
+                                <a href="{{ route('master-questions.index', $doc->id) }}" class="btn btn-sm btn-dark">
+                                    Manage Pool ({{ $doc->questions_count }})
+                                </a>
+                            </td>
 
-        <td>
-            <div class="btn-group">
-                <a href="{{ asset('storage/' . $doc->file_path) }}" target="_blank" class="btn btn-info btn-sm">View</a>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ route('master-documents.show', $doc->id) }}" class="btn btn-info btn-sm">
+                                        <i class="mdi mdi-eye"></i> Show
+                                    </a>
 
-                <form action="{{ route('master-documents.destroy', $doc->id) }}" method="POST">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                </form>
-            </div>
-        </td>
-    </tr>
+                                    @IF(!$doc->reviewed_by)
+                                    
+                                    
+                                    <form action="{{ route('master-documents.review', $doc->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            <i class="mdi mdi-check-decagram"></i>
+                                            {{ $doc->reviewed_by ? 'Re-Review' : 'Review' }}
+                                        </button>
+                                    </form>
+                                    @ENDIF
 
-    @empty
-    <tr>
-        <td colspan="8" class="text-center">
-            No documents found in the master pool.
-        </td>
-    </tr>
-    @endforelse
-</tbody>
+                                    <form action="{{ route('master-documents.destroy', $doc->id) }}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+
+                        @empty
+                        <tr>
+                            <td colspan="8" class="text-center">
+                                No documents found in the master pool.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
 
 
 

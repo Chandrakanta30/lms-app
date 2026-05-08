@@ -30,7 +30,7 @@
 
                     <div class="mt-auto">
                         <a href="{{ $attendanceUrl }}" class="btn btn-primary btn-block">
-                            <i class="mdi mdi-clipboard-text-outline"></i> Open Attendance
+                            <i class="mdi mdi-clipboard-text-outline"></i> Mark Attendance
                         </a>
                     </div>
                 </div>

@@ -68,6 +68,7 @@
       min-height: calc(100vh - 116px);
       width: 100%;
       background: transparent;
+      margin-left: calc(var(--sidebar-width) + 40px);
     }
 
     .content-wrapper {
@@ -288,21 +289,24 @@
     }
 
     .sidebar {
-      position: sticky;
-      top: 96px;
-      width: var(--sidebar-width);
-      min-width: var(--sidebar-width);
-      max-height: calc(100vh - 116px);
-      padding: 18px 14px;
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.88);
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.96)),
-        radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 28%);
-      box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
-      overflow-y: auto;
-    }
+  position: fixed;              
+  top: 82px;                    
+  left: 20px;                   
+  width: var(--sidebar-width);
+  height: calc(100vh - 82px);   
+  
+  padding: 18px 14px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.88);
 
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.96)),
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 28%);
+
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
+
+  overflow-y: auto;  /* smooth scroll */
+}
     .sidebar::-webkit-scrollbar {
       width: 8px;
     }
@@ -369,7 +373,7 @@
 
     .sidebar .nav {
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
     }
 
     .sidebar-section-label {
@@ -393,6 +397,7 @@
 
     .sidebar .nav-item {
       width: 100%;
+      margin-bottom: 2px;
     }
 
     .sidebar .nav-link {
@@ -401,7 +406,9 @@
       gap: 12px;
       min-height: 50px;
       margin: 0;
-      padding: 11px 14px;
+      padding: 6px 15px;
+      font-size: 13px;
+
       border-radius: 16px;
       color: #334155;
       border: 1px solid transparent;
@@ -465,7 +472,8 @@
 
     .sidebar .sub-menu .nav-link {
       min-height: 40px;
-      padding: 9px 12px;
+      padding: 5px 25px;
+      font-size: 12.5px;
       border-radius: 14px;
       color: var(--text-soft);
       background: transparent;
@@ -692,6 +700,30 @@
       font-weight: 600;
     }
 
+    /* Force password + confirm password to stay in same row */
+.password-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.password-row > div {
+    flex: 1;
+    min-width: 48%;
+}
+
+/* Fix alignment for department + experience */
+.align-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.align-row > div {
+    flex: 1;
+    min-width: 30%;
+}
+
     .form-group {
       margin-bottom: 1.15rem;
     }
@@ -863,6 +895,33 @@
   <script src="{{ asset('assets/js/dashboard.js') }}"></script>
   <script src="{{ asset('assets/js/proBanner.js') }}"></script>
   <script src="{{ asset('assets/js/jquery.cookie.js') }}" type="text/javascript"></script>
+
+
+  <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const userLink = document.querySelector(".user-toggle");
+    const collapseDiv = document.getElementById("nav-users");
+
+    let isOpen = collapseDiv.classList.contains("show");
+
+    userLink.addEventListener("click", function (e) {
+        if (isOpen) {
+            // SECOND CLICK → CLOSE ONLY (no navigation)
+            e.preventDefault();
+            collapseDiv.classList.remove("show");
+            isOpen = false;
+        } else {
+            // FIRST CLICK → allow navigation + open
+            collapseDiv.classList.add("show");
+            isOpen = true;
+        }
+    });
+});
+</script>
+
+
+
+
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       var body = document.body;

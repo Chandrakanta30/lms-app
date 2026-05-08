@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Designation;
 use App\Models\Department;
+use App\Models\ExamResult;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
@@ -58,6 +59,26 @@ class UserController extends Controller
         $designations = Designation::all();
 
         return view('users.create', compact('roles','departments','designations'));
+    }
+
+    // 2A. SHOW USER PROFILE
+    public function show(User $user) {
+        $user->load(['department', 'designation', 'roles', 'trainings']);
+
+        $examResults = ExamResult::with('module')
+            ->where('user_id', $user->id)
+            ->latest()
+            ->take(6)
+            ->get();
+
+        $stats = [
+            'roles' => $user->roles->count(),
+            'trainings' => $user->trainings->count(),
+            'passed_exams' => $examResults->where('is_passed', true)->count(),
+            'failed_exams' => $examResults->where('is_passed', false)->count(),
+        ];
+
+        return view('users.show', compact('user', 'examResults', 'stats'));
     }
 
     // 3. STORE NEW USER

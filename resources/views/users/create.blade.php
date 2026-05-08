@@ -55,37 +55,33 @@
 
 
 
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>User Role</label>
-                                <select name="roles[]" class="form-control js-example-basic-multiple" multiple="multiple"
-                                    style="width:100%">
-                                    @foreach ($roles as $role)
-                                        <option value="{{ $role->name }}"
-                                            {{ isset($user) && $user->hasRole($role->name) ? 'selected' : '' }}>
-                                            {{ $role->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
+                   <div class="col-md-12">
+                        <div class="form-group">
+                            <label>Job Role</label>
+                            <select name="roles[]" class="form-control js-example-basic-multiple" multiple>
+                            @foreach($roles as $role)
+                                <option value="{{ $role->name }}"
+                                    {{ (isset($user) && $user->hasRole($role->name)) ? 'selected' : '' }}>
+                                    {{ $role->name }}
+                                </option>
+                            @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="password-row">
+                        <div class="form-group">
+                            <label>Password {{ isset($user) ? '(Leave blank to keep current)' : '' }}</label>
+                            <input type="password" name="password" class="form-control" {{ isset($user) ? '' : 'required' }}>
                         </div>
 
-                        <div class="col-md-6">
+                        @if(!isset($user))
                             <div class="form-group">
-                                <label>Password {{ isset($user) ? '(Leave blank to keep current)' : '' }}</label>
-                                <input type="password" name="password" class="form-control"
-                                    {{ isset($user) ? '' : 'required' }}>
-                            </div>
-                        </div>
-
-                        @if (!isset($user))
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Confirm Password</label>
-                                    <input type="password" name="password_confirmation" class="form-control" required>
-                                </div>
+                                <label>Confirm Password</label>
+                                <input type="password" name="password_confirmation" class="form-control" required>
                             </div>
                         @endif
+                    </div>
 
                         <div class="col-md-4">
                             <div class="form-group">
@@ -125,20 +121,18 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Highest Qualification</label>
-                                <input type="text" name="qualification" class="form-control"
-                                    value="{{ old('qualification', $user->qualification ?? '') }}"
-                                    placeholder="e.g. M.Sc. Chemistry">
-                            </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Qualification</label>
+                            <input
+                                type="text"
+                                name="qualification"
+                                class="form-control"
+                                value="{{ old('qualification', $user->qualification ?? '') }}"
+                                placeholder="e.g. M.Sc. Chemistry"
+                            >
                         </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Job Description</label>
-                                <textarea name="job_description" class="form-control" rows="3" placeholder="Enter job description...">{{ old('job_description', $user->job_description ?? '') }}</textarea>
-                            </div>
-                        </div>
+                    </div>
 
                         <div class="col-md-6 d-flex align-items-end">
                             <div class="form-group w-100 mb-md-4">

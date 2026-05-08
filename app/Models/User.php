@@ -23,6 +23,7 @@ class User extends Authenticatable
         'department_id', 
         'designation_id', 
         'qualification', 
+        'job_description',
         'experience_years',
         'is_trainer',
         'corporate_id',

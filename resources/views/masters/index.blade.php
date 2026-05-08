@@ -1,7 +1,7 @@
 @extends('partials.app')
 @section('content')
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
                     <h4 class="card-title">Departments</h4>
@@ -10,7 +10,7 @@
                         <input type="text" name="name" class="form-control mr-2" placeholder="Dept Name" required>
                         <button type="submit" class="btn btn-primary">Add</button>
                     </form>
-                    <ul class="list-group">
+                    <ul class="list-group scrollable-list">
                         @foreach ($departments as $dept)
                             <li class="list-group-item d-flex justify-content-between">
                                 {{ $dept->name }}
@@ -25,7 +25,7 @@
             </div>
         </div>
 
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
                     <h4 class="card-title">Designations</h4>
@@ -34,7 +34,7 @@
                         <input type="text" name="name" class="form-control mr-2" placeholder="e.g. Manager" required>
                         <button type="submit" class="btn btn-info">Add</button>
                     </form>
-                    <ul class="list-group">
+                    <ul class="list-group scrollable-list">
                         @foreach ($designations as $desg)
                             <li class="list-group-item d-flex justify-content-between">
                                 {{ $desg->name }}
@@ -48,9 +48,7 @@
                 </div>
             </div>
         </div>
-    </div>
-    <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
                     <h4 class="card-title">Venus</h4>
@@ -59,7 +57,7 @@
                         <input type="text" name="name" class="form-control mr-2" placeholder="e.g. Room-1" required>
                         <button type="submit" class="btn btn-info">Add</button>
                     </form>
-                    <ul class="list-group">
+                    <ul class="list-group scrollable-list">
                         @foreach ($venues as $venue)
                             <li class="list-group-item d-flex justify-content-between">
                                 {{ $venue->name }}

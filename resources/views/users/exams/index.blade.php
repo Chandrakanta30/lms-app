@@ -12,7 +12,7 @@
     <div class="row">
         @foreach($modules as $module)
         @php
-            $totalQuestions = $module->documents->sum('pivot.question_quota');
+            $totalQuestions = $module->documents->sum(fn ($document) => (int) ($document->pivot->question_quota ?? 0));
             $status = $module->latestResult;
         @endphp
         <div class="col-md-6 grid-margin stretch-card">
@@ -48,7 +48,7 @@
                     <div class="mt-auto">
                         @if($status && $status->is_passed)
                             <button class="btn btn-outline-secondary btn-block" disabled>Completed</button>
-                        @else
+                        @elseif(!$status)
                             <a href="{{ route('exams.take', $module->id) }}" class="btn btn-primary btn-block shadow">
                                 <i class="mdi mdi-play"></i> Start Assessment
                             </a>

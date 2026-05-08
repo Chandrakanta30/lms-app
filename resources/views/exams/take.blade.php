@@ -91,7 +91,7 @@
                             @if($question->question_type == 'yes_no' || $question->question_type == '')
                                 <div class="col-6">
                                     <label class="w-100">
-                                        <input type="radio" name="answers[{{ $question->id }}]" value="Yes" class="answer-radio" required data-qindex="{{ $index }}">
+                                        <input type="radio" name="answers[{{ $question->id }}]" value="Yes" class="answer-radio" data-qindex="{{ $index }}">
                                         <span class="answer-option">
                                             <i class="mdi mdi-check-circle-outline d-block mb-1" style="font-size: 20px;"></i>
                                             <strong>YES</strong>
@@ -100,7 +100,7 @@
                                 </div>
                                 <div class="col-6">
                                     <label class="w-100">
-                                        <input type="radio" name="answers[{{ $question->id }}]" value="No" class="answer-radio" required data-qindex="{{ $index }}">
+                                        <input type="radio" name="answers[{{ $question->id }}]" value="No" class="answer-radio" data-qindex="{{ $index }}">
                                         <span class="answer-option">
                                             <i class="mdi mdi-close-circle-outline d-block mb-1" style="font-size: 20px;"></i>
                                             <strong>NO</strong>
@@ -119,7 +119,7 @@
                                     @foreach($options as $optIndex => $option)
                                     <div class="col-md-6 mb-3">
                                         <label class="w-100">
-                                            <input type="radio" name="answers[{{ $question->id }}]" value="{{ trim($option) }}" class="answer-radio" required data-qindex="{{ $index }}">
+                                            <input type="radio" name="answers[{{ $question->id }}]" value="{{ trim($option) }}" class="answer-radio" data-qindex="{{ $index }}">
                                             <span class="answer-option text-left">
                                                 <span class="mr-2 font-weight-bold">{{ chr(65 + $optIndex) }}.</span> {{ trim($option) }}
                                             </span>

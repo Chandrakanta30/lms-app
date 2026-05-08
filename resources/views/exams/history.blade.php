@@ -55,8 +55,7 @@
                                         @endif
                                     </td>
                                     <td class="text-right">
-                                        {{-- If you have a detailed breakdown page --}}
-                                        <a href="{{ route('exams.result', $result->id) }}" class="btn btn-outline-primary btn-sm rounded-pill">
+                                        <a href="{{ route('exams.details', $result->id) }}" class="btn btn-outline-primary btn-sm rounded-pill">
                                             View Details
                                         </a>
                                     </td>

@@ -117,62 +117,37 @@
       </li>
     @endcan
 
-    @can('trainer-list')
-      <li class="nav-item">
-        <a class="nav-link" href="{{ route('masters.trainers') }}">List trainers</a>
-      </li>
-    @endcan
+      @can('user-list')
+        <li class="sidebar-section-label">People</li>
+        <li class="nav-item" data-nav-item data-nav-text="users people trainers employees roles">
+          <a class="nav-link" href="{{ route('users.index') }}" data-route-match="users.index|users.edit">
+            <i class="mdi mdi-account-group-outline menu-icon"></i>
+            <span class="menu-title">Users</span>
+          </a>
+        </li>
+      @endcan
 
-  </ul>
-</div>
-</li>
-@endcanany  
+      @canany(['role-list', 'permission-list'])
+        <li class="sidebar-section-label">Access</li>
+      @endcanany
 
+      @can('role-list')
+        <li class="nav-item" data-nav-item data-nav-text="roles permissions access">
+          <a class="nav-link" href="{{ route('roles.index') }}" data-route-match="roles.index|roles.edit">
+            <i class="mdi mdi-shield-account-outline menu-icon"></i>
+            <span class="menu-title">Roles</span>
+          </a>
+        </li>
+      @endcan
 
-
-
-
-     @canany(['role-create', 'role-list', 'permission-create', 'permission-list'])
-  <li class="sidebar-section-label">Access</li>
-@endcanany
-
-@canany(['role-create', 'role-list'])
-  <li class="nav-item" data-nav-item data-nav-text="roles permissions access">
-    
-    <a class="nav-link" href="{{ route('roles.index') }}" data-route-match="roles.index|roles.edit">
-      <i class="mdi mdi-shield-account-outline menu-icon"></i>
-      <span class="menu-title">Roles</span>
-    </a>
-
-  </li>
-@endcanany
-
-
-      
-
-      @canany(['permission-create', 'permission-list'])
+      @can('permission-list')
         <li class="nav-item" data-nav-item data-nav-text="permissions access policies">
-          <a class="nav-link" data-bs-toggle="collapse" data-toggle="collapse" href="#nav-permissions" aria-expanded="false" aria-controls="nav-permissions">
+          <a class="nav-link" href="{{ route('permissions.index') }}" data-route-match="permissions.index">
             <i class="mdi mdi-key-chain-variant menu-icon"></i>
             <span class="menu-title">Permissions</span>
-            <i class="menu-arrow"></i>
           </a>
-          <div class="collapse" id="nav-permissions">
-            <ul class="nav flex-column sub-menu">
-              @can('permission-create')
-                <li class="nav-item" data-nav-item data-nav-text="create permission">
-                  <a class="nav-link" href="{{ route('permissions.create') }}" data-route-match="permissions.create">Create permission</a>
-                </li>
-              @endcan
-              @can('permission-list')
-                <li class="nav-item" data-nav-item data-nav-text="list permissions">
-                  <a class="nav-link" href="{{ route('permissions.index') }}" data-route-match="permissions.index">List permissions</a>
-                </li>
-              @endcan
-            </ul>
-          </div>
         </li>
-      @endcanany
+      @endcan
 
       @canany(['master-list', 'training-create', 'training-list', 'session-list'])
         <li class="sidebar-section-label">Training</li>
@@ -191,29 +166,14 @@
      
       
 
-      @canany(['training-create', 'training-list'])
+      @can('training-list')
         <li class="nav-item" data-nav-item data-nav-text="training setup module modules programs">
-          <a class="nav-link" data-bs-toggle="collapse" data-toggle="collapse" href="#nav-training" aria-expanded="false" aria-controls="nav-training">
+          <a class="nav-link" href="{{ route('trainings.index') }}" data-route-match="trainings.index|trainings.edit|manage-trainers|manage-users|questions.*">
             <i class="mdi mdi-book-open-page-variant-outline menu-icon"></i>
             <span class="menu-title">Training setup</span>
-            <i class="menu-arrow"></i>
           </a>
-          <div class="collapse" id="nav-training">
-            <ul class="nav flex-column sub-menu">
-              @can('training-create')
-                <li class="nav-item" data-nav-item data-nav-text="create training module">
-                  <a class="nav-link" href="{{ route('trainings.create') }}" data-route-match="trainings.create">Create training</a>
-                </li>
-              @endcan
-              @can('training-list')
-                <li class="nav-item" data-nav-item data-nav-text="list training modules">
-                  <a class="nav-link" href="{{ route('trainings.index') }}" data-route-match="trainings.index|trainings.edit|manage-trainers|manage-users|questions.*">List training</a>
-                </li>
-              @endcan
-            </ul>
-          </div>
         </li>
-      @endcanany
+      @endcan
 
       @can('session-list')
         <li class="nav-item" data-nav-item data-nav-text="training register log book sessions">
@@ -236,6 +196,11 @@
             <li class="nav-item" data-nav-item data-nav-text="training schedule list exam list">
               <a class="nav-link" href="{{ route('exam.list') }}" data-route-match="exam.list">Schedule list</a>
             </li>
+            @can('training-list')
+            <li class="nav-item" data-nav-item data-nav-text="training list modules programs">
+              <a class="nav-link" href="{{ route('training-list') }}" data-route-match="trainings.index|trainings.edit|manage-trainers|manage-users|questions.*">Training List</a>
+            </li>
+            @endcan
             @can('result-history')
             <li class="nav-item" data-nav-item data-nav-text="results history">
               <a class="nav-link" href="{{ route('exams.history') }}" data-route-match="exams.history">Results history</a>

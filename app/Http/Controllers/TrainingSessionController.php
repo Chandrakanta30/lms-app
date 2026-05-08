@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\TrainingSessions;
 use Illuminate\Http\Request;
@@ -64,19 +64,49 @@ class TrainingSessionController extends Controller
         return view('training_sessions.user_report', compact('user', 'sessions'));
     }
 
-    public function approve($id)
-    {
-        $session = TrainingSessions::findOrFail($id);
+    // public function approve($id)
+    // {
+    //     $session = TrainingSessions::findOrFail($id);
 
-        // Update the session with the signer's ID and timestamp
-        $session->update([
-            'is_approved' => true,
-            'approved_by' => auth()->id(), // The person clicking the button
-            'approved_at' => now()
-        ]);
+    //     // Update the session with the signer's ID and timestamp
+    //     $session->update([
+    //         'is_approved' => true,
+    //         'approved_by' => auth()->id(), // The person clicking the button
+    //         'approved_at' => now()
+    //     ]);
 
-        return back()->with('success', 'Digital signature applied successfully.');
+    //     return back()->with('success', 'Digital signature applied successfully.');
+    // }
+       public function approve($id)
+{
+    $session = TrainingSessions::findOrFail($id);
+
+    if ($session->is_approved) {
+        return back()->with('info', 'This session is already approved.');
     }
+
+  
+    $session->update([
+        'is_approved'  => true,
+        'approved_by'  => Auth::id(),
+        'approved_at'  => now(),
+    ]);
+
+    // Get trainee user
+    $user = $session->trainee;
+
+    if ($user) {
+       
+        if ($user->hasRole('trainee')) {
+            $user->removeRole('trainee');
+        }
+
+        $user->assignRole('regular');
+
+    }
+
+    return back()->with('success', 'Session approved successfully and trainee promoted to regular.');
+}
 
 
 }

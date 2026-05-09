@@ -9,6 +9,7 @@ use App\Models\TrainingDocument;
 use App\Models\TrainingModule;
 use App\Models\TrainingSessions;
 use App\Models\User;
+use App\Models\Venue;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Spatie\Activitylog\Models\Activity;
@@ -64,7 +65,7 @@ class TrainingModuleController extends Controller
             'activated_by' => auth()->id(),
         ]);
 
-        foreach (array_values(array_filter($request->input('step_names', []), fn ($stepName) => filled($stepName))) as $index => $stepName) {
+        foreach (array_values(array_filter($request->input('step_names', []), fn($stepName) => filled($stepName))) as $index => $stepName) {
             $parent->steps()->create([
                 'name' => $stepName,
                 'step_number' => $index + 1,
@@ -273,10 +274,15 @@ class TrainingModuleController extends Controller
 
     public function manageTrainers($id)
     {
-        $module = TrainingModule::with('trainers')->findOrFail($id);
-        $allUsers = User::orderBy('name', 'asc')->where('is_trainer', 1)->get();
+        $module = TrainingModule::with(['trainers', 'venues'])->findOrFail($id);
 
-        return view('trainings.assign_trainers', compact('module', 'allUsers'));
+        $allUsers = User::orderBy('name', 'asc')
+            ->where('is_trainer', 1)
+            ->get();
+
+        $allVenues = Venue::orderBy('name', 'asc')->get();
+
+        return view('trainings.assign_trainers', compact('module', 'allUsers', 'allVenues'));
     }
 
     public function manageUsers($id)
@@ -402,21 +408,22 @@ class TrainingModuleController extends Controller
             ->latest()
             ->get();
 
-    return view('trainings.audit_logs', compact('logs'));
-}
-  public function traininglist(Request $request){
-           $user=Auth::user();
-    if(!$user){
-        return("unauthorized user,user not found plz check");
+        return view('trainings.audit_logs', compact('logs'));
     }
-//  $modules = $user->modules->pluck('name');
- $modules = $user->modules;
-    return view('trainings.assign_training_list', compact('modules'));
+    public function traininglist(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return ("unauthorized user,user not found plz check");
+        }
+        //  $modules = $user->modules->pluck('name');
+        $modules = $user->modules;
+        return view('trainings.assign_training_list', compact('modules'));
 
     }
     public function traineeAttendace($id)
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
         if (!$user) {
             return "unauthorized user, user not found";
@@ -450,17 +457,17 @@ class TrainingModuleController extends Controller
         return view('trainings.attendace_sheet', compact('users', 'module', 'attendanceSignerName', 'attendanceSignedAt'));
     }
 
-    $module = TrainingModule::findOrFail($id);
-    if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
-        abort(403, 'Unauthorized access to this module attendance sheet.');
-    }
+        $module = TrainingModule::findOrFail($id);
+        if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
+            abort(403, 'Unauthorized access to this module attendance sheet.');
+        }
 
-    $users = $module->trainees()
-        ->where('users.is_trainer', 0)
-        ->with(['department', 'designation'])
-        ->orderBy('users.name')
-        ->paginate(20)
-        ->withQueryString();
+        $users = $module->trainees()
+            ->where('users.is_trainer', 0)
+            ->with(['department', 'designation'])
+            ->orderBy('users.name')
+            ->paginate(20)
+            ->withQueryString();
 
         $validated = $request->validate([
             'listed_user_ids' => 'required|array|min:1',
@@ -522,8 +529,8 @@ class TrainingModuleController extends Controller
         
     }
 
-    return redirect()
-        ->route('attendance', ['id' => $module->id, 'page' => $request->query('page')])
-        ->with('success', 'Attendance submitted successfully.');
-}
+        return redirect()
+            ->route('attendance', ['id' => $module->id, 'page' => $request->query('page')])
+            ->with('success', 'Attendance submitted successfully.');
+    }
 }

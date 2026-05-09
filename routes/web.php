@@ -29,7 +29,7 @@ Route::get('/system-update', function () {
         $cacheOutput = Artisan::output();
 
         return back()->with('success', 'System Updated Successfully! <br><strong>Migrations:</strong> ' . $migrationOutput . '<br><strong>Cache:</strong> ' . $cacheOutput);
-        
+
     } catch (\Exception $e) {
         return back()->with('error', 'Update Failed: ' . $e->getMessage());
     }
@@ -57,10 +57,10 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('roles', RoleController::class);
     Route::resource('permissions', PermissionController::class);
     Route::resource('trainings', TrainingModuleController::class);
-    
-    Route::get('training-list',[TrainingModuleController::class ,'traininglist'])->name('training-list');
-    Route::get('attendace/{id}', [TrainingModuleController::class ,'traineeAttendace'])->name('attendance');
-    Route::post('attendace/{id}', [TrainingModuleController::class ,'submitAttendace'])->name('attendance.submit');
+
+    Route::get('training-list', [TrainingModuleController::class, 'traininglist'])->name('training-list');
+    Route::get('attendace/{id}', [TrainingModuleController::class, 'traineeAttendace'])->name('attendance');
+    Route::post('attendace/{id}', [TrainingModuleController::class, 'submitAttendace'])->name('attendance.submit');
 
     Route::get('trainee-progress', [UserTrainingController::class, 'index'])->name('user.training.index');
 
@@ -74,6 +74,9 @@ Route::group(['middleware' => ['auth']], function () {
     Route::delete('masters/dept/{department}', [MasterController::class, 'destroyDepartment'])->name('masters.dept.destroy');
     Route::post('masters/desg', [MasterController::class, 'storeDesignation'])->name('masters.desg.store');
     Route::delete('masters/desg/{designation}', [MasterController::class, 'destroyDesignation'])->name('masters.desg.destroy');
+
+    Route::post('masters/venue', [MasterController::class, 'storeVenue'])->name('masters.venue.store');
+    Route::delete('masters/venue/{venue}', [MasterController::class, 'destroyVenue'])->name('masters.venue.destroy');
 
     Route::get('masters/trainers', [MasterController::class, 'showTrainers'])->name('masters.trainers');
 
@@ -106,23 +109,23 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('master-documents', MasterDocumentController::class);
     Route::post('/master-documents/{id}/review', [MasterDocumentController::class, 'review'])->name('master-documents.review');
 
-Route::get('/exam/list', [UserExamController::class, 'index'])->name('exam.list');
-Route::get('/exams/take/{moduleId}', [QuestionController::class, 'takeExam'])->name('exams.take');
+    Route::get('/exam/list', [UserExamController::class, 'index'])->name('exam.list');
+    Route::get('/exams/take/{moduleId}', [QuestionController::class, 'takeExam'])->name('exams.take');
 
-Route::post('/exams/submit/{moduleId}', [QuestionController::class, 'submitExam'])->name('exams.submit');
+    Route::post('/exams/submit/{moduleId}', [QuestionController::class, 'submitExam'])->name('exams.submit');
 
-Route::get('/exams/result/{resultId}', [QuestionController::class, 'showResult'])->name('exams.result');
-Route::get('/exams/details/{resultId}', [QuestionController::class, 'showExamDetails'])->name('exams.details');
-Route::get('/exams/my-history', [QuestionController::class, 'userHistory'])->name('exams.history');
+    Route::get('/exams/result/{resultId}', [QuestionController::class, 'showResult'])->name('exams.result');
+    Route::get('/exams/details/{resultId}', [QuestionController::class, 'showExamDetails'])->name('exams.details');
+    Route::get('/exams/my-history', [QuestionController::class, 'userHistory'])->name('exams.history');
 
-Route::get('/admin/exam-logs', [QuestionController::class, 'adminLogs'])->name('admin.exams.logs');
+    Route::get('/admin/exam-logs', [QuestionController::class, 'adminLogs'])->name('admin.exams.logs');
 
-Route::resource('master-documents', MasterDocumentController::class);
+    Route::resource('master-documents', MasterDocumentController::class);
 
 
-Route::get('/master-documents/{docId}/questions', [MasterQuestionController::class, 'index'])
-         ->name('master-questions.index');
-         
+    Route::get('/master-documents/{docId}/questions', [MasterQuestionController::class, 'index'])
+        ->name('master-questions.index');
+
     Route::post('/master-documents/{docId}/questions/sync', [MasterQuestionController::class, 'sync'])
         ->name('master-questions.sync');
 

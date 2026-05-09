@@ -49,6 +49,9 @@
                 linear-gradient(180deg, #f8fbff 0%, #f4f7fb 42%, #eef3f9 100%);
             color: var(--text-main);
             font-family: "Roboto", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+            height: 100%;
+             display: flex;
+            flex-direction: column;
         }
 
         .container-scroller {
@@ -63,6 +66,7 @@
             gap: 20px;
             align-items: flex-start;
             background: transparent;
+            flex: 1;
         }
 
         .main-panel {
@@ -70,11 +74,15 @@
             width: 100%;
             background: transparent;
             margin-left: calc(var(--sidebar-width) + 40px);
+            display: flex;
+            flex-direction: column;
+            flex: 1;
         }
 
         .content-wrapper {
             padding: 0;
             background: transparent;
+            flex: 1;
         }
 
         .navbar {
@@ -772,6 +780,8 @@
             border: 1px solid rgba(255, 255, 255, 0.72);
             background: rgba(255, 255, 255, 0.76);
             box-shadow: var(--shadow-md);
+            width: 100%;
+            margin-top: auto;
         }
 
         .footer .text-muted {

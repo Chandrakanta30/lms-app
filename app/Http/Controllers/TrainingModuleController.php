@@ -19,14 +19,32 @@ class TrainingModuleController extends Controller
 {
     public function index()
     {
-        $trainings = TrainingModule::with(['steps', 'trainers.designation', 'trainees.designation', 'documents'])
-            ->whereNull('parent_id')
-            ->latest('id')
-            ->get();
+         $routeName = request()->route()->getName();
 
-        $statusOptions = TrainingModule::STATUSES;
+    $query = TrainingModule::with([
+        'steps',
+        'trainers.designation',
+        'trainees.designation',
+        'documents'
+    ])->whereNull('parent_id');
 
-        return view('trainings.index', compact('trainings', 'statusOptions'));
+    // Training Setup => Inactive
+    if ($routeName === 'trainings.index') {
+        $query->where('is_active', 0);
+    }
+
+    // Created Training Setup => Active
+    if ($routeName === 'created-training-setup') {
+        $query->where('is_active', 1);
+    }
+
+    $trainings = $query
+        ->latest('id')
+        ->get();
+
+    $statusOptions = TrainingModule::STATUSES;
+
+    return view('trainings.index', compact('trainings', 'statusOptions'));
     }
 
     public function create()

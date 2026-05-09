@@ -61,25 +61,9 @@
                                     <small class="text-success">System Verified on: {{ \Carbon\Carbon::parse($log->pivot->completed_at)->format('d-M-Y H:i') }}</small>
                                 @endif
                             </div>
-                            <div class="col-5 text-right">
-                                <p class="mb-0">__________________________</p>
-                                <strong>Sign & Date</strong>
-                            </div>
                         </div>
                     </div>
                 @endforeach
-
-                {{-- Footer Signatures --}}
-                <div class="row mt-5 pt-4">
-                    <div class="col-6 text-center">
-                        <p>__________________________</p>
-                        <strong>Trainee Signature</strong>
-                    </div>
-                    <div class="col-6 text-center">
-                        <p>__________________________</p>
-                        <strong>Authorized Signatory (HR)</strong>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

@@ -22,9 +22,7 @@
                     <div class="col-6 py-2"><strong>DESIGNATION:</strong> {{ $user->designation->name ?? 'N/A' }}</div>
                     <div class="col-6 py-2"><strong>DEPARTMENT:</strong> {{ $user->department->name ?? 'N/A' }}</div>
                     
-                    <div class="col-4 py-2"><strong>EMPLOYEE CODE:</strong> {{ $user->emp_code ?? '________' }}</div>
-                    <div class="col-4 py-2"><strong>CURRENT CARD NO.:</strong> {{ $user->current_card_no ?? '________' }}</div>
-                    <div class="col-4 py-2"><strong>PREVIOUS CARD NO.:</strong> {{ $user->prev_card_no ?? '________' }}</div>
+                    <div class="col-12 py-2"><strong>EMPLOYEE CODE:</strong> {{ $user->emp_code ?? $user->corporate_id ?? '________' }}</div>
                 </div>
 
                 {{-- Training Table --}}
@@ -34,10 +32,11 @@
                             <tr>
                                 <th width="5%">S.No.</th>
                                 <th width="12%">Date</th>
-                                <th width="20%">Training Register No. & Page No.</th>
                                 <th width="33%">Topic</th>
+                                <th width="15%">Brief Type</th>
+                                <th width="15%">Timing</th>
                                 <th width="15%">Name of the Trainer</th>
-                                <th width="15%">Signature of the Trainer</th>
+                                <th width="15%">Trainer Acknowledgement</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -46,10 +45,24 @@
                                 <tr>
                                     <td>{{ $index + 1 }}</td>
                                     <td>{{ \Carbon\Carbon::parse($session->training_date)->format('d-m-Y') }}</td>
-                                    <td>{{ $session->register_no }} / {{ $session->page_no }}</td>
                                     <td>{{ $session->topic }}</td>
-                                    <td>{{ $session->trainer->name }}</td>
-                                    <td class="text-center"><small><i>Digitally Signed</i></small></td>
+                                    <td>{{ $session->session_brief_type ?? 'N/A' }}</td>
+                                    <td>
+                                        @if($session->start_time && $session->end_time)
+                                            {{ \Carbon\Carbon::parse($session->start_time)->format('h:i A') }} -
+                                            {{ \Carbon\Carbon::parse($session->end_time)->format('h:i A') }}
+                                        @else
+                                            N/A
+                                        @endif
+                                    </td>
+                                    <td>{{ $session->trainer->name ?? 'N/A' }}</td>
+                                    <td class="text-center">
+                                        @if($session->is_approved)
+                                            <small><i>{{ $session->approver->name ?? 'Trainer acknowledged' }}</i></small>
+                                        @else
+                                            <small><i>Pending</i></small>
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
 
@@ -57,6 +70,7 @@
                             @for($i = count($sessions); $i < $totalRows; $i++)
                                 <tr style="height: 40px;">
                                     <td>{{ $i + 1 }}</td>
+                                    <td></td>
                                     <td></td>
                                     <td></td>
                                     <td></td>
@@ -71,12 +85,11 @@
                 {{-- Footer Footer Verification --}}
                 <div class="row mt-5">
                     <div class="col-6">
-                        <p class="mb-0">__________________________</p>
-                        <strong>Signature of Employee</strong>
+                        <div><strong>Requested By:</strong> {{ auth()->user()->name ?? 'System User' }}</div>
+                        <div><strong>Signature:</strong> __________________________</div>
                     </div>
                     <div class="col-6 text-right">
-                        <p class="mb-0">__________________________</p>
-                        <strong>Authorized Signatory (QA/HR)</strong>
+                        <div><strong>Timestamp:</strong> {{ now()->format('d M Y, h:i A') }}</div>
                     </div>
                 </div>
             </div>

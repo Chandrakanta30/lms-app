@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\DocumentReadTracker;
 use App\Models\TrainingModule;
 use App\Models\ExamResult;
 
@@ -24,6 +25,28 @@ class UserExamController extends Controller
         })
         ->where('is_active', true)
         ->get();
+
+        $trackerMap = DocumentReadTracker::where('user_id', auth()->id())
+            ->whereIn('training_module_id', $modules->pluck('id'))
+            ->get()
+            ->keyBy('training_module_id');
+
+        $modules->each(function ($module) use ($trackerMap) {
+            $requiredSeconds = max(60, $module->documents->count() * 60);
+            $tracker = $trackerMap->get($module->id);
+
+            if (!$tracker) {
+                $tracker = new DocumentReadTracker([
+                    'training_module_id' => $module->id,
+                    'required_seconds' => $requiredSeconds,
+                ]);
+            } else {
+                $tracker->required_seconds = max((int) $tracker->required_seconds, $requiredSeconds);
+            }
+
+            $module->setRelation('readTracker', $tracker);
+            $module->reading_completed = !is_null($tracker->completed_at);
+        });
     
         return view('users.exams.index', compact('modules'));
     }

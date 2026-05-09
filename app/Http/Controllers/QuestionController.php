@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DocumentReadTracker;
 use App\Models\TrainingModule;
 use App\Models\ExamResult;
 use Auth;
@@ -44,10 +45,70 @@ class QuestionController extends Controller
                          ->with('success', 'Question paper updated for ' . $module->name);
     }
 
+    public function showReadingRoom($moduleId)
+    {
+        $module = TrainingModule::with('documents')->findOrFail($moduleId);
+        $requiredSeconds = max(60, $module->documents->count() * 60);
+
+        $tracker = DocumentReadTracker::firstOrCreate(
+            [
+                'user_id' => auth()->id(),
+                'training_module_id' => $module->id,
+            ],
+            [
+                'required_seconds' => $requiredSeconds,
+                'started_at' => now(),
+            ]
+        );
+
+        if (!$tracker->started_at) {
+            $tracker->started_at = now();
+        }
+
+        $tracker->required_seconds = max((int) $tracker->required_seconds, $requiredSeconds);
+        $tracker->save();
+
+        $elapsedSeconds = $tracker->started_at ? $tracker->started_at->diffInSeconds(now()) : 0;
+        $remainingSeconds = max(0, (int) $tracker->required_seconds - $elapsedSeconds);
+
+        return view('exams.read_documents', compact('module', 'tracker', 'remainingSeconds'));
+    }
+
+    public function completeReading($moduleId)
+    {
+        $module = TrainingModule::with('documents')->findOrFail($moduleId);
+        $tracker = DocumentReadTracker::where('user_id', auth()->id())
+            ->where('training_module_id', $module->id)
+            ->firstOrFail();
+
+        $requiredSeconds = max(60, $module->documents->count() * 60, (int) $tracker->required_seconds);
+        $elapsedSeconds = $tracker->started_at ? $tracker->started_at->diffInSeconds(now()) : 0;
+
+        if ($elapsedSeconds < $requiredSeconds) {
+            return back()->with('error', 'Please complete the required reading time before starting the assessment.');
+        }
+
+        $tracker->update([
+            'required_seconds' => $requiredSeconds,
+            'completed_at' => now(),
+        ]);
+
+        return redirect()->route('exam.list')->with('success', 'Reading completed. Assessment is now enabled.');
+    }
 
     public function takeExam($moduleId)
     {
         $module = TrainingModule::with('documents')->findOrFail($moduleId);
+
+        $tracker = DocumentReadTracker::where('user_id', auth()->id())
+            ->where('training_module_id', $module->id)
+            ->first();
+
+        if (!$tracker || !$tracker->completed_at) {
+            return redirect()->route('exams.read', $module->id)
+                ->with('error', 'Please complete the required document reading before starting the assessment.');
+        }
+
         $examPaper = collect();
     
         foreach ($module->documents as $doc) {
@@ -82,6 +143,15 @@ class QuestionController extends Controller
 
 
     $module = TrainingModule::with('documents')->findOrFail($moduleId);
+    $tracker = DocumentReadTracker::where('user_id', auth()->id())
+        ->where('training_module_id', $module->id)
+        ->first();
+
+    if (!$tracker || !$tracker->completed_at) {
+        return redirect()->route('exams.read', $module->id)
+            ->with('error', 'Please complete the required document reading before submitting the assessment.');
+    }
+
     $expectedQuestionCount = $module->documents->sum(function ($document) {
         return (int) ($document->pivot->question_quota ?? 0);
     });

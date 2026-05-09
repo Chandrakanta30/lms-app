@@ -5,17 +5,33 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\TrainingSessions;
 use Illuminate\Http\Request;
+use Spatie\Permission\Models\Role;
 
 class TrainingSessionController extends Controller
 {
 
     public function index(Request $request)
     {
-        // 1. Fetch all training sessions with Trainee and Trainer relationships
-        // We use latest() to show the most recent entries at the top of the log book
-        $sessions = TrainingSessions::with(['trainee.department', 'trainer.designation'])
-            ->latest('training_date')
-            ->paginate(15); // Use pagination for large log books
+        $sessionsQuery = TrainingSessions::with(['trainee.department', 'trainer.designation', 'approver'])
+            ->latest('training_date');
+
+        if ($request->filled('trainee_id')) {
+            $sessionsQuery->where('trainee_id', $request->trainee_id);
+        }
+
+        if ($request->filled('topic')) {
+            $sessionsQuery->where('topic', 'like', '%' . $request->topic . '%');
+        }
+
+        if ($request->filled('date_from')) {
+            $sessionsQuery->whereDate('training_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $sessionsQuery->whereDate('training_date', '<=', $request->date_to);
+        }
+
+        $sessions = $sessionsQuery->paginate(15)->withQueryString();
 
         // 2. Fetch authorized Trainers for the 'Add New' modal dropdown
         $trainers = User::where('is_trainer', true)
@@ -37,13 +53,16 @@ class TrainingSessionController extends Controller
         $request->validate([
             'training_date' => 'required|date',
             'trainee_id'    => 'required|exists:users,id',
-            'trainer_id'    => 'required|exists:users,id',
+            'trainer_id'    => 'nullable|exists:users,id',
             'topic'         => 'required|string',
             'register_no'   => 'required',
             'page_no'       => 'required',
         ]);
 
-        TrainingSessions::create($request->all());
+        $payload = $request->all();
+        $payload['trainer_id'] = $request->trainer_id ?: auth()->id();
+
+        TrainingSessions::create($payload);
         $user = User::find($request->trainee_id);
         $traineeRole = Role::findOrCreate('Trainee', 'web');
         $user->assignRole($traineeRole);
@@ -57,7 +76,7 @@ class TrainingSessionController extends Controller
     {
         // Fetch all sessions where this user is the trainee
         $sessions = TrainingSessions::where('trainee_id', $user->id)
-            ->with('trainer')
+            ->with(['trainer', 'approver'])
             ->orderBy('training_date', 'asc')
             ->get();
 

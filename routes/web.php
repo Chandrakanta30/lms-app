@@ -93,6 +93,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::patch('/trainings/{id}/toggle', [TrainingModuleController::class, 'toggleStatus'])->name('trainings.toggle-status');
 
     Route::get('/exam/list', [UserExamController::class, 'index'])->name('exam.list');
+    Route::get('/exams/read/{moduleId}', [QuestionController::class, 'showReadingRoom'])->name('exams.read');
+    Route::post('/exams/read/{moduleId}/complete', [QuestionController::class, 'completeReading'])->name('exams.read.complete');
     Route::get('/exams/take/{moduleId}', [QuestionController::class, 'takeExam'])->name('exams.take');
     Route::post('/exams/submit/{moduleId}', [QuestionController::class, 'submitExam'])->name('exams.submit');
     Route::get('/exams/result/{resultId}', [QuestionController::class, 'showResult'])->name('exams.result');

@@ -32,9 +32,12 @@ class MasterQuestionController extends Controller
                     'question_text'  => $qData['question_text'],
                     'question_type'  => $qData['question_type'],
                     'correct_answer' => $qData['correct_answer'],
-                    // Convert "A,B,C" into ["A", "B", "C"]
-                    'options'        => ($qData['question_type'] === 'mcq') 
-                                        ? array_map('trim', explode(',', $qData['options'])) 
+                    'options'        => ($qData['question_type'] === 'mcq')
+                                        ? collect($qData['options'] ?? [])
+                                            ->map(fn ($option) => trim((string) $option))
+                                            ->filter()
+                                            ->values()
+                                            ->all()
                                         : null,
                 ]);
             }

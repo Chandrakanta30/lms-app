@@ -5,95 +5,84 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\TrainingModule;
-
+use App\Models\UserTraining;
+use DB;
 class UserTrainingController extends Controller
 {
     public function index()
     {
-       // 1. Get all Parent Modules with their child steps
-    $mainModules = TrainingModule::whereNull('parent_id')->with('steps')->get();
-    $currentUser = auth()->user();
+        $currentUser = auth()->user();
 
-    // 2. Fetch Trainees and their completed training records
-    // $trainees = User::role('Trainee')
-    // ->with(['trainings' => function ($query) {
-    //     // $query->wherePivot('status', 'enrolled');
-    //     $query->whereIn('training_user.status', ['enrolled', 'pending']);
-    // }])
-    // ->get()
-    // ->map(function ($user) {
-    //     // Group assigned trainings by their parent_id to handle modules with steps
-    //     // Note: If training is a parent, parent_id is null.
-    //     $user->assigned_progress = $user->trainings->map(function ($training) use ($user) {
-            
-    //         // If the training is a parent (parent_id is null), 
-    //         // we check how many of its steps are completed by this user
-    //         if (is_null($training->parent_id)) {
-    //             $steps = \App\Models\TrainingModule::where('parent_id', $training->id)->get();
-    //             $totalSteps = $steps->count();
-                
-    //             // Count how many of these steps exist in the user's trainings 
-    //             // AND are marked as completed (assuming you have an is_completed flag)
-    //             $completedCount = $user->trainings
-    //                 ->whereIn('id', $steps->pluck('id'))
-    //                 ->where('pivot.is_completed', true) // Adjust 'is_completed' to your actual pivot column name
-    //                 ->count();
-    //         } else {
-    //             // It's a single assigned step
-    //             $totalSteps = 1;
-    //             $completedCount = $training->pivot->is_completed ? 1 : 0;
-    //         }
+        /*
+        |--------------------------------------------------------------------------
+        | Base Trainee Query
+        |--------------------------------------------------------------------------
+        */
+        $traineesQuery = User::role('Trainee')
+            ->with([
+                'department',
+                'trainings' => function ($query) {
+                    $query->whereIn('training_user.status', ['enrolled', 'pending'])
+                        ->with('steps');
+                }
+            ]);
 
-    //         $percent = $totalSteps > 0 ? round(($completedCount / $totalSteps) * 100) : 0;
+        // If logged-in user is a trainee, only show their data
+        if ($currentUser && $currentUser->hasRole('Trainee')) {
+            $traineesQuery->whereKey($currentUser->id);
+        }
 
-    //         return [
-    //             'id' => $training->id,
-    //             'name' => $training->name,
-    //             'completed' => $completedCount,
-    //             'total' => $totalSteps,
-    //             'percent' => $percent,
-    //             'status' => $percent == 100 ? 'Completed' : ($percent > 0 ? 'In Progress' : 'Enrolled'),
-    //             'color' => $percent == 100 ? 'success' : ($percent > 0 ? 'warning' : 'info')
-    //         ];
-    //     });
+        $trainees = $traineesQuery->get();
 
-    //     return $user;
-    // });
-    $traineesQuery = User::role('Trainee');
+        /*
+        |--------------------------------------------------------------------------
+        | Get Completed Trainings in One Query (Avoid N+1)
+        |--------------------------------------------------------------------------
+        */
+        $completedTrainings = DB::table('user_trainings')
+            ->whereIn('user_id', $trainees->pluck('id'))
+            ->where('is_completed', true)
+            ->get()
+            ->groupBy('user_id');
 
-    if ($currentUser && $currentUser->hasRole('Trainee')) {
-        $traineesQuery->whereKey($currentUser->id);
-    }
+        /*
+        |--------------------------------------------------------------------------
+        | Process User Progress
+        |--------------------------------------------------------------------------
+        */
+        $trainees = $trainees->map(function ($user) use ($completedTrainings) {
 
-    $trainees = $traineesQuery
-        ->with(['trainings' => function ($query) {
-            // Get all assigned trainings from the pivot table
-            $query->whereIn('training_user.status', ['enrolled', 'pending']);
-        }])
-        ->get()
-        ->map(function ($user) {
-            
-            // Get the list of completed module IDs from the user_trainings table
-            $completedModuleIds = \Illuminate\Support\Facades\DB::table('user_trainings')
-                ->where('user_id', $user->id)
-                ->where('is_completed', true) // Now checking the column in user_trainings
+            $completedModuleIds = collect($completedTrainings[$user->id] ?? [])
                 ->pluck('training_module_id')
                 ->toArray();
 
             $user->assigned_progress = $user->trainings->map(function ($training) use ($completedModuleIds) {
-                
+
+                // Parent Module
                 if (is_null($training->parent_id)) {
-                    // Parent Module Logic
-                    $stepIds = \App\Models\TrainingModule::where('parent_id', $training->id)->pluck('id')->toArray();
+
+                    $stepIds = $training->steps->pluck('id')->toArray();
+
                     $totalSteps = count($stepIds);
-                    $completedCount = count(array_intersect($stepIds, $completedModuleIds));
+
+                    $completedCount = count(
+                        array_intersect($stepIds, $completedModuleIds)
+                    );
+
                 } else {
-                    // Single Step Logic
+
+                    // Single Step
                     $totalSteps = 1;
-                    $completedCount = in_array($training->id, $completedModuleIds) ? 1 : 0;
+
+                    $completedCount = in_array(
+                        $training->id,
+                        $completedModuleIds
+                    ) ? 1 : 0;
                 }
 
-                $percent = $totalSteps > 0 ? round(($completedCount / $totalSteps) * 100) : 0;
+                $percent = $totalSteps > 0
+                    ? round(($completedCount / $totalSteps) * 100)
+                    : 0;
 
                 return [
                     'id'        => $training->id,
@@ -101,17 +90,87 @@ class UserTrainingController extends Controller
                     'completed' => $completedCount,
                     'total'     => $totalSteps,
                     'percent'   => $percent,
-                    'status'    => $percent == 100 ? 'Completed' : ($percent > 0 ? 'In Progress' : 'Enrolled'),
-                    'color'     => $percent == 100 ? 'success' : ($percent > 0 ? 'warning' : 'info')
+                    'status'    => $percent == 100
+                        ? 'Completed'
+                        : ($percent > 0 ? 'In Progress' : 'Enrolled'),
+
+                    'color'     => $percent == 100
+                        ? 'success'
+                        : ($percent > 0 ? 'warning' : 'info'),
+
+                    'steps' => $training->steps->map(function ($step) use ($completedModuleIds) {
+
+                        $words = preg_split('/[\s\-]+/', trim($step->name));
+
+                        $ignoreWords = ['and', 'of', 'the', 'for', 'to'];
+
+                        $code = collect($words)
+                            ->reject(fn ($word) => in_array(strtolower($word), $ignoreWords))
+                            ->map(fn ($word) => strtoupper(substr($word, 0, 1)))
+                            ->implode('&');
+
+
+                    
+                        return [
+                            'id'            => $step->id,
+                            'name'          => $step->name,
+                            'short_code'    => $code,
+                            'color'         => $step->color,
+                            'is_completed'  => in_array($step->id, $completedModuleIds),
+                            // 'completed_at'  => $step->activated_at,
+                        ];
+                    }),
                 ];
             });
 
             return $user;
         });
 
+        /*
+        |--------------------------------------------------------------------------
+        | Sort Users by Lowest Progress
+        |--------------------------------------------------------------------------
+        */
+        $trainees = $trainees
+            ->sortBy(function ($user) {
+                return collect($user->assigned_progress)->min('percent') ?? 0;
+            })
+            ->values();
 
-        // return $trainees;
-    return view('user_trainings.index', compact('trainees'));
+        /*
+        |--------------------------------------------------------------------------
+        | Department Breakdown
+        |--------------------------------------------------------------------------
+        */
+        $departmentBreakdown = $trainees
+            ->groupBy(fn ($user) => $user->department->name ?? 'Unassigned')
+            ->map(function ($users, $departmentName) {
+
+                $allProgress = $users->flatMap->assigned_progress;
+
+                return [
+                    'department'  => $departmentName,
+                    'users'       => $users->count(),
+                    'pending'     => $allProgress->where('percent', 0)->count(),
+                    'in_progress' => $allProgress
+                        ->filter(fn ($item) =>
+                            $item['percent'] > 0 &&
+                            $item['percent'] < 100
+                        )->count(),
+
+                    'completed'   => $allProgress
+                        ->where('percent', 100)
+                        ->count(),
+                ];
+            })
+            ->sortByDesc('pending')
+            ->values();
+
+            // return $trainees;
+        return view(
+            'user_trainings.index',
+            compact('trainees', 'departmentBreakdown')
+        );
     }
 
     // Show specific user's training checklist

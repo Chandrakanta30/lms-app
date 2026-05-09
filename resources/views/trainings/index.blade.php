@@ -29,20 +29,80 @@
                 </a>
             </div>
 
-            <div class="accordion custom-accordion" id="trainingAccordion">
-                @foreach($trainings as $training)
-                    @php
-                        $statusMeta = $statusMap[$training->status ?? 'created'] ?? $statusMap['created'];
-                    @endphp
-                    <div class="card border mb-3">
-                        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 flex-wrap">
-                            <div class="d-flex align-items-center flex-wrap">
-                                <button class="btn btn-link text-decoration-none text-dark font-weight-bold p-0" data-toggle="collapse" data-target="#collapse{{ $training->id }}">
-                                    <i class="mdi mdi-chevron-down-circle-outline mr-2 text-primary"></i>
-                                    {{ $training->name }}
-                                </button>
-                                <span class="badge badge-outline-secondary ml-2">{{ $training->steps->count() }} Steps</span>
-                                <span class="badge {{ $statusMeta['class'] }} ml-2">{{ $statusMeta['label'] }}</span>
+                <div class="accordion custom-accordion" id="trainingAccordion">
+                    @foreach ($trainings as $training)
+                        @php
+                            $statusMeta = $statusMap[$training->status ?? 'created'] ?? $statusMap['created'];
+                        @endphp
+                        <div class="card border mb-3">
+                            <div
+                                class="card-header bg-white d-flex justify-content-between align-items-center py-3 flex-wrap">
+                                <div class="d-flex align-items-center flex-wrap">
+                                    <button class="btn btn-link text-decoration-none text-dark font-weight-bold p-0"
+                                        data-toggle="collapse" data-target="#collapse{{ $training->id }}">
+                                        <i class="mdi mdi-chevron-down-circle-outline mr-2 text-primary"></i>
+                                        {{ $training->name }}
+                                    </button>
+                                    <span class="badge badge-outline-secondary ml-2">{{ $training->steps->count() }}
+                                        Steps</span>
+                                    <span class="badge {{ $statusMeta['class'] }} ml-2">{{ $statusMeta['label'] }}</span>
+                                </div>
+
+                                <div class="action-buttons">
+                                    <a href="{{ route('trainings.show', $training->id) }}"
+                                        class="btn btn-sm btn-outline-dark" title="View Training">
+                                        <i class="mdi mdi-eye-outline"></i>
+                                    </a>
+                                    <a href="{{ route('admin.modules.linkDocs', $training->id) }}"
+                                        class="btn btn-sm btn-outline-info" title="Link Documents">
+                                        <i class="mdi mdi-link-variant"></i>
+                                    </a>
+                                    <a href="{{ route('manage-trainers', $training->id) }}"
+                                        class="btn btn-sm btn-outline-primary" title="Trainers & Venue">
+                                        <i class="mdi mdi-account-group"></i> <span
+                                            class="badge badge-primary ml-1">{{ $training->trainers->count() }}</span>
+                                    </a>
+                                    <a href="{{ route('manage-users', $training->id) }}"
+                                        class="btn btn-sm btn-outline-success" title="Users">
+                                        <i class="mdi mdi-account-tie"></i> <span
+                                            class="badge badge-success ml-1">{{ $training->trainees->count() }}</span>
+                                    </a>
+                                    <form action="{{ route('trainings.toggle-status', $training->id) }}" method="POST"
+                                        class="mr-2">
+                                        @csrf
+                                        @method('PATCH')
+
+
+                                        <!-- <button type="submit" class="btn btn-sm {{ $training->is_active ? 'btn-success' : 'btn-secondary' }}" title="{{ $training->is_active ? 'Click to Disable' : 'Click to Enable' }}">
+                                                                                            {{ $training->is_active ? 'Active' : 'Inactive' }}
+                                                                                        </button> -->
+
+                                        <button type="submit"
+                                            class="status-toggle-btn {{ $training->is_active ? 'active' : 'inactive' }}">
+                                            <span class="status-indicator"></span>
+                                            <span class="status-text">
+                                                {{ $training->is_active ? 'Active' : 'Inactive' }}
+                                            </span>
+                                        </button>
+
+
+
+                                    </form>
+
+
+
+                                    <a href="{{ route('trainings.edit', $training->id) }}"
+                                        class="btn btn-sm btn-light ml-1 text-info"><i class="mdi mdi-pencil"></i></a>
+                                    <form action="{{ route('trainings.destroy', $training->id) }}" method="POST"
+                                        class="d-inline ml-1">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="btn btn-sm btn-light text-danger"
+                                            onclick="return confirm('Delete Program?')">
+                                            <i class="mdi mdi-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
 
                             <div class="action-buttons">

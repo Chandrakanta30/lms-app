@@ -34,7 +34,14 @@
             </td>
             <td class="answer-cell">
                 @if($q->question_type == 'mcq')
-                    <input type="text" name="questions[{{ $index }}][options]" class="form-control mb-1" placeholder="Options (comma separated)" value="{{ implode(',', $q->options ?? []) }}">
+                    @foreach(range(0, 3) as $optionIndex)
+                        <input
+                            type="text"
+                            name="questions[{{ $index }}][options][]"
+                            class="form-control mb-1"
+                            placeholder="Option {{ chr(65 + $optionIndex) }}"
+                            value="{{ $q->options[$optionIndex] ?? '' }}">
+                    @endforeach
                     <input type="text" name="questions[{{ $index }}][correct_answer]" class="form-control" placeholder="Correct Answer" value="{{ $q->correct_answer }}">
                 @else
                     <select name="questions[{{ $index }}][correct_answer]" class="form-control">
@@ -100,7 +107,10 @@
 
         if ($(this).val() === 'mcq') {
             cell.html(`
-                <input type="text" name="${nameAttr}[options]" class="form-control mb-1" placeholder="Options (comma separated)" required>
+                <input type="text" name="${nameAttr}[options][]" class="form-control mb-1" placeholder="Option A" required>
+                <input type="text" name="${nameAttr}[options][]" class="form-control mb-1" placeholder="Option B" required>
+                <input type="text" name="${nameAttr}[options][]" class="form-control mb-1" placeholder="Option C">
+                <input type="text" name="${nameAttr}[options][]" class="form-control mb-1" placeholder="Option D">
                 <input type="text" name="${nameAttr}[correct_answer]" class="form-control" placeholder="Correct Answer" required>
             `);
         } else {

@@ -13,6 +13,40 @@
 </button>
         </div>
 
+        <form method="GET" action="{{ route('sessions.index') }}" class="border rounded p-3 mb-4 bg-light">
+            <div class="row">
+                <div class="col-md-3">
+                    <label>Trainee</label>
+                    <select name="trainee_id" class="form-control">
+                        <option value="">All Users</option>
+                        @foreach($trainees as $t)
+                            <option value="{{ $t->id }}" {{ (string) request('trainee_id') === (string) $t->id ? 'selected' : '' }}>
+                                {{ $t->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label>Training / Topic</label>
+                    <input type="text" name="topic" class="form-control" value="{{ request('topic') }}" placeholder="Search SOP or topic">
+                </div>
+                <div class="col-md-2">
+                    <label>Date From</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
+                </div>
+                <div class="col-md-2">
+                    <label>Date To</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="w-100">
+                        <button type="submit" class="btn btn-primary btn-block">Search</button>
+                        <a href="{{ route('sessions.index') }}" class="btn btn-light btn-block">Reset</a>
+                    </div>
+                </div>
+            </div>
+        </form>
+
         <div class="table-responsive">
             <table class="table table-bordered text-center">
                 <thead class="bg-light">
@@ -20,10 +54,11 @@
                         <th>S.No.</th>
                         <th>Date</th>
                         <th>Trainee Name</th>
-                        <th>Register No. & Page No.</th>
                         <th>Topic</th>
+                        <th>Session Brief</th>
+                        <th>Timing</th>
                         <th>Name of the Trainer</th>
-                        <th>Signature of the Trainer</th>
+                        <th>Trainer Acknowledgement</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -32,9 +67,22 @@
                         <td>{{ $index + 1 }}</td>
                         <td>{{ \Carbon\Carbon::parse($session->training_date)->format('d-m-Y') }}</td>
                         <td class="text-left">{{ $session->trainee->name }}</td>
-                        <td>{{ $session->register_no }} / {{ $session->page_no }}</td>
                         <td class="text-left">{{ $session->topic }}</td>
-                        <td>{{ $session->trainer->name }}</td>
+                        <td>
+                            <div>{{ $session->session_brief_type ?? 'N/A' }}</div>
+                            @if($session->session_comments)
+                                <small class="text-muted">{{ $session->session_comments }}</small>
+                            @endif
+                        </td>
+                        <td>
+                            @if($session->start_time && $session->end_time)
+                                {{ \Carbon\Carbon::parse($session->start_time)->format('h:i A') }} -
+                                {{ \Carbon\Carbon::parse($session->end_time)->format('h:i A') }}
+                            @else
+                                N/A
+                            @endif
+                        </td>
+                        <td>{{ $session->trainer->name ?? 'N/A' }}</td>
 
 
 
@@ -72,11 +120,15 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7">No register entries found.</td>
+                        <td colspan="8">No register entries found.</td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
+        </div>
+
+        <div class="d-flex justify-content-center mt-4">
+            {{ $sessions->links('pagination::bootstrap-4') }}
         </div>
     </div>
 </div>
@@ -102,7 +154,8 @@
                 </div>
                 <div class="form-group">
                     <label>Trainer (Leader)</label>
-                    <select name="trainer_id" class="form-control" required>
+                    <select name="trainer_id" class="form-control">
+                        <option value="">Optional for self training</option>
                         @foreach($trainers as $trainer)
                             <option value="{{ $trainer->id }}">{{ $trainer->name }}</option>
                         @endforeach

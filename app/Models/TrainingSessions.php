@@ -7,7 +7,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TrainingSessions extends Model
 {
-    protected $fillable = ['training_date', 'trainee_id', 'trainer_id','register_no','page_no','topic','is_approved','approved_by','approved_at'];
+    protected $fillable = [
+        'training_date',
+        'trainee_id',
+        'trainer_id',
+        'register_no',
+        'page_no',
+        'topic',
+        'session_brief_type',
+        'session_comments',
+        'start_time',
+        'end_time',
+        'is_approved',
+        'approved_by',
+        'approved_at',
+    ];
 
     public function trainee(): BelongsTo
     {

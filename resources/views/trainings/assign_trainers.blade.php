@@ -1,58 +1,72 @@
 @extends('partials.app')
 
 @section('content')
-<div class="content-wrapper">
-    <div class="container-fluid pt-3">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">Manage Trainers: {{ $module->name }}</h4>
-                <a href="{{ route('trainings.index') }}" class="btn btn-sm btn-light">Back to List</a>
-            </div>
-            <div class="card-body">
-                <form action="{{ route('trainings.save-trainers', $module->id) }}" method="POST">
-                    @csrf
-                    <table class="table table-bordered" id="trainer-table">
-                        <thead class="bg-light">
-                            <tr>
-                                <th>Select Trainer</th>
-                                <th>Assignment Start Date</th>
-                                <th>Assignment End Date</th>
-                                <th width="50px">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($module->trainers as $index => $trainer)
-                            <tr>
-                                <td>
-                                    <select name="trainers[{{ $index }}][user_id]" class="form-control" required>
-                                        @foreach($allUsers as $user)
-                                            <option value="{{ $user->id }}" {{ $user->id == $trainer->id ? 'selected' : '' }}>
-                                                {{ $user->name }} ({{ $user->department->name ?? 'N/A' }})
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td>
-                                    <input type="date" name="trainers[{{ $index }}][start_date]" 
-                                           value="{{ $trainer->pivot->start_date }}" class="form-control" required>
-                                </td>
-                                <td>
-                                    <input type="date" name="trainers[{{ $index }}][end_date]" 
-                                           value="{{ $trainer->pivot->end_date }}" class="form-control" required>
-                                </td>
-                                <td>
-                                    <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">
-                                        <i class="fas fa-times"></i> x
-                                    </button>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr class="empty-row">
-                                <td colspan="4" class="text-center text-muted">No trainers assigned. Click "Add Trainer" to start.</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+    <div class="content-wrapper">
+        <div class="container-fluid pt-3">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Manage Trainers: {{ $module->name }}</h4>
+                    <a href="{{ route('trainings.index') }}" class="btn btn-sm btn-light">Back to List</a>
+                </div>
+                <div class="card-body">
+                    @php
+                        $trainerRequired = ($module->training_type ?? 'classroom') !== 'self_training';
+                    @endphp
+
+                    @if(!$trainerRequired)
+                        <div class="alert alert-info">
+                            Trainer assignment is optional for self training programs.
+                        </div>
+                    @endif
+
+                    <form action="{{ route('trainings.save-trainers', $module->id) }}" method="POST">
+                        @csrf
+                        <table class="table table-bordered" id="trainer-table">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Select Trainer</th>
+                                    <th>Assignment Start Date</th>
+                                    <th>Assignment End Date</th>
+                                    <th width="50px">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($module->trainers as $index => $trainer)
+                                    <tr>
+                                        <td>
+                                            <select name="trainers[{{ $index }}][user_id]" class="form-control"
+                                                {{ $trainerRequired ? 'required' : '' }}>
+                                                @foreach ($allUsers as $user)
+                                                    <option value="{{ $user->id }}"
+                                                        {{ $user->id == $trainer->id ? 'selected' : '' }}>
+                                                        {{ $user->name }} ({{ $user->department->name ?? 'N/A' }})
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="date" name="trainers[{{ $index }}][start_date]"
+                                                value="{{ $trainer->pivot->start_date }}" class="form-control" {{ $trainerRequired ? 'required' : '' }}>
+                                        </td>
+                                        <td>
+                                            <input type="date" name="trainers[{{ $index }}][end_date]"
+                                                value="{{ $trainer->pivot->end_date }}" class="form-control" {{ $trainerRequired ? 'required' : '' }}>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-danger btn-sm"
+                                                onclick="this.closest('tr').remove()">
+                                                <i class="fas fa-times"></i> x
+                                            </button>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr class="empty-row">
+                                        <td colspan="4" class="text-center text-muted">No trainers assigned. Click "Add
+                                            Trainer" to start.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
 
                     <div class="mt-3">
                         <button type="button" class="btn btn-info btn-sm" onclick="addTrainerRow()">
@@ -82,15 +96,15 @@
         
         row.innerHTML = `
             <td>
-                <select name="trainers[${trainerCount}][user_id]" class="form-control" required>
+                <select name="trainers[${trainerCount}][user_id]" class="form-control" {{ $trainerRequired ? 'required' : '' }}>
                     <option value="">-- Choose User --</option>
                     @foreach($allUsers as $user)
                         <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->department->name }})</option>
                     @endforeach
                 </select>
             </td>
-            <td><input type="date" name="trainers[${trainerCount}][start_date]" class="form-control" required></td>
-            <td><input type="date" name="trainers[${trainerCount}][end_date]" class="form-control" required></td>
+            <td><input type="date" name="trainers[${trainerCount}][start_date]" class="form-control" {{ $trainerRequired ? 'required' : '' }}></td>
+            <td><input type="date" name="trainers[${trainerCount}][end_date]" class="form-control" {{ $trainerRequired ? 'required' : '' }}></td>
             <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">x</button></td>
         `;
         

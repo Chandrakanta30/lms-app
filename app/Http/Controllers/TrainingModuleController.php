@@ -41,7 +41,7 @@ class TrainingModuleController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'training_type' => 'required|in:classroom,self_training',
-            'status' => 'required|in:'.implode(',', TrainingModule::STATUSES),
+            'status' => 'required|in:' . implode(',', TrainingModule::STATUSES),
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'step_names' => 'nullable|array',
@@ -145,7 +145,7 @@ class TrainingModuleController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'training_type' => 'required|in:classroom,self_training',
-            'status' => 'required|in:'.implode(',', TrainingModule::STATUSES),
+            'status' => 'required|in:' . implode(',', TrainingModule::STATUSES),
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'step_names' => 'nullable|array',
@@ -191,7 +191,7 @@ class TrainingModuleController extends Controller
 
         $training->steps()->delete();
 
-        foreach (array_values(array_filter($request->input('step_names', []), fn ($stepName) => filled($stepName))) as $index => $stepName) {
+        foreach (array_values(array_filter($request->input('step_names', []), fn($stepName) => filled($stepName))) as $index => $stepName) {
             $training->steps()->create([
                 'name' => $stepName,
                 'step_number' => $index + 1,
@@ -419,7 +419,6 @@ class TrainingModuleController extends Controller
         //  $modules = $user->modules->pluck('name');
         $modules = $user->modules;
         return view('trainings.assign_training_list', compact('modules'));
-
     }
     public function traineeAttendace($id)
     {
@@ -457,6 +456,12 @@ class TrainingModuleController extends Controller
         return view('trainings.attendace_sheet', compact('users', 'module', 'attendanceSignerName', 'attendanceSignedAt'));
     }
 
+    public function submitAttendace(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return "unauthorized user, user not found";
+        }
         $module = TrainingModule::findOrFail($id);
         if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
             abort(403, 'Unauthorized access to this module attendance sheet.');
@@ -490,44 +495,40 @@ class TrainingModuleController extends Controller
         $trainerId = optional($module->trainers()->first())->id ?? $user->id;
         $sessionTopic = $module->name . ' - ' . $validated['session_brief_type'];
 
-    // Update only trainees that belong to this module.
-    $submittedAt = now();
-    foreach ($enrolledUserIds as $userId) {
-        $isPresent = isset($attendanceMap[$userId]) && (string) $attendanceMap[$userId] === '1';
-        $module->trainees()->updateExistingPivot($userId, [
-            'attendance_status' => $isPresent ? 'present' : 'absent',
-            'attendance_marked_at' => $submittedAt,
-            'attendance_marked_by' => $user->id,
-        ]);
+        // Update only trainees that belong to this module.
+        $submittedAt = now();
+        foreach ($enrolledUserIds as $userId) {
+            $isPresent = isset($attendanceMap[$userId]) && (string) $attendanceMap[$userId] === '1';
+            $module->trainees()->updateExistingPivot($userId, [
+                'attendance_status' => $isPresent ? 'present' : 'absent',
+                'attendance_marked_at' => $submittedAt,
+                'attendance_marked_by' => $user->id,
+            ]);
 
 
 
-        $payload = [
-            'training_date' => Carbon::now()->format('Y-m-d'),
-            'trainee_id'    => $userId,
-            'trainer_id'    => $trainerId,
-            'topic'         => $sessionTopic,
-            'register_no'   => 'N/A',
-            'page_no'       => 'N/A',
-            'session_brief_type' => $validated['session_brief_type'],
-            'session_comments' => $validated['session_comments'] ?? null,
-            'start_time' => $validated['start_time'],
-            'end_time' => $validated['end_time'],
-        ];
-        
-        TrainingSessions::updateOrCreate(
-            [
-                'training_date' => $payload['training_date'],
-                'trainee_id'    => $payload['trainee_id'],
-                'trainer_id'    => $payload['trainer_id'],
-            ],
-            $payload
-        );
+            $payload = [
+                'training_date' => Carbon::now()->format('Y-m-d'),
+                'trainee_id'    => $userId,
+                'trainer_id'    => $trainerId,
+                'topic'         => $sessionTopic,
+                'register_no'   => 'N/A',
+                'page_no'       => 'N/A',
+                'session_brief_type' => $validated['session_brief_type'],
+                'session_comments' => $validated['session_comments'] ?? null,
+                'start_time' => $validated['start_time'],
+                'end_time' => $validated['end_time'],
+            ];
 
-
-
-        
-    }
+            TrainingSessions::updateOrCreate(
+                [
+                    'training_date' => $payload['training_date'],
+                    'trainee_id'    => $payload['trainee_id'],
+                    'trainer_id'    => $payload['trainer_id'],
+                ],
+                $payload
+            );
+        }
 
         return redirect()
             ->route('attendance', ['id' => $module->id, 'page' => $request->query('page')])

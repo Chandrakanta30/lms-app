@@ -304,6 +304,10 @@ class TrainingModuleController extends Controller
 
         if ($request->has('trainers')) {
             foreach ($request->trainers as $data) {
+                if (empty($data['user_id'])) {
+                    continue;
+                }
+
                 $syncData[$data['user_id']] = [
                     'start_date' => $data['start_date'],
                     'end_date' => $data['end_date'],
@@ -425,7 +429,7 @@ class TrainingModuleController extends Controller
             return "unauthorized user, user not found";
         }
 
-        $module = TrainingModule::findOrFail($id);
+        $module = TrainingModule::with(['documents', 'trainers'])->findOrFail($id);
         if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
             abort(403, 'Unauthorized access to this module attendance sheet.');
         }
@@ -453,23 +457,27 @@ class TrainingModuleController extends Controller
         return view('trainings.attendace_sheet', compact('users', 'module', 'attendanceSignerName', 'attendanceSignedAt'));
     }
 
-    public function submitAttendace(Request $request, $id)
-    {
-        $user = Auth::user();
-        if (!$user) {
-            return "unauthorized user, user not found";
-        }
-
         $module = TrainingModule::findOrFail($id);
         if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
-            abort(403, 'Unauthorized access to submit this module attendance.');
+            abort(403, 'Unauthorized access to this module attendance sheet.');
         }
+
+        $users = $module->trainees()
+            ->where('users.is_trainer', 0)
+            ->with(['department', 'designation'])
+            ->orderBy('users.name')
+            ->paginate(20)
+            ->withQueryString();
 
         $validated = $request->validate([
             'listed_user_ids' => 'required|array|min:1',
             'listed_user_ids.*' => 'integer|exists:users,id',
             'attendance' => 'nullable|array',
             'attendance.*' => 'in:0,1',
+            'session_brief_type' => 'required|string|in:SOP,STP,Protocol,Others',
+            'session_comments' => 'nullable|string|max:1000',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
         ]);
 
         $listedUserIds = collect($validated['listed_user_ids'])->map(fn($userId) => (int) $userId)->unique()->values();
@@ -479,6 +487,8 @@ class TrainingModuleController extends Controller
             ->map(fn($userId) => (int) $userId)
             ->values();
         $attendanceMap = $validated['attendance'] ?? [];
+        $trainerId = optional($module->trainers()->first())->id ?? $user->id;
+        $sessionTopic = $module->name . ' - ' . $validated['session_brief_type'];
 
     // Update only trainees that belong to this module.
     $submittedAt = now();
@@ -495,10 +505,14 @@ class TrainingModuleController extends Controller
         $payload = [
             'training_date' => Carbon::now()->format('Y-m-d'),
             'trainee_id'    => $userId,
-            'trainer_id'    => $module->trainers()->firstOrFail()->id,
-            'topic'         => 'Laravel Validation and Eloquent Basics',
-            'register_no'   => 'REG-2026-001',
-            'page_no'       => '45',
+            'trainer_id'    => $trainerId,
+            'topic'         => $sessionTopic,
+            'register_no'   => 'N/A',
+            'page_no'       => 'N/A',
+            'session_brief_type' => $validated['session_brief_type'],
+            'session_comments' => $validated['session_comments'] ?? null,
+            'start_time' => $validated['start_time'],
+            'end_time' => $validated['end_time'],
         ];
         
         TrainingSessions::updateOrCreate(

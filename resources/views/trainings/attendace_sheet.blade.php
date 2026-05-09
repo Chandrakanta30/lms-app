@@ -51,8 +51,81 @@
                 </div>
             @endif
 
+            <div class="row mb-4">
+                <div class="col-lg-4 mb-3">
+                    <div class="border rounded p-3 h-100 bg-light">
+                        <h6 class="mb-2">Trainer Acknowledgement</h6>
+                        <div class="text-muted small">
+                            {{ $attendanceSignerName ? 'Last submitted by ' . $attendanceSignerName : 'No acknowledgement submitted yet.' }}
+                        </div>
+                        @if($attendanceSignedAt)
+                            <div class="small mt-2">{{ \Illuminate\Support\Carbon::parse($attendanceSignedAt)->format('d M Y, h:i A') }}</div>
+                        @endif
+                    </div>
+                </div>
+                <div class="col-lg-8 mb-3">
+                    <div class="border rounded p-3 h-100 bg-light">
+                        <h6 class="mb-2">Tagged SOPs / Documents</h6>
+                        @forelse($module->documents as $document)
+                            <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                                <div>
+                                    <strong>{{ $document->doc_name }}</strong>
+                                    <div class="small text-muted">{{ $document->doc_number }} • {{ $document->doc_type }}</div>
+                                </div>
+                                <a href="{{ asset('storage/' . $document->file_path) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    Open
+                                </a>
+                            </div>
+                        @empty
+                            <p class="text-muted mb-0">No SOPs or documents tagged to this training yet.</p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+
             <form id="attendanceForm" method="POST" action="{{ route('attendance.submit', ['id' => $module->id, 'page' => request('page')]) }}">
                 @csrf
+
+                <div class="border rounded p-3 mb-4">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Briefed Session</label>
+                                <select name="session_brief_type" class="form-control" required>
+                                    <option value="">Select brief type</option>
+                                    <option value="SOP">Briefly explained about SOP</option>
+                                    <option value="STP">Briefly explained about STP</option>
+                                    <option value="Protocol">Briefly explained about Protocol</option>
+                                    <option value="Others">Others</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Start Time</label>
+                                <input type="time" name="start_time" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>End Time</label>
+                                <input type="time" name="end_time" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Duration</label>
+                                <input type="text" id="sessionDuration" class="form-control bg-light" placeholder="Auto-calculated" readonly>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group mb-0">
+                                <label>Comments</label>
+                                <textarea name="session_comments" class="form-control" rows="2" placeholder="Add trainer comments or what was covered in the classroom session."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="table-responsive">
                     <table class="table table-striped table-bordered">
@@ -206,5 +279,32 @@ document.getElementById('attendanceForm').addEventListener('submit', function ()
 @if(session('success'))
 sessionStorage.removeItem(storageKey);
 @endif
+
+function updateDuration() {
+    var start = document.querySelector('input[name="start_time"]').value;
+    var end = document.querySelector('input[name="end_time"]').value;
+    var durationField = document.getElementById('sessionDuration');
+
+    if (!start || !end) {
+        durationField.value = '';
+        return;
+    }
+
+    var startMinutes = parseInt(start.split(':')[0], 10) * 60 + parseInt(start.split(':')[1], 10);
+    var endMinutes = parseInt(end.split(':')[0], 10) * 60 + parseInt(end.split(':')[1], 10);
+
+    if (endMinutes <= startMinutes) {
+        durationField.value = 'Invalid timing';
+        return;
+    }
+
+    var totalMinutes = endMinutes - startMinutes;
+    var hours = Math.floor(totalMinutes / 60);
+    var minutes = totalMinutes % 60;
+    durationField.value = hours + 'h ' + minutes + 'm';
+}
+
+document.querySelector('input[name="start_time"]').addEventListener('change', updateDuration);
+document.querySelector('input[name="end_time"]').addEventListener('change', updateDuration);
 </script>
 @endsection

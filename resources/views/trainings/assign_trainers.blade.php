@@ -9,6 +9,16 @@
                     <a href="{{ route('trainings.index') }}" class="btn btn-sm btn-light">Back to List</a>
                 </div>
                 <div class="card-body">
+                    @php
+                        $trainerRequired = ($module->training_type ?? 'classroom') !== 'self_training';
+                    @endphp
+
+                    @if(!$trainerRequired)
+                        <div class="alert alert-info">
+                            Trainer assignment is optional for self training programs.
+                        </div>
+                    @endif
+
                     <form action="{{ route('trainings.save-trainers', $module->id) }}" method="POST">
                         @csrf
                         <table class="table table-bordered" id="trainer-table">
@@ -25,7 +35,7 @@
                                     <tr>
                                         <td>
                                             <select name="trainers[{{ $index }}][user_id]" class="form-control"
-                                                required>
+                                                {{ $trainerRequired ? 'required' : '' }}>
                                                 @foreach ($allUsers as $user)
                                                     <option value="{{ $user->id }}"
                                                         {{ $user->id == $trainer->id ? 'selected' : '' }}>
@@ -36,11 +46,11 @@
                                         </td>
                                         <td>
                                             <input type="date" name="trainers[{{ $index }}][start_date]"
-                                                value="{{ $trainer->pivot->start_date }}" class="form-control" required>
+                                                value="{{ $trainer->pivot->start_date }}" class="form-control" {{ $trainerRequired ? 'required' : '' }}>
                                         </td>
                                         <td>
                                             <input type="date" name="trainers[{{ $index }}][end_date]"
-                                                value="{{ $trainer->pivot->end_date }}" class="form-control" required>
+                                                value="{{ $trainer->pivot->end_date }}" class="form-control" {{ $trainerRequired ? 'required' : '' }}>
                                         </td>
                                         <td>
                                             <button type="button" class="btn btn-danger btn-sm"
@@ -132,7 +142,7 @@
 
             row.innerHTML = `
             <td>
-                <select name="trainers[${trainerCount}][user_id]" class="form-control" required>
+                <select name="trainers[${trainerCount}][user_id]" class="form-control" {{ $trainerRequired ? 'required' : '' }}>
                     <option value="">-- Choose User --</option>
                     @foreach ($allUsers as $user)
 <option value="{{ $user->id }}">
@@ -141,8 +151,8 @@
                     @endforeach
                 </select>
             </td>
-            <td><input type="date" name="trainers[${trainerCount}][start_date]" class="form-control" required></td>
-            <td><input type="date" name="trainers[${trainerCount}][end_date]" class="form-control" required></td>
+            <td><input type="date" name="trainers[${trainerCount}][start_date]" class="form-control" {{ $trainerRequired ? 'required' : '' }}></td>
+            <td><input type="date" name="trainers[${trainerCount}][end_date]" class="form-control" {{ $trainerRequired ? 'required' : '' }}></td>
             <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">x</button></td>
         `;
 

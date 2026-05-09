@@ -135,6 +135,54 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="row">
+
+    <div class="col-md-6">
+        <div class="form-group mb-3">
+            <label class="form-label">Department</label>
+
+            <select name="department_id" class="form-control" required>
+
+                <option value="">Select Department</option>
+
+                @foreach($departments as $department)
+
+                    <option value="{{ $department->id }}">
+                        {{ $department->name }}
+                    </option>
+
+                @endforeach
+
+            </select>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="form-group mb-3">
+            <label class="form-label">Section</label>
+
+            <select name="section_id" class="form-control" required>
+
+                <option value="">Select Section</option>
+
+                @foreach($sections as $section)
+
+                    <option value="{{ $section->id }}">
+                        {{ $section->name }}
+                    </option>
+
+                @endforeach
+
+            </select>
+        </div>
+    </div>
+
+</div>
+
+
+
+
                     <div class="form-group mb-3">
                         <label class="form-label">Select File (PDF/Doc)</label>
                         <input type="file" name="file" class="form-control" required>

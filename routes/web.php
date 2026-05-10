@@ -29,7 +29,6 @@ Route::get('/system-update', function () {
         $cacheOutput = Artisan::output();
 
         return back()->with('success', 'System Updated Successfully! <br><strong>Migrations:</strong> ' . $migrationOutput . '<br><strong>Cache:</strong> ' . $cacheOutput);
-
     } catch (\Exception $e) {
         return back()->with('error', 'Update Failed: ' . $e->getMessage());
     }
@@ -58,7 +57,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('permissions', PermissionController::class);
     Route::resource('trainings', TrainingModuleController::class);
     Route::get('/created-training-setup', [TrainingModuleController::class, 'index'])
-    ->name('created-training-setup');
+        ->name('created-training-setup');
 
     Route::get('training-list', [TrainingModuleController::class, 'traininglist'])->name('training-list');
     Route::get('attendace/{id}', [TrainingModuleController::class, 'traineeAttendace'])->name('attendance');
@@ -136,6 +135,24 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('/trainings/{moduleId}/save-links', [ModuleLinkController::class, 'saveLinks'])
         ->name('admin.modules.saveLinks');
 
+
+    Route::patch('/notifications/{id}/read', function ($id) {
+
+        $notification = \App\Models\Notification::findOrFail($id);
+
+        $notification->update([
+            'is_read' => true
+        ]);
+
+        return back();
+    })->name('notifications.read');
+
+
+
+
+
+
+
     //  AUDIT LOG ROUTE 
     Route::get('/audit-logs', [AuditLogController::class, 'index'])
         ->name('audit.logs');
@@ -146,5 +163,4 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::get('/audit-logs/module/{id}', [App\Http\Controllers\AuditLogController::class, 'moduleLogs'])
         ->name('audit.logs.module');
-
 });

@@ -19,32 +19,32 @@ class TrainingModuleController extends Controller
 {
     public function index()
     {
-         $routeName = request()->route()->getName();
+        $routeName = request()->route()->getName();
 
-    $query = TrainingModule::with([
-        'steps',
-        'trainers.designation',
-        'trainees.designation',
-        'documents'
-    ])->whereNull('parent_id');
+        $query = TrainingModule::with([
+            'steps',
+            'trainers.designation',
+            'trainees.designation',
+            'documents'
+        ])->whereNull('parent_id');
 
-    // Training Setup => Inactive
-    if ($routeName === 'trainings.index') {
-        $query->where('is_active', 0);
-    }
+        // Training Setup => Inactive
+        if ($routeName === 'trainings.index') {
+            $query->where('is_active', 0);
+        }
 
-    // Created Training Setup => Active
-    if ($routeName === 'created-training-setup') {
-        $query->where('is_active', 1);
-    }
+        // Created Training Setup => Active
+        if ($routeName === 'created-training-setup') {
+            $query->where('is_active', 1);
+        }
 
-    $trainings = $query
-        ->latest('id')
-        ->get();
+        $trainings = $query
+            ->latest('id')
+            ->get();
 
-    $statusOptions = TrainingModule::STATUSES;
+        $statusOptions = TrainingModule::STATUSES;
 
-    return view('trainings.index', compact('trainings', 'statusOptions'));
+        return view('trainings.index', compact('trainings', 'statusOptions'));
     }
 
     public function create()
@@ -70,7 +70,7 @@ class TrainingModuleController extends Controller
             'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
             'docs.*.name' => 'required_if:training_type,self_training',
             'docs.*.file' => 'nullable|file|mimes:pdf,ppt,pptx,doc,docx|max:10240',
-            
+
         ]);
 
         $parent = TrainingModule::create([
@@ -337,11 +337,14 @@ class TrainingModuleController extends Controller
                 $syncData[$data['user_id']] = [
                     'start_date' => $data['start_date'],
                     'end_date' => $data['end_date'],
+
                 ];
             }
         }
 
         $module->trainers()->sync($syncData);
+
+
 
         // NEW trainers (names)
         $newTrainers = $module->trainers()->pluck('name')->toArray();
@@ -381,6 +384,8 @@ class TrainingModuleController extends Controller
 
         $module->trainees()->sync($syncData);
 
+
+
         // NEW trainees
         $newUsers = $module->trainees()->pluck('name')->toArray();
 
@@ -407,8 +412,26 @@ class TrainingModuleController extends Controller
         $training->updated_by = auth()->id();
 
         if ($training->is_active) {
+
             $training->activated_at = now();
             $training->activated_by = auth()->id();
+
+            // SEND NOTIFICATION TO ALL TRAINEES
+            foreach ($training->trainees as $trainee) {
+
+                \App\Models\Notification::create([
+
+                    'user_id' => $trainee->id,
+
+                    'title' => 'New Training Assigned',
+
+                    'message' => 'You have been assigned to training: ' . $training->name,
+
+                    'type' => 'training_assigned',
+
+                    'training_id' => $training->id,
+                ]);
+            }
         }
 
         $training->save();
@@ -481,6 +504,8 @@ class TrainingModuleController extends Controller
 
         return view('trainings.attendace_sheet', compact('users', 'module', 'attendanceSignerName', 'attendanceSignedAt'));
     }
+
+
 
     public function submitAttendace(Request $request, $id)
     {

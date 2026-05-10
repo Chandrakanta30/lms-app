@@ -50,7 +50,7 @@
             color: var(--text-main);
             font-family: "Roboto", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
             height: 100%;
-             display: flex;
+            display: flex;
             flex-direction: column;
         }
 
@@ -900,18 +900,52 @@
 <body data-current-route="{{ request()->route()?->getName() ?? '' }}">
     <div class="container-scroller">
         @include('partials.nav')
+
         <div class="main-panel">
-            @yield('content')
-            <footer class="footer">
-                <div class="d-sm-flex justify-content-center justify-content-sm-between align-items-center">
-                    <span class="text-muted text-center text-sm-left d-block d-sm-inline-block">Copyright ©
-                        {{ date('Y') }} Vincatis LMS. All rights reserved.</span>
-                    <span class="float-none float-sm-end d-block mt-2 mt-sm-0 text-center text-muted">Built for
-                        compliance, training clarity, and faster team adoption.</span>
-                </div>
-            </footer>
+
+    @if(auth()->check())
+
+        @php
+            $notifications = auth()->user()
+                ->notifications()
+                ->where('is_read', false)
+                ->latest()
+                ->take(5)
+                ->get();
+        @endphp
+
+        @foreach($notifications as $notification)
+
+            <div class="alert alert-info alert-dismissible fade show mx-3 mt-3">
+
+                <strong>{{ $notification->title }}</strong>
+
+                <br>
+
+                {{ $notification->message }}
+
+                <form action="{{ route('notifications.read', $notification->id) }}"
+                    method="POST"
+                    class="mt-2">
+
+                    @csrf
+                    @method('PATCH')
+
+                    <button class="btn btn-sm btn-primary">
+                        OK
+                    </button>
+
+                </form>
+
+            </div>
+
+        @endforeach
+
+    @endif
+
+    @yield('content')
+   
         </div>
-    </div>
     </div>
 
     <script src="{{ asset('assets/vendors/js/vendor.bundle.base.js') }}"></script>
@@ -1033,6 +1067,7 @@
         });
     </script>
     @stack('scripts')
+    
 </body>
 
 </html>

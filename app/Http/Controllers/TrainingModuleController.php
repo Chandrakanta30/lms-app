@@ -174,6 +174,8 @@ class TrainingModuleController extends Controller
             'status' => 'required|in:' . implode(',', TrainingModule::STATUSES),
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
+            'start_time' => 'nullable|date_format:H:i',  // Add this
+            'end_time' => 'nullable|date_format:H:i',    // Add this
             'step_names' => 'nullable|array',
             'step_names.*' => 'nullable|string|max:255',
             'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
@@ -185,6 +187,8 @@ class TrainingModuleController extends Controller
             'status',
             'start_date',
             'end_date',
+            'start_time',  
+            'end_time',    
         ]);
 
         $training->update([
@@ -193,6 +197,8 @@ class TrainingModuleController extends Controller
             'status' => $request->status,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
+            'start_time' => $request->start_time,  
+            'end_time' => $request->end_time,   
             'updated_by' => auth()->id(),
         ]);
 
@@ -202,6 +208,8 @@ class TrainingModuleController extends Controller
             'status',
             'start_date',
             'end_date',
+            'start_time',  
+            'end_time',    
         ]);
 
         activity()

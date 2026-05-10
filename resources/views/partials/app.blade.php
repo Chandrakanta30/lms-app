@@ -884,6 +884,93 @@
             background: rgba(148, 163, 184, 0.3);
             border-radius: 10px;
         }
+
+        body[data-current-route="trainings.index"] .custom-accordion .card-header {
+            border-bottom: 0;
+            transition: background 0.3s;
+        }
+
+        body[data-current-route="trainings.index"] .custom-accordion .card-header:hover {
+            background-color: #f8f9fa !important;
+        }
+
+        body[data-current-route="trainings.index"] .nav-pills .nav-link {
+            font-size: 0.85rem;
+            color: #6c757d;
+            border: 1px solid transparent;
+        }
+
+        body[data-current-route="trainings.index"] .nav-pills .nav-link.active {
+            background-color: #4b49ac !important;
+            color: white;
+        }
+
+        body[data-current-route="trainings.index"] .badge-outline-secondary {
+            border: 1px solid #6c757d;
+            color: #6c757d;
+            background: transparent;
+        }
+
+        body[data-current-route="trainings.index"] .status-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 20px;
+            padding: 6px 12px;
+            border: none;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        body[data-current-route="trainings.index"] .status-toggle-btn.active {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        body[data-current-route="trainings.index"] .status-toggle-btn.inactive {
+            background: rgba(148, 163, 184, 0.15);
+            color: #94a3b8;
+        }
+
+        body[data-current-route="trainings.index"] .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        body[data-current-route="trainings.index"] .status-toggle-btn:hover {
+            transform: scale(1.05);
+        }
+
+        body[data-current-route="trainings.index"] .action-buttons {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 6px;
+            overflow-x: auto;
+        }
+
+        body[data-current-route="trainings.index"] .action-buttons .btn,
+        body[data-current-route="trainings.index"] .action-buttons form button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 30px;
+            padding: 0 8px;
+            font-size: 11px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        body[data-current-route="trainings.index"] .action-buttons .btn i {
+            margin-right: 4px;
+        }
+
+        body[data-current-route="trainings.index"] .action-buttons form {
+            margin: 0;
+        }
     </style>
 </head>
 

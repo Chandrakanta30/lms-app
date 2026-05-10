@@ -344,6 +344,18 @@ class TrainingModuleController extends Controller
 
         $module->trainers()->sync($syncData);
 
+        // SEND NOTIFICATION TO TRAINERS
+        foreach (array_keys($syncData) as $trainerId) {
+
+            \App\Models\Notification::create([
+                'user_id' => $trainerId,
+                'title' => 'Training Session Assigned',
+                'message' => 'You have been assigned as trainer for: ' . $module->name,
+                'type' => 'trainer_assignment',
+                'training_id' => $module->id,
+            ]);
+        }
+
 
 
         // NEW trainers (names)
@@ -383,6 +395,17 @@ class TrainingModuleController extends Controller
         }
 
         $module->trainees()->sync($syncData);
+        // SEND NOTIFICATION TO ASSIGNED TRAINEES
+        foreach (array_keys($syncData) as $userId) {
+
+            \App\Models\Notification::create([
+                'user_id' => $userId,
+                'title' => 'New Training Assigned',
+                'message' => 'You have been assigned to training: ' . $module->name,
+                'type' => 'training_assigned',
+                'training_id' => $module->id,
+            ]);
+        }
 
 
 

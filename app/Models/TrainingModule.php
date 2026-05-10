@@ -14,7 +14,7 @@ class TrainingModule extends Model
 
     public const STATUSES = ['created', 'inreview', 'reviewed', 'approved'];
 
-    protected $fillable = ['name', 'parent_id', 'step_number', 'training_type', 'start_date', 'end_date', 'status', 'created_by', 'updated_by', 'activated_at', 'activated_by'];
+    protected $fillable = ['name', 'parent_id', 'step_number', 'training_type', 'start_date', 'end_date', 'status', 'created_by', 'updated_by', 'activated_at', 'activated_by','start_time','end_time',];
 
     // Get the Main Training (Parent)
     public function parent()

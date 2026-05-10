@@ -14,7 +14,7 @@ class TrainingModule extends Model
 
     public const STATUSES = ['created', 'inreview', 'reviewed', 'approved'];
 
-    protected $fillable = ['name', 'parent_id', 'step_number', 'training_type', 'start_date', 'end_date', 'status', 'created_by', 'updated_by', 'activated_at', 'activated_by','start_time','end_time',];
+    protected $fillable = ['name', 'parent_id', 'step_number', 'training_type', 'start_date', 'end_date', 'status', 'created_by', 'updated_by', 'activated_at', 'activated_by', 'start_time', 'end_time',];
 
     // Get the Main Training (Parent)
     public function parent()
@@ -54,6 +54,13 @@ class TrainingModule extends Model
     {
         return $this->belongsToMany(User::class, 'trainer_training', 'training_module_id', 'user_id')
             ->withPivot('start_date', 'end_date')
+            ->withTimestamps();
+    }
+    public function acceptedTrainers()
+    {
+        return $this->belongsToMany(User::class, 'trainer_training', 'training_module_id', 'user_id')
+            ->withPivot('start_date', 'end_date', 'acceptance_status')
+            ->wherePivot('acceptance_status', 'accepted')
             ->withTimestamps();
     }
     public function venues()

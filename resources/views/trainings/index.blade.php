@@ -101,7 +101,7 @@ $statusMap = [
                                         <i class="mdi mdi-account-group"></i>
 
                                         <span class="badge badge-primary ml-1">
-                                            {{ $training->trainers->count() }}
+                                              {{ $training->acceptedTrainers->count() }}
                                         </span>
                                     </a>
 

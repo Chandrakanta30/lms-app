@@ -337,6 +337,7 @@ class TrainingModuleController extends Controller
                 $syncData[$data['user_id']] = [
                     'start_date' => $data['start_date'],
                     'end_date' => $data['end_date'],
+                    'acceptance_status' => 'pending',
 
                 ];
             }
@@ -371,6 +372,18 @@ class TrainingModuleController extends Controller
             ->log('Trainers assigned/updated');
 
         return back()->with('success', 'Trainers updated.');
+    }
+
+
+    public function acceptTrainerTraining($trainingId)
+    {
+        $training = TrainingModule::findOrFail($trainingId);
+
+        $training->trainers()->updateExistingPivot(auth()->id(), [
+            'acceptance_status' => 'accepted'
+        ]);
+
+        return back()->with('success', 'Training accepted successfully.');
     }
 
     public function saveUsers(Request $request, $id)

@@ -4,10 +4,10 @@
 
 @php
 $statusMap = [
-    'created' => ['label' => 'Created', 'class' => 'badge-dark'],
-    'inreview' => ['label' => 'In Review', 'class' => 'badge-warning'],
-    'reviewed' => ['label' => 'Reviewed', 'class' => 'badge-info'],
-    'approved' => ['label' => 'Approved', 'class' => 'badge-success'],
+'created' => ['label' => 'Created', 'class' => 'badge-dark'],
+'inreview' => ['label' => 'In Review', 'class' => 'badge-warning'],
+'reviewed' => ['label' => 'Reviewed', 'class' => 'badge-info'],
+'approved' => ['label' => 'Approved', 'class' => 'badge-success'],
 ];
 @endphp
 
@@ -17,9 +17,9 @@ $statusMap = [
         <div class="card-body">
 
             @if (session('success'))
-                <div class="alert alert-success mb-4">
-                    {{ session('success') }}
-                </div>
+            <div class="alert alert-success mb-4">
+                {{ session('success') }}
+            </div>
             @endif
 
             <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
@@ -40,349 +40,347 @@ $statusMap = [
 
                 @foreach ($trainings as $training)
 
-                    @php
-                        $statusMeta = $statusMap[$training->status ?? 'created'] ?? $statusMap['created'];
-                    @endphp
+                @php
+                $statusMeta = $statusMap[$training->status ?? 'created'] ?? $statusMap['created'];
+                @endphp
 
-                    <!-- CARD START -->
-                    <div class="card border mb-3">
+                <!-- CARD START -->
+                <div class="card border mb-3">
 
-                        <!-- HEADER -->
-                        <div class="card-header bg-white py-3">
+                    <!-- HEADER -->
+                    <div class="card-header bg-white py-3">
 
-                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
 
-                                <!-- LEFT -->
-                                <div class="training-left">
+                            <!-- LEFT -->
+                            <div class="training-left">
 
-                                    <button
-                                        class="btn btn-link text-decoration-none text-dark font-weight-bold p-0 training-title"
-                                        data-toggle="collapse"
-                                        data-target="#collapse{{ $training->id }}"
-                                        aria-expanded="false">
+                                <button
+                                    class="btn btn-link text-decoration-none text-dark font-weight-bold p-0 training-title"
+                                    data-toggle="collapse"
+                                    data-target="#collapse{{ $training->id }}"
+                                    aria-expanded="false">
 
-                                        <i class="mdi mdi-chevron-down-circle-outline mr-2 text-primary"></i>
+                                    <i class="mdi mdi-chevron-down-circle-outline mr-2 text-primary"></i>
 
-                                        {{ $training->name }}
+                                    {{ $training->name }}
+                                </button>
+
+                                <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+
+                                    <span class="badge badge-outline-secondary">
+                                        {{ $training->steps->count() }} Steps
+                                    </span>
+
+                                    <span class="badge {{ $statusMeta['class'] }}">
+                                        {{ $statusMeta['label'] }}
+                                    </span>
+
+                                </div>
+                            </div>
+
+                            <!-- RIGHT -->
+                            <div class="action-buttons">
+
+                                <a href="{{ route('trainings.show', $training->id) }}"
+                                    class="btn btn-sm btn-outline-dark"
+                                    title="View Training">
+                                    <i class="mdi mdi-eye-outline"></i>
+                                </a>
+
+                                <a href="{{ route('admin.modules.linkDocs', $training->id) }}"
+                                    class="btn btn-sm btn-outline-info"
+                                    title="Link Documents">
+                                    <i class="mdi mdi-link-variant"></i>
+                                </a>
+
+                                <a href="{{ route('manage-trainers', $training->id) }}"
+                                    class="btn btn-sm btn-outline-primary"
+                                    title="Trainers & Venue">
+
+                                    <i class="mdi mdi-account-group"></i>
+
+                                    <span class="badge badge-primary ml-1">
+                                        {{ $training->acceptedTrainers->count() }}
+                                    </span>
+                                </a>
+
+                                <a href="{{ route('manage-users', $training->id) }}"
+                                    class="btn btn-sm btn-outline-success"
+                                    title="Users">
+
+                                    <i class="mdi mdi-account-tie"></i>
+
+                                    <span class="badge badge-success ml-1">
+                                        {{ $training->trainees->count() }}
+                                    </span>
+                                </a>
+
+                                <!-- STATUS -->
+                                <form action="{{ route('trainings.toggle-status', $training->id) }}"
+                                    method="POST">
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button type="submit"
+                                        class="status-toggle-btn {{ $training->is_active ? 'active' : 'inactive' }}">
+
+                                        <span class="status-indicator"></span>
+
+                                        <span class="status-text">
+                                            {{ $training->is_active ? 'Active' : 'Inactive' }}
+                                        </span>
+
                                     </button>
+                                </form>
 
-                                    <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                                <!-- EDIT -->
+                                <a href="{{ route('trainings.edit', $training->id) }}"
+                                    class="btn btn-sm btn-light text-info">
 
-                                        <span class="badge badge-outline-secondary">
-                                            {{ $training->steps->count() }} Steps
-                                        </span>
+                                    <i class="mdi mdi-pencil"></i>
+                                </a>
 
-                                        <span class="badge {{ $statusMeta['class'] }}">
-                                            {{ $statusMeta['label'] }}
-                                        </span>
+                                <!-- DELETE -->
+                                <form action="{{ route('trainings.destroy', $training->id) }}"
+                                    method="POST"
+                                    class="d-inline">
 
-                                    </div>
-                                </div>
+                                    @csrf
+                                    @method('DELETE')
 
-                                <!-- RIGHT -->
-                                <div class="action-buttons">
+                                    <button class="btn btn-sm btn-light text-danger"
+                                        onclick="return confirm('Delete Program?')">
 
-                                    <a href="{{ route('trainings.show', $training->id) }}"
-                                        class="btn btn-sm btn-outline-dark"
-                                        title="View Training">
-                                        <i class="mdi mdi-eye-outline"></i>
-                                    </a>
-
-                                    <a href="{{ route('admin.modules.linkDocs', $training->id) }}"
-                                        class="btn btn-sm btn-outline-info"
-                                        title="Link Documents">
-                                        <i class="mdi mdi-link-variant"></i>
-                                    </a>
-
-                                    <a href="{{ route('manage-trainers', $training->id) }}"
-                                        class="btn btn-sm btn-outline-primary"
-                                        title="Trainers & Venue">
-
-                                        <i class="mdi mdi-account-group"></i>
-
-                                        <span class="badge badge-primary ml-1">
-                                              {{ $training->acceptedTrainers->count() }}
-                                        </span>
-                                    </a>
-
-                                    <a href="{{ route('manage-users', $training->id) }}"
-                                        class="btn btn-sm btn-outline-success"
-                                        title="Users">
-
-                                        <i class="mdi mdi-account-tie"></i>
-
-                                        <span class="badge badge-success ml-1">
-                                            {{ $training->trainees->count() }}
-                                        </span>
-                                    </a>
-
-                                    <!-- STATUS -->
-                                    <form action="{{ route('trainings.toggle-status', $training->id) }}"
-                                        method="POST">
-
-                                        @csrf
-                                        @method('PATCH')
-
-                                        <button type="submit"
-                                            class="status-toggle-btn {{ $training->is_active ? 'active' : 'inactive' }}">
-
-                                            <span class="status-indicator"></span>
-
-                                            <span class="status-text">
-                                                {{ $training->is_active ? 'Active' : 'Inactive' }}
-                                            </span>
-
-                                        </button>
-                                    </form>
-
-                                    <!-- EDIT -->
-                                    <a href="{{ route('trainings.edit', $training->id) }}"
-                                        class="btn btn-sm btn-light text-info">
-
-                                        <i class="mdi mdi-pencil"></i>
-                                    </a>
-
-                                    <!-- DELETE -->
-                                    <form action="{{ route('trainings.destroy', $training->id) }}"
-                                        method="POST"
-                                        class="d-inline">
-
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button class="btn btn-sm btn-light text-danger"
-                                            onclick="return confirm('Delete Program?')">
-
-                                            <i class="mdi mdi-trash-can"></i>
-                                        </button>
-                                    </form>
-
-                                </div>
+                                        <i class="mdi mdi-trash-can"></i>
+                                    </button>
+                                </form>
 
                             </div>
 
                         </div>
 
-                        <!-- COLLAPSE BODY -->
-                        <div id="collapse{{ $training->id }}"
-                            class="collapse"
-                            data-parent="#trainingAccordion">
+                    </div>
 
-                            <div class="card-body bg-light">
+                    <!-- COLLAPSE BODY -->
+                    <div id="collapse{{ $training->id }}"
+                        class="collapse"
+                        data-parent="#trainingAccordion">
 
-                                <!-- INFO -->
-                                <div class="row mb-3">
+                        <div class="card-body bg-light">
 
-                                    <div class="col-md-3 mb-2">
-                                        <strong>Status:</strong>
-                                        {{ $statusMeta['label'] }}
-                                    </div>
+                            <!-- INFO -->
+                            <div class="row mb-3">
 
-                                    <div class="col-md-3 mb-2">
-                                        <strong>Type:</strong>
-                                        {{ ucwords(str_replace('_', ' ', $training->training_type ?? 'classroom')) }}
-                                    </div>
+                                <div class="col-md-3 mb-2">
+                                    <strong>Status:</strong>
+                                    {{ $statusMeta['label'] }}
+                                </div>
 
-                                    <div class="col-md-3 mb-2">
-                                        <strong>Start:</strong>
+                                <div class="col-md-3 mb-2">
+                                    <strong>Type:</strong>
+                                    {{ ucwords(str_replace('_', ' ', $training->training_type ?? 'classroom')) }}
+                                </div>
 
-                                        {{ $training->start_date
+                                <div class="col-md-3 mb-2">
+                                    <strong>Start:</strong>
+
+                                    {{ $training->start_date
                                             ? \Illuminate\Support\Carbon::parse($training->start_date)->format('d M Y')
                                             : 'N/A' }}
-                                    </div>
+                                </div>
 
-                                    <div class="col-md-3 mb-2">
-                                        <strong>End:</strong>
+                                <div class="col-md-3 mb-2">
+                                    <strong>End:</strong>
 
-                                        {{ $training->end_date
+                                    {{ $training->end_date
                                             ? \Illuminate\Support\Carbon::parse($training->end_date)->format('d M Y')
                                             : 'N/A' }}
+                                </div>
+
+                            </div>
+
+                            <!-- TABS -->
+                            <ul class="nav nav-pills mb-3"
+                                id="pills-tab-{{ $training->id }}"
+                                role="tablist">
+
+                                <li class="nav-item">
+                                    <a class="nav-link active py-1 px-3"
+                                        data-toggle="pill"
+                                        href="#steps-{{ $training->id }}">
+                                        Steps
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 px-3"
+                                        data-toggle="pill"
+                                        href="#trainers-{{ $training->id }}">
+                                        Trainers
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 px-3"
+                                        data-toggle="pill"
+                                        href="#users-{{ $training->id }}">
+                                        Trainees
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 px-3"
+                                        data-toggle="pill"
+                                        href="#docs-{{ $training->id }}">
+                                        Documents
+                                    </a>
+                                </li>
+
+                            </ul>
+
+                            <!-- TAB CONTENT -->
+                            <div class="tab-content bg-white p-3 border rounded shadow-sm">
+
+                                <!-- STEPS -->
+                                <div class="tab-pane fade show active"
+                                    id="steps-{{ $training->id }}">
+
+                                    <div class="list-group list-group-flush">
+
+                                        @foreach ($training->steps as $step)
+
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+
+                                            <div>
+                                                <b class="text-primary mr-2">
+                                                    {{ $loop->iteration }}
+                                                </b>
+
+                                                {{ $step->name }}
+                                            </div>
+
+                                            <span class="text-muted small">
+                                                {{ ucfirst($training->status ?? 'created') }}
+                                            </span>
+
+                                        </div>
+
+                                        @endforeach
+
                                     </div>
 
                                 </div>
 
-                                <!-- TABS -->
-                                <ul class="nav nav-pills mb-3"
-                                    id="pills-tab-{{ $training->id }}"
-                                    role="tablist">
+                                <!-- TRAINERS -->
+                                <div class="tab-pane fade"
+                                    id="trainers-{{ $training->id }}">
 
-                                    <li class="nav-item">
-                                        <a class="nav-link active py-1 px-3"
-                                            data-toggle="pill"
-                                            href="#steps-{{ $training->id }}">
-                                            Steps
-                                        </a>
-                                    </li>
+                                    @forelse($training->trainers as $trainer)
 
-                                    <li class="nav-item">
-                                        <a class="nav-link py-1 px-3"
-                                            data-toggle="pill"
-                                            href="#trainers-{{ $training->id }}">
-                                            Trainers
-                                        </a>
-                                    </li>
+                                    <div class="d-inline-block border rounded p-2 m-1 bg-light">
 
-                                    <li class="nav-item">
-                                        <a class="nav-link py-1 px-3"
-                                            data-toggle="pill"
-                                            href="#users-{{ $training->id }}">
-                                            Trainees
-                                        </a>
-                                    </li>
+                                        <i class="mdi mdi-account-star text-primary"></i>
 
-                                    <li class="nav-item">
-                                        <a class="nav-link py-1 px-3"
-                                            data-toggle="pill"
-                                            href="#docs-{{ $training->id }}">
-                                            Documents
-                                        </a>
-                                    </li>
+                                        {{ $trainer->name }}
 
-                                </ul>
-
-                                <!-- TAB CONTENT -->
-                                <div class="tab-content bg-white p-3 border rounded shadow-sm">
-
-                                    <!-- STEPS -->
-                                    <div class="tab-pane fade show active"
-                                        id="steps-{{ $training->id }}">
-
-                                        <div class="list-group list-group-flush">
-
-                                            @foreach ($training->steps as $step)
-
-                                                <div class="list-group-item d-flex justify-content-between align-items-center">
-
-                                                    <div>
-                                                        <b class="text-primary mr-2">
-                                                            {{ $loop->iteration }}
-                                                        </b>
-
-                                                        {{ $step->name }}
-                                                    </div>
-
-                                                    <span class="text-muted small">
-                                                        {{ ucfirst($training->status ?? 'created') }}
-                                                    </span>
-
-                                                </div>
-
-                                            @endforeach
-
+                                        <div class="text-muted small">
+                                            {{ $trainer->designation->name ?? 'No designation' }}
                                         </div>
 
                                     </div>
 
-                                    <!-- TRAINERS -->
-                                    <div class="tab-pane fade"
-                                        id="trainers-{{ $training->id }}">
+                                    @empty
 
-                                        @forelse($training->trainers as $trainer)
+                                    <p class="text-muted small">
+                                        No trainers assigned.
+                                    </p>
 
-                                            <div class="d-inline-block border rounded p-2 m-1 bg-light">
+                                    @endforelse
 
-                                                <i class="mdi mdi-account-star text-primary"></i>
+                                </div>
 
-                                                {{ $trainer->name }}
+                                <!-- USERS -->
+                                <div class="tab-pane fade"
+                                    id="users-{{ $training->id }}">
 
-                                                <div class="text-muted small">
-                                                    {{ $trainer->designation->name ?? 'No designation' }}
-                                                </div>
+                                    <div class="row">
+
+                                        @forelse($training->trainees as $user)
+
+                                        <div class="col-md-4 mb-2">
+
+                                            <div class="small p-3 rounded bg-light border">
+
+                                                <strong>{{ $user->name }}</strong><br>
+
+                                                <span class="text-muted">
+                                                    {{ $user->email }}
+                                                </span><br>
+
+                                                <span class="text-muted">
+                                                    {{ $user->designation->name ?? 'No designation' }}
+                                                </span>
 
                                             </div>
 
+                                        </div>
+
                                         @empty
 
-                                            <p class="text-muted small">
-                                                No trainers assigned.
-                                            </p>
+                                        <div class="col-12 text-muted small">
+                                            No users enrolled yet.
+                                        </div>
 
                                         @endforelse
 
                                     </div>
 
-                                    <!-- USERS -->
-                                    <div class="tab-pane fade"
-                                        id="users-{{ $training->id }}">
+                                </div>
 
-                                        <div class="row">
+                                <!-- DOCUMENTS -->
+                                <div class="tab-pane fade"
+                                    id="docs-{{ $training->id }}">
 
-                                            @forelse($training->trainees as $user)
+                                    <table class="table table-sm">
 
-                                                <div class="col-md-4 mb-2">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th>Document Name</th>
+                                                <th>Question Quota</th>
+                                            </tr>
+                                        </thead>
 
-                                                    <div class="small p-3 rounded bg-light border">
+                                        <tbody>
 
-                                                        <strong>{{ $user->name }}</strong><br>
+                                            @forelse($training->documents as $doc)
 
-                                                        <span class="text-muted">
-                                                            {{ $user->email }}
-                                                        </span><br>
+                                            <tr>
 
-                                                        <span class="text-muted">
-                                                            {{ $user->designation->name ?? 'No designation' }}
-                                                        </span>
+                                                <td>{{ $doc->doc_name }}</td>
 
-                                                    </div>
+                                                <td>
+                                                    <span class="badge badge-dark">
+                                                        {{ $doc->pivot->question_quota }}
+                                                    </span>
+                                                </td>
 
-                                                </div>
+                                            </tr>
 
                                             @empty
 
-                                                <div class="col-12 text-muted small">
-                                                    No users enrolled yet.
-                                                </div>
+                                            <tr>
+                                                <td colspan="2" class="text-muted">
+                                                    No documents linked.
+                                                </td>
+                                            </tr>
 
                                             @endforelse
 
-                                        </div>
+                                        </tbody>
 
-                                    </div>
-
-                                    <!-- DOCUMENTS -->
-                                    <div class="tab-pane fade"
-                                        id="docs-{{ $training->id }}">
-
-                                        <table class="table table-sm">
-
-                                            <thead class="thead-light">
-                                                <tr>
-                                                    <th>Document Name</th>
-                                                    <th>Question Quota</th>
-                                                </tr>
-                                            </thead>
-
-                                            <tbody>
-
-                                                @forelse($training->documents as $doc)
-
-                                                    <tr>
-
-                                                        <td>{{ $doc->doc_name }}</td>
-
-                                                        <td>
-                                                            <span class="badge badge-dark">
-                                                                {{ $doc->pivot->question_quota }}
-                                                            </span>
-                                                        </td>
-
-                                                    </tr>
-
-                                                @empty
-
-                                                    <tr>
-                                                        <td colspan="2" class="text-muted">
-                                                            No documents linked.
-                                                        </td>
-                                                    </tr>
-
-                                                @endforelse
-
-                                            </tbody>
-
-                                        </table>
-
-                                    </div>
+                                    </table>
 
                                 </div>
 
@@ -391,7 +389,9 @@ $statusMap = [
                         </div>
 
                     </div>
-                    <!-- CARD END -->
+
+                </div>
+                <!-- CARD END -->
 
                 @endforeach
 
@@ -402,7 +402,6 @@ $statusMap = [
 </div>
 
 <style>
-
     .custom-accordion .card-header {
         border-bottom: 0;
         transition: background 0.3s ease;
@@ -511,7 +510,6 @@ $statusMap = [
         }
 
     }
-
 </style>
 
 @endsection

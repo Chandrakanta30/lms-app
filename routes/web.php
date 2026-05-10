@@ -148,9 +148,11 @@ Route::group(['middleware' => ['auth']], function () {
     })->name('notifications.read');
 
 
-    Route::post('/trainer-training/{training}/accept', 
-    [TrainingModuleController::class, 'acceptTrainerTraining'])
-    ->name('trainer-training.accept');
+    Route::post(
+        '/trainer-training/{training}/accept',
+        [TrainingModuleController::class, 'acceptTrainerTraining']
+    )
+        ->name('trainer-training.accept');
 
 
 

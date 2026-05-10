@@ -994,81 +994,81 @@
         });
     </script>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
 
-    document.querySelectorAll('.trainer-notification').forEach(function (el) {
+            document.querySelectorAll('.trainer-notification').forEach(function(el) {
 
-        const id = el.dataset.id;
-        const trainingId = el.dataset.training;
-        const title = el.dataset.title;
-        const message = el.dataset.message;
+                const id = el.dataset.id;
+                const trainingId = el.dataset.training;
+                const title = el.dataset.title;
+                const message = el.dataset.message;
 
-        setTimeout(() => {
+                setTimeout(() => {
 
-            Swal.fire({
-                title: title,
-                text: message,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Accept Training',
-                cancelButtonText: 'Cancel',
-                confirmButtonColor: '#2563eb',
-                cancelButtonColor: '#6c757d'
-            }).then((result) => {
+                    Swal.fire({
+                        title: title,
+                        text: message,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Accept Training',
+                        cancelButtonText: 'Cancel',
+                        confirmButtonColor: '#2563eb',
+                        cancelButtonColor: '#6c757d'
+                    }).then((result) => {
 
-                if (result.isConfirmed) {
+                        if (result.isConfirmed) {
 
-                    fetch(`/trainer-training/${trainingId}/accept`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        }
-                    })
-                    .then(response => {
+                            fetch(`/trainer-training/${trainingId}/accept`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json'
+                                    }
+                                })
+                                .then(response => {
 
-                        if (response.ok) {
+                                    if (response.ok) {
 
-                            fetch(`/notifications/${id}/read`, {
-                                method: 'PATCH',
-                                headers: {
-                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                    'Accept': 'application/json'
-                                }
-                            })
-                            .then(() => {
-                                Swal.fire({
-                                    title: 'Accepted!',
-                                    text: 'Training has been accepted successfully.',
-                                    icon: 'success',
-                                    timer: 1500,
-                                    showConfirmButton: false
-                                }).then(() => {
-                                    location.reload();
+                                        fetch(`/notifications/${id}/read`, {
+                                                method: 'PATCH',
+                                                headers: {
+                                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                                    'Accept': 'application/json'
+                                                }
+                                            })
+                                            .then(() => {
+                                                Swal.fire({
+                                                    title: 'Accepted!',
+                                                    text: 'Training has been accepted successfully.',
+                                                    icon: 'success',
+                                                    timer: 1500,
+                                                    showConfirmButton: false
+                                                }).then(() => {
+                                                    location.reload();
+                                                });
+                                            });
+
+                                    } else {
+                                        Swal.fire('Error', 'Failed to accept training.', 'error');
+                                    }
+
+                                })
+                                .catch(() => {
+                                    Swal.fire('Error', 'Something went wrong.', 'error');
                                 });
-                            });
 
-                        } else {
-                            Swal.fire('Error', 'Failed to accept training.', 'error');
                         }
 
-                    })
-                    .catch(() => {
-                        Swal.fire('Error', 'Something went wrong.', 'error');
                     });
 
-                }
+                }, 500);
 
             });
 
-        }, 500);
-
-    });
-
-});
-</script>
+        });
+    </script>
 
 
 

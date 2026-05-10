@@ -5,17 +5,35 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\MasterDocument;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Department;
+use App\Models\SectionMaster;
 
 
 class MasterDocumentController extends Controller
 {
     public function index()
     {
-        $documents = MasterDocument::with(['uploader', 'reviewer'])
+        $documents = MasterDocument::with([
+            'uploader',
+            'reviewer',
+            'department',
+            'section'
+        ])
             ->withCount('questions')
             ->get();
-        return view('documents.index', compact('documents'));
+
+        $departments = Department::all();
+
+        $sections = SectionMaster::all();
+
+        return view('documents.index', compact(
+            'documents',
+            'departments',
+            'sections'
+        ));
     }
+
+
 
     public function show($id)
     {
@@ -35,6 +53,8 @@ class MasterDocumentController extends Controller
             'doc_name'   => 'required',
             'doc_number' => 'required|unique:master_documents',
             'file'       => 'required|mimes:pdf,doc,docx,ppt,pptx|max:10000',
+            'department_id' => 'required',
+            'section_id' => 'required',
         ]);
 
         $path = $request->file('file')->store('master_docs', 'public');
@@ -45,8 +65,10 @@ class MasterDocumentController extends Controller
             'version'    => $request->version ?? '1.0',
             'doc_type'   => $request->doc_type,
             'file_path'  => $path,
-                //  added this line to track who uploaded the document
+            //  added this line to track who uploaded the document
             'uploaded_by'  => auth()->id(),
+            'department_id' => $request->department_id,
+            'section_id' => $request->section_id,
         ]);
 
         return back()->with('success', 'Master Document added to Global Pool.');

@@ -147,11 +147,16 @@ Route::group(['middleware' => ['auth']], function () {
     //     return back();
     // })->name('notifications.read');
     Route::patch('/notifications/{id}/read', [TrainingModuleController::class, 'sendNotification'])
-    ->name('notifications.read');
+        ->name('notifications.read');
 
 
-    Route::post('/trainer-training/{training}/accept',[TrainingModuleController::class, 'acceptTrainerTraining']
+    Route::post(
+        '/trainer-training/{training}/accept',
+        [TrainingModuleController::class, 'acceptTrainerTraining']
     )->name('trainer-training.accept');
+
+
+  
 
 
 

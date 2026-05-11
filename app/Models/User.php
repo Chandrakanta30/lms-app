@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Notification;
+
+
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -18,11 +21,11 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     protected $fillable = [
         'name',
-        'email', 
-        'password', 
-        'department_id', 
-        'designation_id', 
-        'qualification', 
+        'email',
+        'password',
+        'department_id',
+        'designation_id',
+        'qualification',
         'job_description',
         'experience_years',
         'is_trainer',
@@ -44,13 +47,14 @@ class User extends Authenticatable
         ];
     }
 
-    public function trainings() {
+    public function trainings()
+    {
         // return $this->belongsToMany(TrainingModule::class, 'user_trainings')
         //     ->withPivot('interacted_person', 'designation', 'comments', 'is_completed', 'completed_at')
         //     ->withTimestamps();
 
         return $this->belongsToMany(TrainingModule::class, 'training_user', 'user_id', 'training_module_id')
-                ->withPivot('status');
+            ->withPivot('status');
     }
 
 
@@ -73,7 +77,8 @@ class User extends Authenticatable
     //         'training_module_id'
     //     )->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by');
     // }
-    public function modules(){
+    public function modules()
+    {
         return $this->belongsToMany(
             TrainingModule::class,
             'trainer_training',
@@ -82,5 +87,8 @@ class User extends Authenticatable
         );
     }
 
-
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
 }

@@ -195,116 +195,163 @@
 </div>
 
 <script>
-var moduleId = '{{ $module->id }}';
-var storageKey = 'attendance_module_' + moduleId;
-var attendanceMap = {};
+document.addEventListener('DOMContentLoaded', function () {
 
-try {
-    attendanceMap = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
-} catch (e) {
-    attendanceMap = {};
-}
+    var moduleId = '{{ $module->id }}';
+    var storageKey = 'attendance_module_' + moduleId;
+    var attendanceMap = {};
 
-function setRowState(row, state) {
-    var button = row.querySelector('.attendance-toggle-btn');
-    var badge = row.querySelector('.status-badge');
-    var hiddenInput = row.querySelector('.attendance-input');
-    if (!button || !badge || !hiddenInput) return;
-
-    button.dataset.state = state;
-    hiddenInput.value = state;
-
-    if (state === '1') {
-        button.classList.add('is-on');
-        badge.textContent = 'Present';
-        badge.classList.remove('badge-danger');
-        badge.classList.add('badge-success');
-    } else {
-        button.classList.remove('is-on');
-        badge.textContent = 'Absent';
-        badge.classList.remove('badge-success');
-        badge.classList.add('badge-danger');
+    try {
+        attendanceMap = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
+    } catch (e) {
+        attendanceMap = {};
     }
-}
 
-function saveAttendanceMap() {
-    sessionStorage.setItem(storageKey, JSON.stringify(attendanceMap));
-}
+    function setRowState(row, state) {
+        var button = row.querySelector('.attendance-toggle-btn');
+        var badge = row.querySelector('.status-badge');
+        var hiddenInput = row.querySelector('.attendance-input');
 
-document.querySelectorAll('tr[data-user-id]').forEach(function (row) {
-    var userId = row.dataset.userId;
-    var currentState = row.querySelector('.attendance-input').value;
+        if (!button || !badge || !hiddenInput) {
+            return;
+        }
 
-    if (Object.prototype.hasOwnProperty.call(attendanceMap, userId)) {
-        setRowState(row, attendanceMap[userId]);
-    } else {
-        attendanceMap[userId] = currentState;
+        button.dataset.state = state;
+        hiddenInput.value = state;
+
+        if (state === '1') {
+            button.classList.add('is-on');
+            badge.textContent = 'Present';
+            badge.classList.remove('badge-danger');
+            badge.classList.add('badge-success');
+        } else {
+            button.classList.remove('is-on');
+            badge.textContent = 'Absent';
+            badge.classList.remove('badge-success');
+            badge.classList.add('badge-danger');
+        }
     }
-});
-saveAttendanceMap();
 
-document.querySelectorAll('.attendance-toggle-btn').forEach(function (button) {
-    button.addEventListener('click', function () {
-        var row = this.closest('tr[data-user-id]');
-        if (!row) return;
+    function saveAttendanceMap() {
+        sessionStorage.setItem(storageKey, JSON.stringify(attendanceMap));
+    }
+
+    document.querySelectorAll('tr[data-user-id]').forEach(function (row) {
 
         var userId = row.dataset.userId;
-        var nextState = this.dataset.state === '1' ? '0' : '1';
+        var currentState = row.querySelector('.attendance-input').value;
 
-        setRowState(row, nextState);
-        attendanceMap[userId] = nextState;
-        saveAttendanceMap();
+        if (attendanceMap.hasOwnProperty(userId)) {
+            setRowState(row, attendanceMap[userId]);
+        } else {
+            attendanceMap[userId] = currentState;
+        }
     });
-});
 
-document.getElementById('attendanceForm').addEventListener('submit', function () {
-    var container = document.getElementById('persistedAttendanceInputs');
-    container.innerHTML = '';
+    saveAttendanceMap();
 
-    Object.keys(attendanceMap).forEach(function (userId) {
-        var listedInput = document.createElement('input');
-        listedInput.type = 'hidden';
-        listedInput.name = 'listed_user_ids[]';
-        listedInput.value = userId;
-        container.appendChild(listedInput);
+    document.querySelectorAll('.attendance-toggle-btn').forEach(function (button) {
 
-        var attendanceInput = document.createElement('input');
-        attendanceInput.type = 'hidden';
-        attendanceInput.name = 'attendance[' + userId + ']';
-        attendanceInput.value = attendanceMap[userId];
-        container.appendChild(attendanceInput);
+        button.addEventListener('click', function () {
+
+            var row = this.closest('tr[data-user-id]');
+
+            if (!row) {
+                return;
+            }
+
+            var userId = row.dataset.userId;
+            var nextState = this.dataset.state === '1' ? '0' : '1';
+
+            setRowState(row, nextState);
+
+            attendanceMap[userId] = nextState;
+
+            saveAttendanceMap();
+        });
     });
-});
 
-@if(session('success'))
-sessionStorage.removeItem(storageKey);
-@endif
+    var attendanceForm = document.getElementById('attendanceForm');
 
-function updateDuration() {
-    var start = document.querySelector('input[name="start_time"]').value;
-    var end = document.querySelector('input[name="end_time"]').value;
-    var durationField = document.getElementById('sessionDuration');
+    if (attendanceForm) {
 
-    if (!start || !end) {
-        durationField.value = '';
-        return;
+        attendanceForm.addEventListener('submit', function () {
+
+            var container = document.getElementById('persistedAttendanceInputs');
+
+            container.innerHTML = '';
+
+            Object.keys(attendanceMap).forEach(function (userId) {
+
+                var attendanceInput = document.createElement('input');
+
+                attendanceInput.type = 'hidden';
+                attendanceInput.name = 'attendance[' + userId + ']';
+                attendanceInput.value = attendanceMap[userId];
+
+                container.appendChild(attendanceInput);
+            });
+        });
     }
 
-    var startMinutes = parseInt(start.split(':')[0], 10) * 60 + parseInt(start.split(':')[1], 10);
-    var endMinutes = parseInt(end.split(':')[0], 10) * 60 + parseInt(end.split(':')[1], 10);
+    @if(session('success'))
+        sessionStorage.removeItem(storageKey);
+    @endif
 
-    if (endMinutes <= startMinutes) {
-        durationField.value = 'Invalid timing';
-        return;
+    function updateDuration() {
+
+        var startInput = document.querySelector('input[name="start_time"]');
+        var endInput = document.querySelector('input[name="end_time"]');
+
+        if (!startInput || !endInput) {
+            return;
+        }
+
+        var start = startInput.value;
+        var end = endInput.value;
+
+        var durationField = document.getElementById('sessionDuration');
+
+        if (!start || !end) {
+            durationField.value = '';
+            return;
+        }
+
+        var startParts = start.split(':');
+        var endParts = end.split(':');
+
+        var startMinutes =
+            parseInt(startParts[0]) * 60 +
+            parseInt(startParts[1]);
+
+        var endMinutes =
+            parseInt(endParts[0]) * 60 +
+            parseInt(endParts[1]);
+
+        if (endMinutes <= startMinutes) {
+            durationField.value = 'Invalid timing';
+            return;
+        }
+
+        var totalMinutes = endMinutes - startMinutes;
+
+        var hours = Math.floor(totalMinutes / 60);
+        var minutes = totalMinutes % 60;
+
+        durationField.value = hours + 'h ' + minutes + 'm';
     }
 
-    var totalMinutes = endMinutes - startMinutes;
-    var hours = Math.floor(totalMinutes / 60);
-    var minutes = totalMinutes % 60;
-    durationField.value = hours + 'h ' + minutes + 'm';
-}
+    var startTimeInput = document.querySelector('input[name="start_time"]');
+    var endTimeInput = document.querySelector('input[name="end_time"]');
 
-document.querySelector('input[name="start_time"]').addEventListener('change', updateDuration);
-document.querySelector('input[name="end_time"]').addEventListener('change', updateDuration);
+    if (startTimeInput) {
+        startTimeInput.addEventListener('change', updateDuration);
+    }
+
+    if (endTimeInput) {
+        endTimeInput.addEventListener('change', updateDuration);
+    }
+
+});
 </script>
 @endsection

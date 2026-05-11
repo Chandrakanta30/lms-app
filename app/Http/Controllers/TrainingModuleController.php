@@ -19,8 +19,26 @@ class TrainingModuleController extends Controller
 {
     public function index()
     {
-        $trainings = TrainingModule::with(['steps', 'trainers.designation', 'trainees.designation', 'documents'])
-            ->whereNull('parent_id')
+        $routeName = request()->route()->getName();
+
+        $query = TrainingModule::with([
+            'steps',
+            'trainers.designation',
+            'trainees.designation',
+            'documents'
+        ])->whereNull('parent_id');
+
+        // Training Setup => Inactive
+        if ($routeName === 'trainings.index') {
+            $query->where('is_active', 0);
+        }
+
+        // Created Training Setup => Active
+        if ($routeName === 'created-training-setup') {
+            $query->where('is_active', 1);
+        }
+
+        $trainings = $query
             ->latest('id')
             ->get();
 
@@ -44,11 +62,15 @@ class TrainingModuleController extends Controller
             'status' => 'required|in:' . implode(',', TrainingModule::STATUSES),
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
+            'start_time' => 'nullable',
+            'end_time' => 'nullable',
+
             'step_names' => 'nullable|array',
             'step_names.*' => 'nullable|string|max:255',
             'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
             'docs.*.name' => 'required_if:training_type,self_training',
             'docs.*.file' => 'nullable|file|mimes:pdf,ppt,pptx,doc,docx|max:10240',
+
         ]);
 
         $parent = TrainingModule::create([
@@ -57,6 +79,8 @@ class TrainingModuleController extends Controller
             'status' => $request->status,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
+            'start_time' => $request->start_time,
+            'end_time' => $request->end_time,
             'parent_id' => null,
             'created_by' => auth()->id(),
             'updated_by' => auth()->id(),
@@ -73,6 +97,8 @@ class TrainingModuleController extends Controller
                 'status' => $request->status,
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
             ]);
         }
 
@@ -148,6 +174,8 @@ class TrainingModuleController extends Controller
             'status' => 'required|in:' . implode(',', TrainingModule::STATUSES),
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
+            'start_time' => 'nullable|date_format:H:i',  // Add this
+            'end_time' => 'nullable|date_format:H:i',    // Add this
             'step_names' => 'nullable|array',
             'step_names.*' => 'nullable|string|max:255',
             'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
@@ -159,6 +187,8 @@ class TrainingModuleController extends Controller
             'status',
             'start_date',
             'end_date',
+            'start_time',  
+            'end_time',    
         ]);
 
         $training->update([
@@ -167,6 +197,8 @@ class TrainingModuleController extends Controller
             'status' => $request->status,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
+            'start_time' => $request->start_time,  
+            'end_time' => $request->end_time,   
             'updated_by' => auth()->id(),
         ]);
 
@@ -176,6 +208,8 @@ class TrainingModuleController extends Controller
             'status',
             'start_date',
             'end_date',
+            'start_time',  
+            'end_time',    
         ]);
 
         activity()
@@ -311,11 +345,27 @@ class TrainingModuleController extends Controller
                 $syncData[$data['user_id']] = [
                     'start_date' => $data['start_date'],
                     'end_date' => $data['end_date'],
+                    'acceptance_status' => 'pending',
+
                 ];
             }
         }
 
         $module->trainers()->sync($syncData);
+
+        // SEND NOTIFICATION TO TRAINERS
+        foreach (array_keys($syncData) as $trainerId) {
+
+            \App\Models\Notification::create([
+                'user_id' => $trainerId,
+                'title' => 'Training Session Assigned',
+                'message' => 'You have been assigned as trainer for: ' . $module->name,
+                'type' => 'trainer_assignment',
+                'training_id' => $module->id,
+            ]);
+        }
+
+
 
         // NEW trainers (names)
         $newTrainers = $module->trainers()->pluck('name')->toArray();
@@ -330,6 +380,18 @@ class TrainingModuleController extends Controller
             ->log('Trainers assigned/updated');
 
         return back()->with('success', 'Trainers updated.');
+    }
+
+
+    public function acceptTrainerTraining($trainingId)
+    {
+        $training = TrainingModule::findOrFail($trainingId);
+
+        $training->trainers()->updateExistingPivot(auth()->id(), [
+            'acceptance_status' => 'accepted'
+        ]);
+
+        return back()->with('success', 'Training accepted successfully.');
     }
 
     public function saveUsers(Request $request, $id)
@@ -354,6 +416,19 @@ class TrainingModuleController extends Controller
         }
 
         $module->trainees()->sync($syncData);
+        // SEND NOTIFICATION TO ASSIGNED TRAINEES
+        foreach (array_keys($syncData) as $userId) {
+
+            \App\Models\Notification::create([
+                'user_id' => $userId,
+                'title' => 'New Training Assigned',
+                'message' => 'You have been assigned to training: ' . $module->name,
+                'type' => 'training_assigned',
+                'training_id' => $module->id,
+            ]);
+        }
+
+
 
         // NEW trainees
         $newUsers = $module->trainees()->pluck('name')->toArray();
@@ -381,8 +456,26 @@ class TrainingModuleController extends Controller
         $training->updated_by = auth()->id();
 
         if ($training->is_active) {
+
             $training->activated_at = now();
             $training->activated_by = auth()->id();
+
+            // SEND NOTIFICATION TO ALL TRAINEES
+            foreach ($training->trainees as $trainee) {
+
+                \App\Models\Notification::create([
+
+                    'user_id' => $trainee->id,
+
+                    'title' => 'New Training Assigned',
+
+                    'message' => 'You have been assigned to training: ' . $training->name,
+
+                    'type' => 'training_assigned',
+
+                    'training_id' => $training->id,
+                ]);
+            }
         }
 
         $training->save();
@@ -419,7 +512,6 @@ class TrainingModuleController extends Controller
         //  $modules = $user->modules->pluck('name');
         $modules = $user->modules;
         return view('trainings.assign_training_list', compact('modules'));
-
     }
     public function traineeAttendace($id)
     {
@@ -456,13 +548,15 @@ class TrainingModuleController extends Controller
 
         return view('trainings.attendace_sheet', compact('users', 'module', 'attendanceSignerName', 'attendanceSignedAt'));
     }
+
+
+
     public function submitAttendace(Request $request, $id)
     {
         $user = Auth::user();
         if (!$user) {
             return "unauthorized user, user not found";
         }
-
         $module = TrainingModule::findOrFail($id);
         if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
             abort(403, 'Unauthorized access to this module attendance sheet.');
@@ -510,11 +604,11 @@ class TrainingModuleController extends Controller
 
             $payload = [
                 'training_date' => Carbon::now()->format('Y-m-d'),
-                'trainee_id' => $userId,
-                'trainer_id' => $trainerId,
-                'topic' => $sessionTopic,
-                'register_no' => 'N/A',
-                'page_no' => 'N/A',
+                'trainee_id'    => $userId,
+                'trainer_id'    => $trainerId,
+                'topic'         => $sessionTopic,
+                'register_no'   => 'N/A',
+                'page_no'       => 'N/A',
                 'session_brief_type' => $validated['session_brief_type'],
                 'session_comments' => $validated['session_comments'] ?? null,
                 'start_time' => $validated['start_time'],
@@ -524,15 +618,11 @@ class TrainingModuleController extends Controller
             TrainingSessions::updateOrCreate(
                 [
                     'training_date' => $payload['training_date'],
-                    'trainee_id' => $payload['trainee_id'],
-                    'trainer_id' => $payload['trainer_id'],
+                    'trainee_id'    => $payload['trainee_id'],
+                    'trainer_id'    => $payload['trainer_id'],
                 ],
                 $payload
             );
-
-
-
-
         }
 
         return redirect()

@@ -78,6 +78,8 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::post('masters/venue', [MasterController::class, 'storeVenue'])->name('masters.venue.store');
     Route::delete('masters/venue/{venue}', [MasterController::class, 'destroyVenue'])->name('masters.venue.destroy');
+    Route::post('masters/section', [MasterController::class, 'storeSection'])->name('masters.section.store');
+    Route::delete('masters/section/{section}', [MasterController::class, 'destroySection'])->name('masters.section.destroy');
 
     Route::get('masters/trainers', [MasterController::class, 'showTrainers'])->name('masters.trainers');
 

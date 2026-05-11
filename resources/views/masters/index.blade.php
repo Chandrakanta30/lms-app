@@ -1,7 +1,7 @@
 @extends('partials.app')
 @section('content')
     <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
                     <h4 class="card-title">Departments</h4>
@@ -25,7 +25,7 @@
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
                     <h4 class="card-title">Designations</h4>
@@ -48,7 +48,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
                     <h4 class="card-title">Venus</h4>
@@ -71,6 +71,40 @@
                             </li>
                         @endforeach
                     </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">
+                        Section
+                    </h4>
+
+                    <!-- Add Section -->
+                    <form action="{{ route('masters.section.store') }}" method="POST" class="form-inline mb-3">
+                        @csrf
+                        <input type="text" name="name" class="form-control mr-2" placeholder="e.g. Section-1"
+                            required>
+                        <button type="submit" class="btn btn-info">Add</button>
+                    </form>
+
+                    <!-- Section List -->
+                    <ul class="list-group scrollable-list">
+                        @foreach ($sections as $section)
+                            <li class="list-group-item d-flex justify-content-between">
+                                {{ $section->name }}
+
+                                <form action="{{ route('masters.section.destroy', $section->sec_id) }}" method="POST">
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button class="btn btn-xs text-danger">Delete</button>
+                                </form>
+                            </li>
+                        @endforeach
+                    </ul>
+
                 </div>
             </div>
         </div>

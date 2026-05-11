@@ -13,7 +13,7 @@
                         $trainerRequired = ($module->training_type ?? 'classroom') !== 'self_training';
                     @endphp
 
-                    @if(!$trainerRequired)
+                    @if (!$trainerRequired)
                         <div class="alert alert-info">
                             Trainer assignment is optional for self training programs.
                         </div>
@@ -46,11 +46,13 @@
                                         </td>
                                         <td>
                                             <input type="date" name="trainers[{{ $index }}][start_date]"
-                                                value="{{ $trainer->pivot->start_date }}" class="form-control" {{ $trainerRequired ? 'required' : '' }}>
+                                                value="{{ $trainer->pivot->start_date }}" class="form-control"
+                                                {{ $trainerRequired ? 'required' : '' }}>
                                         </td>
                                         <td>
                                             <input type="date" name="trainers[{{ $index }}][end_date]"
-                                                value="{{ $trainer->pivot->end_date }}" class="form-control" {{ $trainerRequired ? 'required' : '' }}>
+                                                value="{{ $trainer->pivot->end_date }}" class="form-control"
+                                                {{ $trainerRequired ? 'required' : '' }}>
                                         </td>
                                         <td>
                                             <button type="button" class="btn btn-danger btn-sm"

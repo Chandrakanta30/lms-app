@@ -272,7 +272,7 @@ class TrainingModuleController extends Controller
                 }
             }
 
-            if (! empty($docNames)) {
+            if (!empty($docNames)) {
                 activity()
                     ->performedOn($training)
                     ->causedBy(auth()->user())
@@ -637,11 +637,11 @@ class TrainingModuleController extends Controller
 
             $payload = [
                 'training_date' => Carbon::now()->format('Y-m-d'),
-                'trainee_id'    => $userId,
-                'trainer_id'    => $trainerId,
-                'topic'         => $sessionTopic,
-                'register_no'   => 'N/A',
-                'page_no'       => 'N/A',
+                'trainee_id' => $userId,
+                'trainer_id' => $trainerId,
+                'topic' => $sessionTopic,
+                'register_no' => 'N/A',
+                'page_no' => 'N/A',
                 'session_brief_type' => $validated['session_brief_type'],
                 'session_comments' => $validated['session_comments'] ?? null,
                 'start_time' => $validated['start_time'],
@@ -651,8 +651,8 @@ class TrainingModuleController extends Controller
             TrainingSessions::updateOrCreate(
                 [
                     'training_date' => $payload['training_date'],
-                    'trainee_id'    => $payload['trainee_id'],
-                    'trainer_id'    => $payload['trainer_id'],
+                    'trainee_id' => $payload['trainee_id'],
+                    'trainer_id' => $payload['trainer_id'],
                 ],
                 $payload
             );

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\MasterDocument;
+use App\Models\Section;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Department;
 use App\Models\SectionMaster;
@@ -24,7 +25,7 @@ class MasterDocumentController extends Controller
 
         $departments = Department::all();
 
-        $sections = SectionMaster::all();
+        $sections = Section::all();
 
         return view('documents.index', compact(
             'documents',
@@ -50,9 +51,9 @@ class MasterDocumentController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'doc_name'   => 'required',
+            'doc_name' => 'required',
             'doc_number' => 'required|unique:master_documents',
-            'file'       => 'required|mimes:pdf,doc,docx,ppt,pptx|max:10000',
+            'file' => 'required|mimes:pdf,doc,docx,ppt,pptx|max:10000',
             'department_id' => 'required',
             'section_id' => 'required',
         ]);
@@ -60,13 +61,13 @@ class MasterDocumentController extends Controller
         $path = $request->file('file')->store('master_docs', 'public');
 
         MasterDocument::create([
-            'doc_name'   => $request->doc_name,
+            'doc_name' => $request->doc_name,
             'doc_number' => $request->doc_number,
-            'version'    => $request->version ?? '1.0',
-            'doc_type'   => $request->doc_type,
-            'file_path'  => $path,
+            'version' => $request->version ?? '1.0',
+            'doc_type' => $request->doc_type,
+            'file_path' => $path,
             //  added this line to track who uploaded the document
-            'uploaded_by'  => auth()->id(),
+            'uploaded_by' => auth()->id(),
             'department_id' => $request->department_id,
             'section_id' => $request->section_id,
         ]);

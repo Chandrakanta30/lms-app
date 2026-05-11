@@ -158,12 +158,6 @@ Route::group(['middleware' => ['auth']], function () {
     )->name('trainer-training.accept');
 
 
-  
-
-
-
-
-
 
 
     //  AUDIT LOG ROUTE 

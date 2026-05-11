@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="theme-color" content="#0f172a">
@@ -50,7 +51,7 @@
             color: var(--text-main);
             font-family: "Roboto", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
             height: 100%;
-             display: flex;
+            display: flex;
             flex-direction: column;
         }
 
@@ -898,20 +899,63 @@
 </head>
 
 <body data-current-route="{{ request()->route()?->getName() ?? '' }}">
+
+
     <div class="container-scroller">
+
         @include('partials.nav')
+
         <div class="main-panel">
+
+            @if(auth()->check())
+
+            @php
+            $notifications = auth()->user()
+            ->notifications()
+            ->where('is_read', false)
+            ->latest()
+            ->take(5)
+            ->get();
+            @endphp
+
+            @foreach($notifications as $notification)
+
+            @if($notification->type == 'trainer_assignment')
+
+            {{-- Hidden trigger data for JS --}}
+            <div class="d-none trainer-notification"
+                data-id="{{ $notification->id }}"
+                data-training="{{ $notification->training_id }}"
+                data-title="{{ $notification->title }}"
+                data-message="{{ $notification->message }}">
+            </div>
+
+            @else
+
+            <div class="alert alert-info alert-dismissible fade show mx-3 mt-3">
+                <strong>{{ $notification->title }}</strong>
+                <br>
+                {{ $notification->message }}
+
+                <form action="{{ route('notifications.read', $notification->id) }}"
+                    method="POST"
+                    class="mt-2">
+                    @csrf
+                    @method('PATCH')
+                    <button class="btn btn-sm btn-primary">OK</button>
+                </form>
+            </div>
+
+            @endif
+
+            @endforeach
+
+            @endif
+
             @yield('content')
-            <footer class="footer">
-                <div class="d-sm-flex justify-content-center justify-content-sm-between align-items-center">
-                    <span class="text-muted text-center text-sm-left d-block d-sm-inline-block">Copyright ©
-                        {{ date('Y') }} Vincatis LMS. All rights reserved.</span>
-                    <span class="float-none float-sm-end d-block mt-2 mt-sm-0 text-center text-muted">Built for
-                        compliance, training clarity, and faster team adoption.</span>
-                </div>
-            </footer>
+
         </div>
-    </div>
+
     </div>
 
     <script src="{{ asset('assets/vendors/js/vendor.bundle.base.js') }}"></script>
@@ -947,6 +991,82 @@
                     isOpen = true;
                 }
             });
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            document.querySelectorAll('.trainer-notification').forEach(function(el) {
+
+                const id = el.dataset.id;
+                const trainingId = el.dataset.training;
+                const title = el.dataset.title;
+                const message = el.dataset.message;
+
+                setTimeout(() => {
+
+                    Swal.fire({
+                        title: title,
+                        text: message,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Accept Training',
+                        cancelButtonText: 'Cancel',
+                        confirmButtonColor: '#2563eb',
+                        cancelButtonColor: '#6c757d'
+                    }).then((result) => {
+
+                        if (result.isConfirmed) {
+
+                            fetch(`/trainer-training/${trainingId}/accept`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json'
+                                    }
+                                })
+                                .then(response => {
+
+                                    if (response.ok) {
+
+                                        fetch(`/notifications/${id}/read`, {
+                                                method: 'PATCH',
+                                                headers: {
+                                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                                    'Accept': 'application/json'
+                                                }
+                                            })
+                                            .then(() => {
+                                                Swal.fire({
+                                                    title: 'Accepted!',
+                                                    text: 'Training has been accepted successfully.',
+                                                    icon: 'success',
+                                                    timer: 1500,
+                                                    showConfirmButton: false
+                                                }).then(() => {
+                                                    location.reload();
+                                                });
+                                            });
+
+                                    } else {
+                                        Swal.fire('Error', 'Failed to accept training.', 'error');
+                                    }
+
+                                })
+                                .catch(() => {
+                                    Swal.fire('Error', 'Something went wrong.', 'error');
+                                });
+
+                        }
+
+                    });
+
+                }, 500);
+
+            });
+
         });
     </script>
 
@@ -1033,6 +1153,7 @@
         });
     </script>
     @stack('scripts')
+
 </body>
 
 </html>

@@ -187,8 +187,8 @@ class TrainingModuleController extends Controller
             'status',
             'start_date',
             'end_date',
-            'start_time',  
-            'end_time',    
+            'start_time',
+            'end_time',
         ]);
 
         $training->update([
@@ -197,8 +197,8 @@ class TrainingModuleController extends Controller
             'status' => $request->status,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
-            'start_time' => $request->start_time,  
-            'end_time' => $request->end_time,   
+            'start_time' => $request->start_time,
+            'end_time' => $request->end_time,
             'updated_by' => auth()->id(),
         ]);
 
@@ -208,8 +208,8 @@ class TrainingModuleController extends Controller
             'status',
             'start_date',
             'end_date',
-            'start_time',  
-            'end_time',    
+            'start_time',
+            'end_time',
         ]);
 
         activity()
@@ -331,8 +331,8 @@ class TrainingModuleController extends Controller
     {
         $module = TrainingModule::findOrFail($id);
 
-        // OLD trainers (names)
-        $oldTrainers = $module->trainers()->pluck('name')->toArray();
+        // Get CURRENT trainer IDs BEFORE sync
+        $existingTrainerIds = $module->trainers()->pluck('users.id')->toArray();
 
         $syncData = [];
 
@@ -346,29 +346,31 @@ class TrainingModuleController extends Controller
                     'start_date' => $data['start_date'],
                     'end_date' => $data['end_date'],
                     'acceptance_status' => 'pending',
-
                 ];
             }
         }
 
         $module->trainers()->sync($syncData);
 
-        // SEND NOTIFICATION TO TRAINERS
-        foreach (array_keys($syncData) as $trainerId) {
+        // Get NEW trainer IDs (ones that were added in this update)
+        $newTrainerIds = array_diff(array_keys($syncData), $existingTrainerIds);
 
-            \App\Models\Notification::create([
-                'user_id' => $trainerId,
-                'title' => 'Training Session Assigned',
-                'message' => 'You have been assigned as trainer for: ' . $module->name,
-                'type' => 'trainer_assignment',
-                'training_id' => $module->id,
-            ]);
+        // ONLY send notifications if training is ACTIVE
+        if ($module->is_active == 1) {
+            foreach ($newTrainerIds as $trainerId) {
+                \App\Models\Notification::create([
+                    'user_id' => $trainerId,
+                    'title' => 'Training Session Assigned',
+                    'message' => 'You have been assigned as trainer for: ' . $module->name,
+                    'type' => 'trainer_assignment',
+                    'training_id' => $module->id,
+                ]);
+            }
         }
 
-
-
-        // NEW trainers (names)
-        $newTrainers = $module->trainers()->pluck('name')->toArray();
+        // Activity logging
+        $oldTrainers = User::whereIn('id', $existingTrainerIds)->pluck('name')->toArray();
+        $newTrainers = User::whereIn('id', array_keys($syncData))->pluck('name')->toArray();
 
         activity()
             ->performedOn($module)
@@ -379,7 +381,7 @@ class TrainingModuleController extends Controller
             ])
             ->log('Trainers assigned/updated');
 
-        return back()->with('success', 'Trainers updated.');
+        return back()->with('success', 'Trainers updated successfully.');
     }
 
 
@@ -387,11 +389,19 @@ class TrainingModuleController extends Controller
     {
         $training = TrainingModule::findOrFail($trainingId);
 
+        // Update the acceptance status
         $training->trainers()->updateExistingPivot(auth()->id(), [
             'acceptance_status' => 'accepted'
         ]);
 
-        return back()->with('success', 'Training accepted successfully.');
+        // Mark ALL unread notifications for this trainer and training as read
+        \App\Models\Notification::where('user_id', auth()->id())
+            ->where('training_id', $trainingId)
+            ->where('type', 'trainer_assignment')
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        return response()->json(['success' => true, 'message' => 'Training accepted successfully.']);
     }
 
     public function saveUsers(Request $request, $id)
@@ -452,27 +462,37 @@ class TrainingModuleController extends Controller
 
         $oldStatus = $training->is_active;
 
-        $training->is_active = ! $training->is_active;
+        // Toggle the status
+        $training->is_active = !$training->is_active;
         $training->updated_by = auth()->id();
 
-        if ($training->is_active) {
-
+        // If activating (changing from inactive to active)
+        if ($training->is_active && !$oldStatus) {
             $training->activated_at = now();
             $training->activated_by = auth()->id();
 
-            // SEND NOTIFICATION TO ALL TRAINEES
+            // SEND NOTIFICATIONS TO ALL TRAINERS (even those added while inactive)
+            foreach ($training->trainers as $trainer) {
+                // Check if trainer hasn't already accepted
+                $pivotData = $training->trainers()->where('user_id', $trainer->id)->first();
+                if ($pivotData && $pivotData->pivot->acceptance_status !== 'accepted') {
+                    \App\Models\Notification::create([
+                        'user_id' => $trainer->id,
+                        'title' => 'Training Session Assigned',
+                        'message' => 'You have been assigned as trainer for: ' . $training->name,
+                        'type' => 'trainer_assignment',
+                        'training_id' => $training->id,
+                    ]);
+                }
+            }
+
+            // Also send to trainees (existing code)
             foreach ($training->trainees as $trainee) {
-
                 \App\Models\Notification::create([
-
                     'user_id' => $trainee->id,
-
                     'title' => 'New Training Assigned',
-
                     'message' => 'You have been assigned to training: ' . $training->name,
-
                     'type' => 'training_assigned',
-
                     'training_id' => $training->id,
                 ]);
             }
@@ -480,18 +500,18 @@ class TrainingModuleController extends Controller
 
         $training->save();
 
-        $newStatus = $training->is_active;
-
+        // Log the activity
         activity()
             ->performedOn($training)
             ->causedBy(auth()->user())
             ->withProperties([
                 'old' => ['status' => $oldStatus ? 'Active' : 'Inactive'],
-                'attributes' => ['status' => $newStatus ? 'Active' : 'Inactive'],
+                'attributes' => ['status' => $training->is_active ? 'Active' : 'Inactive'],
             ])
             ->log('status updated');
 
-        return back()->with('success', 'Training status updated!');
+        $statusText = $training->is_active ? 'activated' : 'deactivated';
+        return back()->with('success', "Training {$statusText} successfully!");
     }
 
     public function auditLogs($id)

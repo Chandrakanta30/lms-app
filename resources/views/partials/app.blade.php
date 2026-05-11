@@ -995,6 +995,10 @@
     </script>
 
     <script>
+        const routes = {
+            acceptTraining: "{{ route('trainer-training.accept', ':id') }}",
+            markRead: "{{ route('notifications.read', ':id') }}"
+        };
         document.addEventListener('DOMContentLoaded', function() {
 
             document.querySelectorAll('.trainer-notification').forEach(function(el) {
@@ -1019,7 +1023,7 @@
 
                         if (result.isConfirmed) {
 
-                            fetch(`/trainer-training/${trainingId}/accept`, {
+                            fetch(routes.acceptTraining.replace(':id', trainingId), {
                                     method: 'POST',
                                     headers: {
                                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -1031,7 +1035,7 @@
 
                                     if (response.ok) {
 
-                                        fetch(`/notifications/${id}/read`, {
+                                        fetch(routes.markRead.replace(':id', id), {
                                                 method: 'PATCH',
                                                 headers: {
                                                     'X-CSRF-TOKEN': '{{ csrf_token() }}',

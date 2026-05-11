@@ -136,23 +136,27 @@ Route::group(['middleware' => ['auth']], function () {
         ->name('admin.modules.saveLinks');
 
 
-    Route::patch('/notifications/{id}/read', function ($id) {
+    // Route::patch('/notifications/{id}/read', function ($id) {
 
-        $notification = \App\Models\Notification::findOrFail($id);
+    //     $notification = \App\Models\Notification::findOrFail($id);
 
-        $notification->update([
-            'is_read' => true
-        ]);
+    //     $notification->update([
+    //         'is_read' => true
+    //     ]);
 
-        return back();
-    })->name('notifications.read');
+    //     return back();
+    // })->name('notifications.read');
+    Route::patch('/notifications/{id}/read', [TrainingModuleController::class, 'sendNotification'])
+        ->name('notifications.read');
 
 
     Route::post(
         '/trainer-training/{training}/accept',
         [TrainingModuleController::class, 'acceptTrainerTraining']
-    )
-        ->name('trainer-training.accept');
+    )->name('trainer-training.accept');
+
+
+  
 
 
 

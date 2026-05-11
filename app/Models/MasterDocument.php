@@ -59,6 +59,6 @@ class MasterDocument extends Model
 
     public function section()
     {
-        return $this->belongsTo(SectionMaster::class);
+        return $this->belongsTo(Section::class, 'section_id', 'sec_id');
     }
 }

@@ -10,6 +10,7 @@ use App\Models\TrainingModule;
 use App\Models\TrainingSessions;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Spatie\Activitylog\Models\Activity;
@@ -358,7 +359,7 @@ class TrainingModuleController extends Controller
         // ONLY send notifications if training is ACTIVE
         if ($module->is_active == 1) {
             foreach ($newTrainerIds as $trainerId) {
-                \App\Models\Notification::create([
+                Notification::create([
                     'user_id' => $trainerId,
                     'title' => 'Training Session Assigned',
                     'message' => 'You have been assigned as trainer for: ' . $module->name,
@@ -383,7 +384,16 @@ class TrainingModuleController extends Controller
 
         return back()->with('success', 'Trainers updated successfully.');
     }
+    public function sendNotification($id)
+    {
+        $notification = Notification::findOrFail($id);
 
+        $notification->update([
+            'is_read' => true
+        ]);
+
+        return back();
+    }
 
     public function acceptTrainerTraining($trainingId)
     {
@@ -425,25 +435,28 @@ class TrainingModuleController extends Controller
             }
         }
 
+        // Get NEW trainee IDs
+        $existingTraineeIds = $module->trainees()->pluck('users.id')->toArray();
         $module->trainees()->sync($syncData);
-        // SEND NOTIFICATION TO ASSIGNED TRAINEES
-        foreach (array_keys($syncData) as $userId) {
+        $newTraineeIds = array_diff(array_keys($syncData), $existingTraineeIds);
 
-            \App\Models\Notification::create([
-                'user_id' => $userId,
-                'title' => 'New Training Assigned',
-                'message' => 'You have been assigned to training: ' . $module->name,
-                'type' => 'training_assigned',
-                'training_id' => $module->id,
-            ]);
+        // ONLY send notifications if training is ACTIVE
+        if ($module->is_active == 1) {
+            foreach ($newTraineeIds as $userId) {
+                \App\Models\Notification::create([
+                    'user_id' => $userId,
+                    'title' => 'New Training Assigned',
+                    'message' => 'You have been assigned to training: ' . $module->name,
+                    'type' => 'training_assigned',
+                    'training_id' => $module->id,
+                ]);
+            }
         }
-
-
 
         // NEW trainees
         $newUsers = $module->trainees()->pluck('name')->toArray();
 
-        // ✅ LOG
+        // Activity log
         activity()
             ->performedOn($module)
             ->causedBy(auth()->user())
@@ -471,7 +484,7 @@ class TrainingModuleController extends Controller
             $training->activated_at = now();
             $training->activated_by = auth()->id();
 
-            // SEND NOTIFICATIONS TO ALL TRAINERS (even those added while inactive)
+            // ===== SEND NOTIFICATIONS TO TRAINERS =====
             foreach ($training->trainers as $trainer) {
                 // Check if trainer hasn't already accepted
                 $pivotData = $training->trainers()->where('user_id', $trainer->id)->first();
@@ -486,7 +499,7 @@ class TrainingModuleController extends Controller
                 }
             }
 
-            // Also send to trainees (existing code)
+            // ===== SEND NOTIFICATIONS TO TRAINEES =====
             foreach ($training->trainees as $trainee) {
                 \App\Models\Notification::create([
                     'user_id' => $trainee->id,
@@ -511,7 +524,7 @@ class TrainingModuleController extends Controller
             ->log('status updated');
 
         $statusText = $training->is_active ? 'activated' : 'deactivated';
-        return back()->with('success', "Training {$statusText} successfully!");
+        return back()->with('success', "Training {$statusText} successfully! Notifications sent to all trainers and trainees.");
     }
 
     public function auditLogs($id)

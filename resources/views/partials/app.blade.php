@@ -1009,48 +1009,34 @@
 
         <div class="main-panel">
 
-            @if(auth()->check())
+            @if (auth()->check())
 
-            @php
-            $notifications = auth()->user()
-            ->notifications()
-            ->where('is_read', false)
-            ->latest()
-            ->take(5)
-            ->get();
-            @endphp
+                @php
+                    $notifications = auth()->user()->notifications()->where('is_read', false)->latest()->take(5)->get();
+                @endphp
 
-            @foreach($notifications as $notification)
+                @foreach ($notifications as $notification)
+                    @if ($notification->type == 'trainer_assignment')
+                        {{-- Hidden trigger data for JS --}}
+                        <div class="d-none trainer-notification" data-id="{{ $notification->id }}"
+                            data-training="{{ $notification->training_id }}" data-title="{{ $notification->title }}"
+                            data-message="{{ $notification->message }}">
+                        </div>
+                    @else
+                        <div class="alert alert-info alert-dismissible fade show mx-3 mt-3">
+                            <strong>{{ $notification->title }}</strong>
+                            <br>
+                            {{ $notification->message }}
 
-            @if($notification->type == 'trainer_assignment')
-
-            {{-- Hidden trigger data for JS --}}
-            <div class="d-none trainer-notification"
-                data-id="{{ $notification->id }}"
-                data-training="{{ $notification->training_id }}"
-                data-title="{{ $notification->title }}"
-                data-message="{{ $notification->message }}">
-            </div>
-
-            @else
-
-            <div class="alert alert-info alert-dismissible fade show mx-3 mt-3">
-                <strong>{{ $notification->title }}</strong>
-                <br>
-                {{ $notification->message }}
-
-                <form action="{{ route('notifications.read', $notification->id) }}"
-                    method="POST"
-                    class="mt-2">
-                    @csrf
-                    @method('PATCH')
-                    <button class="btn btn-sm btn-primary">OK</button>
-                </form>
-            </div>
-
-            @endif
-
-            @endforeach
+                            <form action="{{ route('notifications.read', $notification->id) }}" method="POST"
+                                class="mt-2">
+                                @csrf
+                                @method('PATCH')
+                                <button class="btn btn-sm btn-primary">OK</button>
+                            </form>
+                        </div>
+                    @endif
+                @endforeach
 
             @endif
 
@@ -1153,12 +1139,14 @@
                                             });
 
                                     } else {
-                                        Swal.fire('Error', 'Failed to accept training.', 'error');
+                                        Swal.fire('Error', 'Failed to accept training.',
+                                            'error');
                                     }
 
                                 })
                                 .catch(() => {
-                                    Swal.fire('Error', 'Something went wrong.', 'error');
+                                    Swal.fire('Error', 'Something went wrong.',
+                                        'error');
                                 });
 
                         }

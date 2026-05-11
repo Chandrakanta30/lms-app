@@ -997,6 +997,25 @@
         body[data-current-route="created-training-setup"] .action-buttons form {
             margin: 0;
         }
+
+        .fixed-card {
+            height: 350px;
+            /* fixed height */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .fixed-card .card-body {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .scrollable-list {
+            overflow-y: auto;
+            flex-grow: 1;
+            max-height: 200px;
+        }
     </style>
 </head>
 
@@ -1058,7 +1077,27 @@
     <script src="{{ asset('assets/js/dashboard.js') }}"></script>
     <script src="{{ asset('assets/js/proBanner.js') }}"></script>
     <script src="{{ asset('assets/js/jquery.cookie.js') }}" type="text/javascript"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
 
+            @if (session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: '{{ session('success') }}'
+                });
+            @endif
+
+            @if (session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Cannot Delete',
+                    text: '{{ session('error') }}'
+                });
+            @endif
+
+        });
+    </script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {

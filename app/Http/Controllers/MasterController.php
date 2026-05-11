@@ -7,9 +7,11 @@ use App\Models\Designation;
 use App\Models\Venue;
 use App\Models\Section;
 use Illuminate\Http\Request;
+use App\Traits\MasterCheck;
 
 class MasterController extends Controller
 {
+    use MasterCheck;
     public function index()
     {
         $departments = Department::all();
@@ -33,14 +35,31 @@ class MasterController extends Controller
 
     public function destroyDepartment(Department $department)
     {
+        $mapping = [
+            ' master_documents' => 'department_id',
+
+        ];
+
+        if ($this->isMasterUsed($department->id, $mapping)) {
+            return back()->with('error', 'Department is already in use');
+        }
+
         $department->delete();
-        return back();
+        return back()->with('success', 'Deleted successfully');
     }
 
     public function destroyDesignation(Designation $designation)
     {
+        $mapping = [
+
+        ];
+
+        if ($this->isMasterUsed($designation->id, $mapping)) {
+            return back()->with('error', 'Designation is already in use');
+        }
+
         $designation->delete();
-        return back();
+        return back()->with('success', 'Deleted successfully');
     }
 
     public function showTrainers()
@@ -67,8 +86,19 @@ class MasterController extends Controller
 
     public function destroyVenue(Venue $venue)
     {
+        // $venue->delete();
+        // return back();
+        $mapping = [
+            'module_venue' => 'venue_id',
+
+        ];
+
+        if ($this->isMasterUsed($venue->venue_id, $mapping)) {
+            return back()->with('error', 'venue is already in use');
+        }
+
         $venue->delete();
-        return back();
+        return back()->with('success', 'Deleted successfully');
     }
     public function storeSection(Request $request)
     {
@@ -81,7 +111,16 @@ class MasterController extends Controller
 
     public function destroySection(Section $section)
     {
+        $mapping = [
+            'master_documents' => 'section_id'
+
+        ];
+
+        if ($this->isMasterUsed($section->sec_id, $mapping)) {
+            return back()->with('error', 'Section is already in use');
+        }
+
         $section->delete();
-        return back();
+        return back()->with('success', 'Deleted successfully');
     }
 }

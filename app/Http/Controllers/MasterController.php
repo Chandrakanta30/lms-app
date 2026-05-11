@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Venue;
+use App\Models\Section;
 use Illuminate\Http\Request;
 
 class MasterController extends Controller
@@ -14,7 +15,8 @@ class MasterController extends Controller
         $departments = Department::all();
         $designations = Designation::all();
         $venues = Venue::all();
-        return view('masters.index', compact('departments', 'designations', 'venues'));
+        $sections = Section::all();
+        return view('masters.index', compact('departments', 'designations', 'venues', 'sections'));
     }
 
     public function storeDepartment(Request $request)
@@ -66,6 +68,20 @@ class MasterController extends Controller
     public function destroyVenue(Venue $venue)
     {
         $venue->delete();
+        return back();
+    }
+    public function storeSection(Request $request)
+    {
+        Section::create($request->validate([
+            'name' => 'required|unique:sections,name'
+        ]));
+
+        return back()->with('success', 'Section Added');
+    }
+
+    public function destroySection(Section $section)
+    {
+        $section->delete();
         return back();
     }
 }

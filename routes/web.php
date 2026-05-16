@@ -170,4 +170,7 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::get('/audit-logs/module/{id}', [App\Http\Controllers\AuditLogController::class, 'moduleLogs'])
         ->name('audit.logs.module');
+
+    Route::get('/view-document/{id}', [MasterDocumentController::class, 'view'])
+    ->name('documents.view');
 });

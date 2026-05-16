@@ -136,12 +136,28 @@
                                     </td>
 
                                     <td class="text-right">
+
+                                    @if($m['name'] === 'Induction Training' && $m['status'] === 'Completed')
+
+                                    <a
+                                            href="{{ route('user.training.report', [$user->id, $m['id']]) }}"
+                                            class="btn btn-primary btn-sm"
+                                        >
+                                           View Report
+                                        </a>
+
+                                    @else
+
                                         <a
                                             href="{{ route('user.training.show', [$user->id, $m['id']]) }}"
                                             class="btn btn-primary btn-sm"
                                         >
                                             Manage Training
                                         </a>
+                                    @endif
+
+
+
                                     </td>
                                 </tr>
 

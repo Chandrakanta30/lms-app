@@ -335,18 +335,29 @@ class TrainingModuleController extends Controller
         // Get CURRENT trainer IDs BEFORE sync
         $existingTrainerIds = $module->trainers()->pluck('users.id')->toArray();
 
+        // Get existing acceptance statuses
+        $existingAcceptanceStatuses = $module->trainers()
+            ->pluck('trainer_training.acceptance_status', 'users.id')
+            ->toArray();
+
         $syncData = [];
 
         if ($request->has('trainers')) {
+
             foreach ($request->trainers as $data) {
+
                 if (empty($data['user_id'])) {
                     continue;
                 }
 
-                $syncData[$data['user_id']] = [
+                $userId = $data['user_id'];
+
+                $syncData[$userId] = [
                     'start_date' => $data['start_date'],
                     'end_date' => $data['end_date'],
-                    'acceptance_status' => 'pending',
+
+                    // Preserve existing acceptance status
+                    'acceptance_status' => $existingAcceptanceStatuses[$userId] ?? 'pending',
                 ];
             }
         }
@@ -358,7 +369,9 @@ class TrainingModuleController extends Controller
 
         // ONLY send notifications if training is ACTIVE
         if ($module->is_active == 1) {
+
             foreach ($newTrainerIds as $trainerId) {
+
                 Notification::create([
                     'user_id' => $trainerId,
                     'title' => 'Training Session Assigned',
@@ -370,8 +383,13 @@ class TrainingModuleController extends Controller
         }
 
         // Activity logging
-        $oldTrainers = User::whereIn('id', $existingTrainerIds)->pluck('name')->toArray();
-        $newTrainers = User::whereIn('id', array_keys($syncData))->pluck('name')->toArray();
+        $oldTrainers = User::whereIn('id', $existingTrainerIds)
+            ->pluck('name')
+            ->toArray();
+
+        $newTrainers = User::whereIn('id', array_keys($syncData))
+            ->pluck('name')
+            ->toArray();
 
         activity()
             ->performedOn($module)
@@ -384,6 +402,8 @@ class TrainingModuleController extends Controller
 
         return back()->with('success', 'Trainers updated successfully.');
     }
+
+
     public function sendNotification($id)
     {
         $notification = Notification::findOrFail($id);
@@ -403,6 +423,9 @@ class TrainingModuleController extends Controller
         $training->trainers()->updateExistingPivot(auth()->id(), [
             'acceptance_status' => 'accepted'
         ]);
+
+        // Reload relation
+        $training->load('acceptedTrainers');
 
         // Mark ALL unread notifications for this trainer and training as read
         \App\Models\Notification::where('user_id', auth()->id())

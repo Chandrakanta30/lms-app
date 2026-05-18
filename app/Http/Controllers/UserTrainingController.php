@@ -18,11 +18,12 @@ class UserTrainingController extends Controller
         | Base Trainee Query
         |--------------------------------------------------------------------------
         */
-        $traineesQuery = User::role('Trainee')
-            ->with([
+        $traineesQuery = User::
+            with([
                 'department',
                 'trainings' => function ($query) {
                     $query->whereIn('training_user.status', ['enrolled', 'pending'])
+                    ->where('name', 'Induction Training')
                         ->with('steps');
                 }
             ]);
@@ -236,7 +237,7 @@ class UserTrainingController extends Controller
 ) {
 
     // 🔥 CHANGE ROLE (Trainee → Employee)
-    $user->syncRoles(['Employee']);
+    $user->assignRole(['Employee']);
 
     // Optional: flash message
     session()->flash('success', 'User promoted to Regular (Employee)');

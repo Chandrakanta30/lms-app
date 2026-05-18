@@ -91,7 +91,7 @@
 
                                     <td>{{ $user->department->name ?? 'N/A' }}</td>
                                     <td>{{ $user->designation->name ?? 'N/A' }}</td>
-                                    xa<td>{{ $user->job_description ?? 'N/A' }}</td>
+                                    <td>{{ $user->job_description ?? 'N/A' }}</td>
 
                             <td>{{ $user->created_at->format('M d, Y') }}</td>
                             <td class="text-nowrap">

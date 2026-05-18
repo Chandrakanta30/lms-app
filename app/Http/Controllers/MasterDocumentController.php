@@ -93,4 +93,17 @@ class MasterDocumentController extends Controller
         $doc->delete();
         return back()->with('success', 'Document removed.');
     }
+
+
+    public function view($id)
+    {
+        $doc = MasterDocument::findOrFail($id);
+        $path = storage_path('app/public/' . $doc->file_path);
+
+        abort_unless(file_exists($path), 404, 'Document file not found.');
+
+        return response()->file($path, [
+            'Content-Disposition' => 'inline; filename="' . basename($path) . '"',
+        ]);
+    }
 }

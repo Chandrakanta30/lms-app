@@ -10,39 +10,39 @@
         <div class="card-body p-0">
 
             @if(!empty($departmentBreakdown) && count($departmentBreakdown))
-                <div class="p-3 border-bottom bg-light">
-                    <h6 class="mb-3">Department-wise Breakup</h6>
+            <div class="p-3 border-bottom bg-light">
+                <h6 class="mb-3">Department-wise Breakup</h6>
 
-                    <div class="row">
-                        @foreach($departmentBreakdown as $summary)
-                            <div class="col-md-3 mb-3">
-                                <div class="border rounded p-3 h-100 bg-white">
-                                    <strong>{{ $summary['department'] }}</strong>
+                <div class="row">
+                    @foreach($departmentBreakdown as $summary)
+                    <div class="col-md-3 mb-3">
+                        <div class="border rounded p-3 h-100 bg-white">
+                            <strong>{{ $summary['department'] }}</strong>
 
-                                    <div class="small text-muted mt-2">
-                                        Users: {{ $summary['users'] }}
-                                    </div>
-
-                                    <div class="small text-warning">
-                                        Pending: {{ $summary['pending'] }}
-                                    </div>
-
-                                    <div class="small text-info">
-                                        In Progress: {{ $summary['in_progress'] }}
-                                    </div>
-
-                                    <div class="small text-success">
-                                        Completed: {{ $summary['completed'] }}
-                                    </div>
-                                </div>
+                            <div class="small text-muted mt-2">
+                                Users: {{ $summary['users'] }}
                             </div>
-                        @endforeach
-                    </div>
 
-                    <div class="small text-muted">
-                        Pending items are shown first in the list below.
+                            <div class="small text-warning">
+                                Pending: {{ $summary['pending'] }}
+                            </div>
+
+                            <div class="small text-info">
+                                In Progress: {{ $summary['in_progress'] }}
+                            </div>
+
+                            <div class="small text-success">
+                                Completed: {{ $summary['completed'] }}
+                            </div>
+                        </div>
                     </div>
+                    @endforeach
                 </div>
+
+                <div class="small text-muted">
+                    Pending items are shown first in the list below.
+                </div>
+            </div>
             @endif
 
             <div class="table-responsive">
@@ -58,55 +58,54 @@
 
                     <tbody>
                         @foreach($trainees as $user)
-                            @foreach($user->assigned_progress as $m)
+                        @foreach($user->assigned_progress as $m)
 
-                                <tr>
-                                    <td>
-                                        <strong>{{ $user->name }}</strong>
-                                        <br>
+                        <tr>
+                            <td>
+                                <strong>{{ $user->name }}</strong>
+                                <br>
 
-                                        <small class="text-muted">
-                                            {{ $user->user_id }}
-                                        </small>
-                                    </td>
+                                <small class="text-muted">
+                                    {{ $user->user_id }}
+                                </small>
+                            </td>
 
-                                    <td>
-                                        <span class="font-weight-bold">
-                                            {{ $m['name'] }}
-                                        </span>
+                            <td>
+                                <span class="font-weight-bold">
+                                    {{ $m['name'] }}
+                                </span>
 
-                                        <br>
+                                <br>
 
-                                        <span class="badge badge-{{ $m['color'] }} small">
-                                            {{ ucfirst($m['status']) }}
-                                        </span>
-                                    </td>
+                                <span class="badge badge-{{ $m['color'] }} small">
+                                    {{ ucfirst($m['status']) }}
+                                </span>
+                            </td>
 
-                                    <td style="width: 300px; min-width: 300px;">
+                            <td style="width: 300px; min-width: 300px;">
 
-                                        @if($m['name'] === 'Induction Training')
+                                @if($m['name'] === 'Induction Training')
 
-                                            @php
-                                                $stepCount = count($m['steps']);
-                                                $width = $stepCount > 0
-                                                    ? (100 / $stepCount) . '%'
-                                                    : '100%';
-                                            @endphp
+                                @php
+                                $stepCount = count($m['steps']);
+                                $width = $stepCount > 0
+                                ? (100 / $stepCount) . '%'
+                                : '100%';
+                                @endphp
 
-                                            <div
-                                                class="d-flex overflow-hidden rounded mb-2"
-                                                style="height: 35px; font-weight: 600; font-size: 14px;"
-                                            >
+                                <div
+                                    class="d-flex overflow-hidden rounded mb-2"
+                                    style="height: 35px; font-weight: 600; font-size: 14px;">
 
-                                                @foreach($m['steps'] as $step)
+                                    @foreach($m['steps'] as $step)
 
-                                                    @php
-                                                        $modalId = 'stepModal_' . $user->id . '_' . $step['id'];
-                                                    @endphp
+                                    @php
+                                    $modalId = 'stepModal_' . $user->id . '_' . $step['id'];
+                                    @endphp
 
-                                                    <div
-                                                        class="d-flex align-items-center justify-content-center text-white"
-                                                        style="
+                                    <div
+                                        class="d-flex align-items-center justify-content-center text-white"
+                                        style="
                                                             width: {{ $width }};
                                                             background-color: {{ $step['is_completed'] ? '#08a045' : '#f39c12' }};
                                                             cursor: pointer;
@@ -174,76 +173,74 @@
 {{-- ALL MODALS OUTSIDE TABLE --}}
 
 @foreach($trainees as $user)
-    @foreach($user->assigned_progress as $m)
+@foreach($user->assigned_progress as $m)
 
-        @if($m['name'] === 'Induction Training')
+@if($m['name'] === 'Induction Training')
 
-            @foreach($m['steps'] as $step)
+@foreach($m['steps'] as $step)
 
-                @php
-                    $modalId = 'stepModal_' . $user->id . '_' . $step['id'];
-                @endphp
+@php
+$modalId = 'stepModal_' . $user->id . '_' . $step['id'];
+@endphp
 
-                <div
-                    class="modal fade"
-                    id="{{ $modalId }}"
-                    tabindex="-1"
-                    aria-hidden="true"
-                >
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
+<div
+    class="modal fade"
+    id="{{ $modalId }}"
+    tabindex="-1"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
 
-                            <div class="modal-header">
-                                <h5 class="modal-title">
-                                    {{ $step['name'] }}
-                                </h5>
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    {{ $step['name'] }}
+                </h5>
 
-                                <button
-                                    type="button"
-                                    class="close"
-                                    data-dismiss="modal"
-                                    aria-label="Close"
-                                >
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
+                <button
+                    type="button"
+                    class="close"
+                    data-dismiss="modal"
+                    aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
 
-                            <div class="modal-body">
+            <div class="modal-body">
 
-                                <p>
-                                    <strong>Completed At:</strong>
-                                    Completed Date time details
-                                </p>
+                <p>
+                    <strong>Completed At:</strong>
+                    Completed Date time details
+                </p>
 
-                                <p>
-                                    <strong>Short Code:</strong>
-                                    {{ $step['short_code'] }}
-                                </p>
+                <p>
+                    <strong>Short Code:</strong>
+                    {{ $step['short_code'] }}
+                </p>
 
-                                <p>
-                                    <strong>Status:</strong>
+                <p>
+                    <strong>Status:</strong>
 
-                                    @if($step['is_completed'])
-                                        <span class="badge badge-success">
-                                            Completed
-                                        </span>
-                                    @else
-                                        <span class="badge badge-warning">
-                                            Pending
-                                        </span>
-                                    @endif
-                                </p>
+                    @if($step['is_completed'])
+                    <span class="badge badge-success">
+                        Completed
+                    </span>
+                    @else
+                    <span class="badge badge-warning">
+                        Pending
+                    </span>
+                    @endif
+                </p>
 
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-            @endforeach
+@endforeach
 
-        @endif
+@endif
 
-    @endforeach
+@endforeach
 @endforeach
 @endsection
 

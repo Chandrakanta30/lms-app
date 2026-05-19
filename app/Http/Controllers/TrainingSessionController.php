@@ -53,11 +53,11 @@ class TrainingSessionController extends Controller
     {
         $request->validate([
             'training_date' => 'required|date',
-            'trainee_id'    => 'required|exists:users,id',
-            'trainer_id'    => 'nullable|exists:users,id',
-            'topic'         => 'required|string',
-            'register_no'   => 'required',
-            'page_no'       => 'required',
+            'trainee_id' => 'required|exists:users,id',
+            'trainer_id' => 'nullable|exists:users,id',
+            'topic' => 'required|string',
+            'register_no' => 'required',
+            'page_no' => 'required',
         ]);
 
         $payload = $request->all();
@@ -107,24 +107,21 @@ class TrainingSessionController extends Controller
 
 
         $session->update([
-            'is_approved'  => true,
-            'approved_by'  => Auth::id(),
-            'approved_at'  => now(),
+            'is_approved' => true,
+            'approved_by' => Auth::id(),
+            'approved_at' => now(),
         ]);
 
         // Get trainee user
         $user = $session->trainee;
 
         if ($user) {
-            $traineeRole = Role::findOrCreate('Trainee', 'web');
-            $regularRole = Role::findOrCreate('Regular', 'web');
 
-            if ($user->hasRole($traineeRole->name)) {
-                $user->removeRole($traineeRole->name);
+            if ($user->hasRole('trainee')) {
+                $user->removeRole('trainee');
             }
 
-           
-            $user->assignRole($regularRole->name);
+            $user->assignRole('regular');
         }
 
         return back()->with('success', 'Session approved successfully and trainee promoted to regular.');

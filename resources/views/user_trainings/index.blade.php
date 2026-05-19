@@ -111,37 +111,56 @@
                                                             cursor: pointer;
                                                             min-height: 35px;
                                                         "
-                                        onclick="openTrainingModal('{{ $modalId }}')">
-                                        {{ $step['short_code'] }}
-                                    </div>
+                                                        onclick="openTrainingModal('{{ $modalId }}')"
+                                                    >
+                                                        {{ $step['short_code'] }}
+                                                    </div>
 
-                                    @endforeach
-                                </div>
+                                                @endforeach
+                                            </div>
 
-                                @endif
+                                        @endif
 
-                                <div class="progress mb-1" style="height: 6px;">
-                                    <div
-                                        class="progress-bar bg-{{ $m['color'] }}"
-                                        style="width: {{ $m['percent'] }}%;"></div>
-                                </div>
+                                        <div class="progress mb-1" style="height: 6px;">
+                                            <div
+                                                class="progress-bar bg-{{ $m['color'] }}"
+                                                style="width: {{ $m['percent'] }}%;"
+                                            ></div>
+                                        </div>
 
-                                <small class="d-block text-center text-muted">
-                                    {{ $m['percent'] }}%
-                                </small>
+                                        <small class="d-block text-center text-muted">
+                                            {{ $m['percent'] }}%
+                                        </small>
 
-                            </td>
+                                    </td>
 
-                            <td class="text-right">
-                                <a
-                                    href="{{ route('user.training.show', [$user->id, $m['id']]) }}"
-                                    class="btn btn-primary btn-sm">
-                                    Manage Training
-                                </a>
-                            </td>
-                        </tr>
+                                    <td class="text-right">
 
-                        @endforeach
+                                    @if($m['name'] === 'Induction Training' && $m['status'] === 'Completed')
+
+                                    <a
+                                            href="{{ route('user.training.report', [$user->id, $m['id']]) }}"
+                                            class="btn btn-primary btn-sm"
+                                        >
+                                           View Report
+                                        </a>
+
+                                    @else
+
+                                        <a
+                                            href="{{ route('user.training.show', [$user->id, $m['id']]) }}"
+                                            class="btn btn-primary btn-sm"
+                                        >
+                                            Manage Training
+                                        </a>
+                                    @endif
+
+
+
+                                    </td>
+                                </tr>
+
+                            @endforeach
                         @endforeach
                     </tbody>
                 </table>

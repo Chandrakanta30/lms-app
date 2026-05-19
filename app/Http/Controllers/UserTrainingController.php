@@ -19,11 +19,12 @@ class UserTrainingController extends Controller
         | Base Trainee Query
         |--------------------------------------------------------------------------
         */
-        $traineesQuery = User::role('Trainee')
-            ->with([
+        $traineesQuery = User::
+            with([
                 'department',
                 'trainings' => function ($query) {
                     $query->whereIn('training_user.status', ['enrolled', 'pending'])
+                    ->where('name', 'Induction Training')
                         ->with('steps');
                 }
             ]);
@@ -229,10 +230,31 @@ class UserTrainingController extends Controller
             $parentTraining = $currentStep;
         }
 
-        // 3. Get all steps under this training
-        $stepIds = \App\Models\TrainingModule::where('parent_id', $parentTraining->id)
-            ->pluck('id')
-            ->toArray();
+    // 3. Get all steps under this training
+    $stepIds = \App\Models\TrainingModule::where('parent_id', $parentTraining->id)
+        ->pluck('id')
+        ->toArray();
+
+    // 4. Count completed steps
+    $completedCount = \Illuminate\Support\Facades\DB::table('user_trainings')
+        ->where('user_id', $user->id)
+        ->whereIn('training_module_id', $stepIds)
+        ->where('is_completed', 1)
+        ->count();
+
+    // 5. If ALL steps completed → update role
+    if (
+    count($stepIds) > 0 &&
+    $completedCount === count($stepIds) &&
+    strtolower($parentTraining->name) === 'induction training'
+) {
+
+    // 🔥 CHANGE ROLE (Trainee → Employee)
+    $user->assignRole(['Employee']);
+
+    // Optional: flash message
+    session()->flash('success', 'User promoted to Regular (Employee)');
+}
 
         // 4. Count completed steps
         $completedCount = \Illuminate\Support\Facades\DB::table('user_trainings')

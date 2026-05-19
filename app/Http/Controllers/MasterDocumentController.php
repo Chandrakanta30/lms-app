@@ -102,8 +102,21 @@ class MasterDocumentController extends Controller
 
         abort_unless(file_exists($path), 404, 'Document file not found.');
 
-        return response()->file($path, [
+        $headers = [
             'Content-Disposition' => 'inline; filename="' . basename($path) . '"',
-        ]);
+        ];
+
+        if (request()->boolean('secure')) {
+            $headers = array_merge($headers, [
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+                'X-Content-Type-Options' => 'nosniff',
+                'X-Frame-Options' => 'SAMEORIGIN',
+                'Referrer-Policy' => 'no-referrer',
+            ]);
+        }
+
+        return response()->file($path, $headers);
     }
 }

@@ -42,7 +42,7 @@ class QuestionController extends Controller
         });
 
         return redirect()->route('trainings.index')
-                         ->with('success', 'Question paper updated for ' . $module->name);
+            ->with('success', 'Question paper updated for ' . $module->name);
     }
 
     public function showReadingRoom($moduleId)
@@ -110,204 +110,205 @@ class QuestionController extends Controller
         }
 
         $examPaper = collect();
-    
+
         foreach ($module->documents as $doc) {
             $quota = $doc->pivot->question_quota;
-            
+
             // Pick random questions from the Master Pool of this document
             $randomQuestions = \App\Models\MasterQuestion::where('master_document_id', $doc->id)
-                                ->inRandomOrder()
-                                ->limit($quota)
-                                ->get();
-            
+                ->inRandomOrder()
+                ->limit($quota)
+                ->get();
+
             $examPaper = $examPaper->concat($randomQuestions);
         }
-    
+
         // Shuffle final list so questions from different SOPs are mixed
         $examPaper = $examPaper->shuffle();
 
         // dd($module);
 
-    
+
         return view('exams.take', compact('module', 'examPaper'));
     }
 
 
 
     public function submitExam(Request $request, $moduleId)
-{
-    // 1. Validate that answers were actually sent
-    $request->validate([
-        'answers' => 'required|array',
-    ]);
+    {
+        // 1. Validate that answers were actually sent
+        $request->validate([
+            'answers' => 'required|array',
+        ]);
 
 
-    $module = TrainingModule::with('documents')->findOrFail($moduleId);
-    $tracker = DocumentReadTracker::where('user_id', auth()->id())
-        ->where('training_module_id', $module->id)
-        ->first();
+        $module = TrainingModule::with('documents')->findOrFail($moduleId);
+        $tracker = DocumentReadTracker::where('user_id', auth()->id())
+            ->where('training_module_id', $module->id)
+            ->first();
 
-    if (!$tracker || !$tracker->completed_at) {
-        return redirect()->route('exams.read', $module->id)
-            ->with('error', 'Please complete the required document reading before submitting the assessment.');
-    }
-
-    $expectedQuestionCount = $module->documents->sum(function ($document) {
-        return (int) ($document->pivot->question_quota ?? 0);
-    });
-
-    $userAnswers = $request->input('answers'); // Format: [question_id => "Yes/No"]
-    $questionIds = array_keys($userAnswers);
-
-    // 2. Fetch only the questions that were in the user's exam paper
-    // This ensures we grade against the correct pool
-    $questions = \App\Models\MasterQuestion::whereIn('id', $questionIds)->get();
-
-    $totalQuestions = $questions->count();
-
-    $correctCount = 0;
-    $details = []; // Optional: To store which specific ones they got wrong
-
-    // 3. Compare User Answer vs Master Answer
-    foreach ($questions as $question) {
-        $submittedAnswer = $userAnswers[$question->id] ?? null;
-        $isCorrect = ($submittedAnswer === $question->correct_answer);
-
-        if ($isCorrect) {
-            $correctCount++;
+        if (!$tracker || !$tracker->completed_at) {
+            return redirect()->route('exams.read', $module->id)
+                ->with('error', 'Please complete the required document reading before submitting the assessment.');
         }
 
-        // Store details for an "Audit Trail" or Review Page
-        $details[] = [
-            'question_text' => $question->question_text,
-            'user_answer'   => $submittedAnswer,
-            'actual_answer' => $question->correct_answer,
-            'is_correct'    => $isCorrect
-        ];
-    }
+        $expectedQuestionCount = $module->documents->sum(function ($document) {
+            return (int) ($document->pivot->question_quota ?? 0);
+        });
 
-    // 4. Calculate Percentage
-    $percentage = ($expectedQuestionCount > 0) ? ($correctCount / $expectedQuestionCount) * 100 : 0;
-    
-    // Passing criteria (e.g., 80%)
-    $passMark = 60;
-    $isPassed = $percentage >= $passMark;
+        $userAnswers = $request->input('answers'); // Format: [question_id => "Yes/No"]
+        $questionIds = array_keys($userAnswers);
 
-    // 5. Save the Result to the Database
-    $result = \App\Models\ExamResult::create([
-        'user_id'            => auth()->id(),
-        'training_module_id' => $module->id,
-        'total_questions_attempted' => $expectedQuestionCount,
-        'correct_answers'    => $correctCount,
-        'percentage'         => $percentage,
-        'is_passed'          => $isPassed,
-        'details'            => $details,
-    ]);
+        // 2. Fetch only the questions that were in the user's exam paper
+        // This ensures we grade against the correct pool
+        $questions = \App\Models\MasterQuestion::whereIn('id', $questionIds)->get();
 
-    // 6. Redirect to the result view
-    return redirect()->route('exams.result', $result->id)
-                     ->with($isPassed ? 'success' : 'error', $isPassed ? 'Congratulations!' : 'Please try again.');
-}
+        $totalQuestions = $questions->count();
 
+        $correctCount = 0;
+        $details = []; // Optional: To store which specific ones they got wrong
 
-public function showResult($resultId)
-{
-    // Load the result along with the module name to display to the user
-    $result = \App\Models\ExamResult::with(['user', 'module'])->findOrFail($resultId);
+        // 3. Compare User Answer vs Master Answer
+        foreach ($questions as $question) {
+            $submittedAnswer = $userAnswers[$question->id] ?? null;
+            $isCorrect = ($submittedAnswer === $question->correct_answer);
 
-    if (!$this->canViewExamResult($result)) {
-        abort(403, 'Unauthorized action.');
-    }
-
-    return view('exams.result', compact('result'));
-}
-
-public function userHistory()
-{
-    // Using paginate(10) instead of get() for better performance as history grows
-    $results = \App\Models\ExamResult::where('user_id', auth()->id())
-                ->with('module')
-                ->latest() // Shortcut for orderBy('created_at', 'desc')
-                ->paginate(10);
-
-    return view('exams.history', compact('results'));
-}
-
-public function adminLogs()
-{
-    if (!$this->canViewAllExamResults()) {
-        abort(403, 'Unauthorized action.');
-    }
-
-    // Fetch stats for the top cards
-    $stats = [
-        'total'  => \App\Models\ExamResult::count(),
-        'passed' => \App\Models\ExamResult::where('is_passed', true)->count(),
-        'failed' => \App\Models\ExamResult::where('is_passed', false)->count(),
-    ];
-
-    $logs = \App\Models\ExamResult::with(['user', 'module'])
-                ->latest()
-                ->paginate(15);
-
-    return view('admin.exams.logs', compact('logs', 'stats'));
-}
-
-public function showExamDetails($resultId)
-{
-    // Fetch the result with related user and module
-    $result = \App\Models\ExamResult::with(['user', 'module'])->findOrFail($resultId);
-
-    if (!$this->canViewExamResult($result)) {
-        abort(403, 'Unauthorized action.');
-    }
-
-    $details = is_array($result->details)
-        ? $result->details
-        : (json_decode($result->details, true) ?? []);
-
-    $canViewAllExamResults = $this->canViewAllExamResults();
-
-    return view('admin.exams.details', compact('result', 'details', 'canViewAllExamResults'));
-}
-
-private function canViewExamResult(\App\Models\ExamResult $result): bool
-{
-    return $result->user_id === auth()->id() || $this->canViewAllExamResults();
-}
-
-private function canViewAllExamResults(): bool
-{
-    $user = auth()->user();
-
-    if (!$user) {
-        return false;
-    }
-
-    try {
-        if (method_exists($user, 'getRoleNames')) {
-            $adminRoles = ['admin', 'super admin', 'super-admin'];
-            $hasAdminRole = $user->getRoleNames()
-                ->map(fn ($role) => strtolower($role))
-                ->intersect($adminRoles)
-                ->isNotEmpty();
-
-            if ($hasAdminRole) {
-                return true;
+            if ($isCorrect) {
+                $correctCount++;
             }
+
+            // Store details for an "Audit Trail" or Review Page
+            $details[] = [
+                'question_text' => $question->question_text,
+                'user_answer' => $submittedAnswer,
+                'actual_answer' => $question->correct_answer,
+                'is_correct' => $isCorrect
+            ];
         }
 
-        if (method_exists($user, 'getAllPermissions')) {
-            return $user->getAllPermissions()
-                ->pluck('name')
-                ->intersect(['admin-logs', 'exam-logs', 'exams'])
-                ->isNotEmpty();
-        }
-    } catch (\Throwable $exception) {
-        return false;
+        // 4. Calculate Percentage
+        $percentage = ($expectedQuestionCount > 0) ? ($correctCount / $expectedQuestionCount) * 100 : 0;
+
+        // Passing criteria (e.g., 80%)
+        $passMark = 60;
+        $isPassed = $percentage >= $passMark;
+
+        // 5. Save the Result to the Database
+        $result = \App\Models\ExamResult::create([
+            'user_id' => auth()->id(),
+            'training_module_id' => $module->id,
+            'total_questions_attempted' => $expectedQuestionCount,
+            'correct_answers' => $correctCount,
+            'percentage' => $percentage,
+            'is_passed' => $isPassed,
+            'details' => $details,
+        ]);
+
+
+        // 6. Redirect to the result view
+        return redirect()->route('exams.result', $result->id)
+            ->with($isPassed ? 'success' : 'error', $isPassed ? 'Congratulations!' : 'Please try again.');
     }
 
-    return false;
-}
+
+    public function showResult($resultId)
+    {
+        // Load the result along with the module name to display to the user
+        $result = \App\Models\ExamResult::with(['user', 'module'])->findOrFail($resultId);
+
+        if (!$this->canViewExamResult($result)) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        return view('exams.result', compact('result'));
+    }
+
+    public function userHistory()
+    {
+        // Using paginate(10) instead of get() for better performance as history grows
+        $results = \App\Models\ExamResult::where('user_id', auth()->id())
+            ->with('module')
+            ->latest() // Shortcut for orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return view('exams.history', compact('results'));
+    }
+
+    public function adminLogs()
+    {
+        if (!$this->canViewAllExamResults()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Fetch stats for the top cards
+        $stats = [
+            'total' => \App\Models\ExamResult::count(),
+            'passed' => \App\Models\ExamResult::where('is_passed', true)->count(),
+            'failed' => \App\Models\ExamResult::where('is_passed', false)->count(),
+        ];
+
+        $logs = \App\Models\ExamResult::with(['user', 'module'])
+            ->latest()
+            ->paginate(15);
+
+        return view('admin.exams.logs', compact('logs', 'stats'));
+    }
+
+    public function showExamDetails($resultId)
+    {
+        // Fetch the result with related user and module
+        $result = \App\Models\ExamResult::with(['user', 'module'])->findOrFail($resultId);
+
+        if (!$this->canViewExamResult($result)) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $details = is_array($result->details)
+            ? $result->details
+            : (json_decode($result->details, true) ?? []);
+
+        $canViewAllExamResults = $this->canViewAllExamResults();
+
+        return view('admin.exams.details', compact('result', 'details', 'canViewAllExamResults'));
+    }
+
+    private function canViewExamResult(\App\Models\ExamResult $result): bool
+    {
+        return $result->user_id === auth()->id() || $this->canViewAllExamResults();
+    }
+
+    private function canViewAllExamResults(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        try {
+            if (method_exists($user, 'getRoleNames')) {
+                $adminRoles = ['admin', 'super admin', 'super-admin'];
+                $hasAdminRole = $user->getRoleNames()
+                    ->map(fn($role) => strtolower($role))
+                    ->intersect($adminRoles)
+                    ->isNotEmpty();
+
+                if ($hasAdminRole) {
+                    return true;
+                }
+            }
+
+            if (method_exists($user, 'getAllPermissions')) {
+                return $user->getAllPermissions()
+                    ->pluck('name')
+                    ->intersect(['admin-logs', 'exam-logs', 'exams'])
+                    ->isNotEmpty();
+            }
+        } catch (\Throwable $exception) {
+            return false;
+        }
+
+        return false;
+    }
 
 }

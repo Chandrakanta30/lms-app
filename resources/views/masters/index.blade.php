@@ -58,7 +58,7 @@
             <div class="card fixed-card">
                 <div class="card-body">
                     <h4 class="card-title">Venus</h4>
-                    <form action="{{ route('masters.venue.store') }}" method="POST" class="form-inline mb-3">
+                    <form action="{{ route('masters.venue.store') }}" method="POST" class="d-flex mb-3">
                         @csrf
                         <input type="text" name="name" class="form-control mr-2" placeholder="e.g. Room-1" required>
                         <button type="submit" class="btn btn-primary"> <i class="mdi mdi-plus"></i></button>
@@ -88,7 +88,7 @@
                     </h4>
 
                     <!-- Add Section -->
-                    <form action="{{ route('masters.section.store') }}" method="POST" class="form-inline mb-3">
+                    <form action="{{ route('masters.section.store') }}" method="POST" class="d-flex mb-3">
                         @csrf
                         <input type="text" name="name" class="form-control mr-2" placeholder="e.g. Section-1"
                             required>

@@ -1,362 +1,437 @@
 @extends('partials.app')
 
 @section('content')
+    <div class="content-wrapper">
 
-<div class="content-wrapper">
+        {{-- Header Section --}}
+        <div class="row">
+            <div class="col-md-12 grid-margin">
 
-    {{-- Header Section --}}
-    <div class="row">
-        <div class="col-md-12 grid-margin">
+                @php
+                    $pendingReadingCount = $modules->where('reading_completed', false)->count();
 
-            @php
-            $pendingReadingCount = $modules->where('reading_completed', false)->count();
+                    $failedAssessmentCount = $modules
+                        ->filter(fn($module) => $module->latestResult && !$module->latestResult->is_passed)
+                        ->count();
+                @endphp
 
-            $failedAssessmentCount = $modules
-            ->filter(fn ($module) => $module->latestResult && !$module->latestResult->is_passed)
-            ->count();
-            @endphp
+                <h3 class="page-title">
+                    Available Training Assessments
+                </h3>
 
-            <h3 class="page-title">
-                Available Training Assessments
-            </h3>
+                <p class="text-muted">
+                    Review the documents before starting your randomized exam.
+                </p>
 
-            <p class="text-muted">
-                Review the documents before starting your randomized exam.
-            </p>
+                @if (session('success'))
+                    <div class="alert alert-success mt-3">
+                        {{ session('success') }}
+                    </div>
+                @endif
 
-            @if (session('success'))
-            <div class="alert alert-success mt-3">
-                {{ session('success') }}
+                @if (session('error'))
+                    <div class="alert alert-danger mt-3">
+                        {{ session('error') }}
+                    </div>
+                @endif
+
+                @if ($pendingReadingCount > 0)
+                    <div class="alert alert-warning mt-3">
+                        {{ $pendingReadingCount }}
+                        training assessment(s) are waiting for required document reading.
+                    </div>
+                @endif
+
+                @if ($failedAssessmentCount > 0)
+                    <div class="alert alert-info mt-3">
+                        {{ $failedAssessmentCount }}
+                        assessment(s) need re-attempt after document review.
+                    </div>
+                @endif
+
             </div>
-            @endif
-
-            @if (session('error'))
-            <div class="alert alert-danger mt-3">
-                {{ session('error') }}
-            </div>
-            @endif
-
-            @if ($pendingReadingCount > 0)
-            <div class="alert alert-warning mt-3">
-                {{ $pendingReadingCount }}
-                training assessment(s) are waiting for required document reading.
-            </div>
-            @endif
-
-            @if ($failedAssessmentCount > 0)
-            <div class="alert alert-info mt-3">
-                {{ $failedAssessmentCount }}
-                assessment(s) need re-attempt after document review.
-            </div>
-            @endif
-
         </div>
-    </div>
 
-    {{-- Training Cards --}}
-    <div class="row">
+        {{-- Training Cards --}}
+        <div class="row">
 
-        @foreach ($modules as $module)
+            @foreach ($modules as $module)
+                @php
+                    $totalQuestions = $module->documents->sum(
+                        fn($document) => (int) ($document->pivot->question_quota ?? 0),
+                    );
 
-        @php
-        $totalQuestions = $module->documents->sum(
-        fn($document) => (int) ($document->pivot->question_quota ?? 0),
-        );
+                    $status = $module->latestResult;
 
-        $status = $module->latestResult;
+                    $readTracker = $module->readTracker;
 
-        $readTracker = $module->readTracker;
+                    $readingCompleted = (bool) ($module->reading_completed ?? false);
+                @endphp
 
-        $readingCompleted = (bool) ($module->reading_completed ?? false);
-        @endphp
+                <div class="col-md-6 col-lg-4 grid-margin stretch-card">
 
-        <div class="col-md-6 col-lg-4 grid-margin stretch-card">
+                    <div class="card shadow-sm border-0 h-100">
 
-            <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body d-flex flex-column">
 
-                <div class="card-body d-flex flex-column">
+                            {{-- Header --}}
+                            <div class="d-flex justify-content-between align-items-start mb-3">
 
-                    {{-- Header --}}
-                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h4 class="card-title text-primary mb-0">
+                                    {{ $module->name }}
+                                </h4>
 
-                        <h4 class="card-title text-primary mb-0">
-                            {{ $module->name }}
-                        </h4>
-
-                        @if ($status && $status->is_passed)
-
-                        <span class="badge badge-success">
-                            Passed
-                        </span>
-
-                        @elseif($status)
-
-                        <span class="badge badge-danger">
-                            Failed
-                        </span>
-
-                        @else
-
-                        <span class="badge badge-warning text-white">
-                            Pending
-                        </span>
-
-                        @endif
-
-                    </div>
-
-                    {{-- Question Info --}}
-                    <p class="small text-muted mb-3">
-                        <i class="mdi mdi-help-circle-outline"></i>
-
-                        Total Questions:
-                        <strong>{{ $totalQuestions }}</strong>
-                    </p>
-
-                    {{-- Reading Status --}}
-                    <div class="alert {{ $readingCompleted ? 'alert-success' : 'alert-warning' }} py-2 small">
-
-                        @if ($readingCompleted)
-
-                        Reading completed. Assessment unlocked.
-
-                        @else
-
-                        Reading required:
-                        {{ gmdate('i:s', (int) ($readTracker->required_seconds ?? 60)) }}
-
-                        @endif
-
-                    </div>
-
-                    {{-- Study Materials --}}
-                    <h6 class="mt-3">
-                        Study Material
-                    </h6>
-
-                    <ul class="list-unstyled mb-4">
-
-                        @foreach ($module->documents as $doc)
-
-                        @php
-                            $extension = strtolower(pathinfo($doc->file_path, PATHINFO_EXTENSION));
-                        @endphp
-
-                        <li class="mb-2">
-
-                            <a href="javascript:void(0)"
-                            onclick="openDocument(
-                                '{{ route('documents.view', $doc->id) }}',
-                                '{{ $extension }}'
-                            )"
-                            class="text-dark small text-decoration-none">
-
-                                {{-- Icons --}}
-                                @if(in_array($extension, ['pdf']))
-                                    <i class="mdi mdi-file-pdf text-danger"></i>
-
-                                @elseif(in_array($extension, ['doc', 'docx']))
-                                    <i class="mdi mdi-file-word text-primary"></i>
-
-                                @elseif(in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']))
-                                    <i class="mdi mdi-file-image text-success"></i>
-
+                                @if ($status && $status->is_passed)
+                                    <span class="badge badge-success">
+                                        Passed
+                                    </span>
+                                @elseif($status)
+                                    <span class="badge badge-danger">
+                                        Failed
+                                    </span>
                                 @else
-                                    <i class="mdi mdi-file"></i>
+                                    <span class="badge badge-warning text-white">
+                                        Pending
+                                    </span>
                                 @endif
 
-                                {{ $doc->doc_name }}
-                                ({{ $doc->doc_number }})
+                            </div>
 
-                            </a>
+                            {{-- Question Info --}}
+                            <p class="small text-muted mb-3">
+                                <i class="mdi mdi-help-circle-outline"></i>
 
-                        </li>
+                                Total Questions:
+                                <strong>{{ $totalQuestions }}</strong>
+                            </p>
 
-                        @endforeach
+                            {{-- Reading Status --}}
+                            <div class="alert {{ $readingCompleted ? 'alert-success' : 'alert-warning' }} py-2 small">
 
-                    </ul>
+                                @if ($readingCompleted)
+                                    Reading completed. Assessment unlocked.
+                                @else
+                                    Reading required:
+                                    {{ gmdate('i:s', (int) ($readTracker->required_seconds ?? 60)) }}
+                                @endif
 
-                    {{-- Action Buttons --}}
-                    <div class="mt-auto">
+                            </div>
 
-                        @if (!$readingCompleted)
+                            {{-- Study Materials --}}
+                            <h6 class="mt-3">
+                                Study Material
+                            </h6>
 
-                        <a href="{{ route('exams.read', $module->id) }}"
-                            class="btn btn-warning btn-block">
+                            <ul class="list-unstyled mb-4">
 
-                            Complete Reading
+                                @foreach ($module->documents as $doc)
+                                    @php
+                                        $extension = strtolower(pathinfo($doc->file_path, PATHINFO_EXTENSION));
+                                    @endphp
 
-                        </a>
+                                    <li class="mb-2">
 
-                        @elseif($status && $status->is_passed)
+                                        <a href="javascript:void(0)"
+                                            onclick="openDocument(
+                                '{{ route('documents.view', ['id' => $doc->id, 'secure' => 1]) }}',
+                                '{{ $extension }}'
+                            )"
+                                            class="text-dark small text-decoration-none">
 
-                        <button class="btn btn-success btn-block" disabled>
+                                            {{-- Icons --}}
+                                            @if (in_array($extension, ['pdf']))
+                                                <i class="mdi mdi-file-pdf text-danger"></i>
+                                            @elseif(in_array($extension, ['doc', 'docx']))
+                                                <i class="mdi mdi-file-word text-primary"></i>
+                                            @elseif(in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']))
+                                                <i class="mdi mdi-file-image text-success"></i>
+                                            @else
+                                                <i class="mdi mdi-file"></i>
+                                            @endif
 
-                            Completed
+                                            {{ $doc->doc_name }}
+                                            ({{ $doc->doc_number }})
+                                        </a>
 
-                        </button>
+                                    </li>
+                                @endforeach
 
-                        @elseif($status && !$status->is_passed)
+                            </ul>
 
-                        <a href="{{ route('exams.take', $module->id) }}"
-                            class="btn btn-danger btn-block">
+                            {{-- Action Buttons --}}
+                            <div class="mt-auto">
 
-                            Re-Attempt
+                                @if (!$readingCompleted)
+                                    <a href="{{ route('exams.read', $module->id) }}" class="btn btn-warning btn-block">
 
-                        </a>
+                                        Complete Reading
 
-                        @else
+                                    </a>
+                                @elseif($status && $status->is_passed)
+                                    <button class="btn btn-success btn-block" disabled>
 
-                        <a href="{{ route('exams.take', $module->id) }}"
-                            class="btn btn-primary btn-block">
+                                        Completed
 
-                            Start Assessment
+                                    </button>
+                                @elseif($status && !$status->is_passed)
+                                    <a href="{{ route('exams.take', $module->id) }}" class="btn btn-danger btn-block">
 
-                        </a>
+                                        Re-Attempt
 
-                        @endif
+                                    </a>
+                                @else
+                                    <a href="{{ route('exams.take', $module->id) }}" class="btn btn-primary btn-block">
 
-                        @if ($status)
+                                        Start Assessment
 
-                        <p class="text-center mt-2 small">
+                                    </a>
+                                @endif
 
-                            Last Attempt:
-                            {{ $status->percentage }}%
-                            on
-                            {{ $status->created_at->format('d M Y') }}
+                                @if ($status)
+                                    <p class="text-center mt-2 small">
 
-                        </p>
+                                        Last Attempt:
+                                        {{ $status->percentage }}%
+                                        on
+                                        {{ $status->created_at->format('d M Y') }}
 
-                        @endif
+                                    </p>
+                                @endif
 
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            @endforeach
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Bootstrap Modal -->
+    <div class="modal fade" id="documentModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Document Preview</h5>
+
+                    <button type="button" class="btn-close" data-bs-dismiss="modal">
+                    </button>
+                </div>
+
+                <div class="modal-body p-0 text-center">
+
+                    <!-- PDF / DOC iframe -->
+                    <iframe id="documentFrame" width="100%" height="700px" style="border:none; display:none;">
+                    </iframe>
+
+                    <!-- Image Preview -->
+                    <img id="imagePreview" src="" class="img-fluid" style="display:none; max-height:700px;">
+
+                    <!-- DOCX Preview -->
+                    <div id="docxPreview" class="text-left p-4 bg-white"
+                        style="display:none; max-height:700px; overflow:auto;">
                     </div>
 
                 </div>
 
             </div>
-
-        </div>
-
-        @endforeach
-
-    </div>
-
-</div>
-
-
-
-<!-- Bootstrap Modal -->
-<div class="modal fade" id="documentModal" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content">
-
-            <div class="modal-header">
-                <h5 class="modal-title">Document Preview</h5>
-
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal">
-                </button>
-            </div>
-
-            <div class="modal-body p-0 text-center">
-
-                <!-- PDF / DOC iframe -->
-                <iframe id="documentFrame"
-                        width="100%"
-                        height="700px"
-                        style="border:none; display:none;">
-                </iframe>
-
-                <!-- Image Preview -->
-                <img id="imagePreview"
-                     src=""
-                     class="img-fluid"
-                     style="display:none; max-height:700px;">
-
-                <!-- DOCX Preview -->
-                <div id="docxPreview"
-                     class="text-left p-4 bg-white"
-                     style="display:none; max-height:700px; overflow:auto;">
-                </div>
-
-            </div>
-
         </div>
     </div>
-</div>
-
 @endsection
 
 
 @push('scripts')
-<script src="https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js"></script>
-<script>
+    <script src="https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        const securePreviewSelectors = ['#documentFrame', '#imagePreview', '#docxPreview'];
 
-async function openDocument(url, extension)
-{
-    let frame = document.getElementById('documentFrame');
-    let image = document.getElementById('imagePreview');
-    let docxPreview = document.getElementById('docxPreview');
-
-    frame.style.display = 'none';
-    image.style.display = 'none';
-    docxPreview.style.display = 'none';
-    docxPreview.innerHTML = '';
-
-    // IMAGE FILES
-    if (['jpg','jpeg','png','gif','webp'].includes(extension)) {
-
-        image.src = url;
-        image.style.display = 'block';
-    }
-
-    // DOCX rendered as HTML
-    else if (extension === 'docx') {
-
-        try {
-            let response = await fetch(url);
-            let arrayBuffer = await response.arrayBuffer();
-            let result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
-
-            docxPreview.innerHTML = result.value || '<p class="text-muted mb-0">No preview content available.</p>';
-            docxPreview.style.display = 'block';
-        } catch (error) {
-            docxPreview.innerHTML = '<div class="p-4 text-center text-danger">Unable to preview this DOCX file inline.</div>';
-            docxPreview.style.display = 'block';
+        function blockSecurePreviewActions(event) {
+            event.preventDefault();
+            return false;
         }
-    }
 
-    // PDF / browser-previewable document files
-    else if (['pdf', 'ppt', 'pptx'].includes(extension)) {
+        function handleSecurePreviewKeys(event) {
+            const key = (event.key || '').toLowerCase();
+            const ctrlOrMeta = event.ctrlKey || event.metaKey;
 
-        frame.src = url;
-        frame.style.display = 'block';
-    }
+            // Block common copy/save/print shortcuts
+            if (
+                (ctrlOrMeta && ['c', 's', 'p', 'u'].includes(key)) ||
+                key === 'printscreen' ||
+                key === 'f12'
+            ) {
+                event.preventDefault();
+                return false;
+            }
+        }
 
-    // OTHER FILES
-    else {
+        function enableSecurePreviewLock() {
+            securePreviewSelectors.forEach((selector) => {
+                const element = document.querySelector(selector);
 
-        window.open(url, '_blank');
-        return;
-    }
+                if (!element) {
+                    return;
+                }
 
-    let modal = new bootstrap.Modal(
+                element.setAttribute('oncontextmenu', 'return false');
+                element.style.userSelect = 'none';
+                element.style.webkitUserSelect = 'none';
+            });
+
+            document.addEventListener('contextmenu', blockSecurePreviewActions);
+            document.addEventListener('copy', blockSecurePreviewActions);
+            document.addEventListener('cut', blockSecurePreviewActions);
+            document.addEventListener('dragstart', blockSecurePreviewActions);
+            document.addEventListener('keydown', handleSecurePreviewKeys);
+        }
+
+        function disableSecurePreviewLock() {
+            document.removeEventListener('contextmenu', blockSecurePreviewActions);
+            document.removeEventListener('copy', blockSecurePreviewActions);
+            document.removeEventListener('cut', blockSecurePreviewActions);
+            document.removeEventListener('dragstart', blockSecurePreviewActions);
+            document.removeEventListener('keydown', handleSecurePreviewKeys);
+        }
+
+        async function renderPdfAsCanvas(url, container) {
+            container.innerHTML = '<div class="p-3 text-muted">Loading PDF preview...</div>';
+
+            const pdfjs = window.pdfjsLib;
+            if (!pdfjs) {
+                container.innerHTML = '<div class="p-3 text-danger">PDF preview library failed to load.</div>';
+                return;
+            }
+
+            pdfjs.GlobalWorkerOptions.workerSrc =
+                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+            const loadingTask = pdfjs.getDocument(url);
+            const pdf = await loadingTask.promise;
+
+            container.innerHTML = '';
+
+            for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
+                const page = await pdf.getPage(pageNo);
+                const viewport = page.getViewport({
+                    scale: 1.25
+                });
+
+                const canvas = document.createElement('canvas');
+                canvas.className = 'mb-3';
+                canvas.style.maxWidth = '100%';
+                canvas.style.height = 'auto';
+                canvas.style.display = 'block';
+                canvas.style.margin = '0 auto';
+
+                const context = canvas.getContext('2d', {
+                    alpha: false
+                });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+
+                container.appendChild(canvas);
+            }
+        }
+
+        async function openDocument(url, extension) {
+            let frame = document.getElementById('documentFrame');
+            let image = document.getElementById('imagePreview');
+            let docxPreview = document.getElementById('docxPreview');
+
+            frame.style.display = 'none';
+            image.style.display = 'none';
+            docxPreview.style.display = 'none';
+            docxPreview.innerHTML = '';
+
+            // IMAGE FILES
+            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+
+                image.src = url;
+                image.style.display = 'block';
+            }
+
+            // DOCX rendered as HTML
+            else if (extension === 'docx') {
+
+                try {
+                    let response = await fetch(url);
+                    let arrayBuffer = await response.arrayBuffer();
+                    let result = await mammoth.convertToHtml({
+                        arrayBuffer: arrayBuffer
+                    });
+
+                    docxPreview.innerHTML = result.value ||
+                        '<p class="text-muted mb-0">No preview content available.</p>';
+                    docxPreview.style.display = 'block';
+                } catch (error) {
+                    docxPreview.innerHTML =
+                        '<div class="p-4 text-center text-danger">Unable to preview this DOCX file inline.</div>';
+                    docxPreview.style.display = 'block';
+                }
+            }
+
+            // PDF / browser-previewable document files
+            else if (extension === 'pdf') {
+                try {
+                    docxPreview.style.display = 'block';
+                    await renderPdfAsCanvas(url, docxPreview);
+                } catch (error) {
+                    docxPreview.innerHTML =
+                        '<div class="p-4 text-center text-danger">Unable to preview this PDF inline.</div>';
+                    docxPreview.style.display = 'block';
+                }
+            } else if (['ppt', 'pptx'].includes(extension)) {
+                frame.src = url;
+                frame.style.display = 'block';
+            }
+
+            // OTHER FILES
+            else {
+
+                window.open(url, '_blank');
+                return;
+            }
+
+            let modal = new bootstrap.Modal(
+                document.getElementById('documentModal')
+            );
+
+            enableSecurePreviewLock();
+            modal.show();
+        }
+
+        // Clear modal on close
         document.getElementById('documentModal')
-    );
+            .addEventListener('hidden.bs.modal', function() {
 
-    modal.show();
-}
+                disableSecurePreviewLock();
+                document.getElementById('documentFrame').src = '';
+                document.getElementById('imagePreview').src = '';
+                document.getElementById('docxPreview').innerHTML = '';
+            });
+        document.addEventListener('keyup', function(e) {
+            if (e.key === 'PrintScreen') {
 
-// Clear modal on close
-document.getElementById('documentModal')
-    .addEventListener('hidden.bs.modal', function () {
+                document.body.style.filter = 'blur(8px)';
 
-        document.getElementById('documentFrame').src = '';
-        document.getElementById('imagePreview').src = '';
-        document.getElementById('docxPreview').innerHTML = '';
-    });
+                setTimeout(() => {
+                    document.body.style.filter = 'none';
+                }, 2000);
+            }
+        });
 
-</script>
-
+    </script>
 @endpush

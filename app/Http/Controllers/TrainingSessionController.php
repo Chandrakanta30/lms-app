@@ -116,12 +116,15 @@ class TrainingSessionController extends Controller
         $user = $session->trainee;
 
         if ($user) {
+            $traineeRole = Role::findOrCreate('Trainee', 'web');
+            $regularRole = Role::findOrCreate('Regular', 'web');
 
-            if ($user->hasRole('trainee')) {
-                $user->removeRole('trainee');
+            if ($user->hasRole($traineeRole->name)) {
+                $user->removeRole($traineeRole->name);
             }
 
-            $user->assignRole('regular');
+           
+            $user->assignRole($regularRole->name);
         }
 
         return back()->with('success', 'Session approved successfully and trainee promoted to regular.');

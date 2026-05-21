@@ -11,24 +11,51 @@ class ModuleLinkController extends Controller
 {
     public function showLinkPage($moduleId)
     {
-        // 1. Get the specific training module with its currently linked documents
         $module = TrainingModule::with('documents')->findOrFail($moduleId);
 
-        // 2. Get all global documents from the Master Pool with their question counts
-        $allDocs = MasterDocument::withCount('questions')->get();
-        
+        $isAnnual = (string) $module->is_anuual === '1';
+        $hasDeptAndSubdept = !empty($module->department_id) && !empty($module->subdepartment_id);
+
+
+        $allDocsQuery = MasterDocument::withCount('questions');
+        if ($isAnnual) {
+            $allDocsQuery = $allDocsQuery->whereRaw('1 = 0');
+
+            if ($hasDeptAndSubdept) {
+                $allDocsQuery = MasterDocument::withCount('questions')
+                    ->where('department_id', $module->department_id)
+                    ->where('subdepartment_id', $module->subdepartment_id);
+            }
+        }
+
+
+        if ($isAnnual && $hasDeptAndSubdept) {
+            $matchingDocs = (clone $allDocsQuery)->get();
+
+            $syncData = [];
+            foreach ($matchingDocs as $doc) {
+
+                $syncData[$doc->id] = ['question_quota' => 1];
+            }
+
+            if (!empty($syncData)) {
+                $module->documents()->syncWithoutDetaching($syncData);
+                $module->load('documents');
+            }
+        }
+
+        $allDocs = $allDocsQuery->get();
+
         return view('trainings.link_docs', compact('module', 'allDocs'));
     }
 
-    /**
-     * Save the linked documents and their respective random question quotas.
-     */
+
     public function saveLinks(Request $request, $moduleId)
     {
         $module = TrainingModule::findOrFail($moduleId);
-        
+
         $syncData = [];
-    
+
         if ($request->has('docs')) {
             foreach ($request->docs as $docId => $data) {
                 // Only add to the exam if the 'Select' checkbox was checked
@@ -39,10 +66,10 @@ class ModuleLinkController extends Controller
                 }
             }
         }
-    
+
         // sync() removes unchecked docs and updates/adds checked ones
         $module->documents()->sync($syncData);
-    
+
         return redirect()->route('trainings.index')->with('success', 'Exam configuration saved successfully!');
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SubDepartment;
 use Illuminate\Http\Request;
 use App\Models\MasterDocument;
 use App\Models\Section;
@@ -26,11 +27,13 @@ class MasterDocumentController extends Controller
         $departments = Department::all();
 
         $sections = Section::all();
+        $subdepartments = SubDepartment::all();
 
         return view('documents.index', compact(
             'documents',
             'departments',
-            'sections'
+            'sections',
+            'subdepartments'
         ));
     }
 
@@ -55,6 +58,7 @@ class MasterDocumentController extends Controller
             'doc_number' => 'required|unique:master_documents',
             'file' => 'required|mimes:pdf,doc,docx,ppt,pptx|max:10000',
             'department_id' => 'required',
+            'subdepartment_id' => 'required',
             'section_id' => 'required',
         ]);
 
@@ -69,6 +73,7 @@ class MasterDocumentController extends Controller
             //  added this line to track who uploaded the document
             'uploaded_by' => auth()->id(),
             'department_id' => $request->department_id,
+            'subdepartment_id' => $request->subdepartment_id,
             'section_id' => $request->section_id,
         ]);
 

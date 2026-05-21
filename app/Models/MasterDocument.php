@@ -20,7 +20,8 @@ class MasterDocument extends Model
         'reviewed_by',
         'reviewed_at',
         'department_id',
-        'section_id'
+        'section_id',
+        'subdepartment_id'
     ];
 
     protected $casts = [

@@ -116,5 +116,34 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-6">
+            <div class="card fixed-card">
+                <div class="card-body">
+                    <h4 class="card-title">Sub Departments</h4>
+
+                    <form action="{{ route('masters.subdept.store') }}" method="POST" class="d-flex mb-3">
+                        @csrf
+                        <input type="text" name="name" class="form-control mr-2" placeholder="subDept Name" required>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="mdi mdi-plus"></i>
+                        </button>
+                    </form>
+
+                    <ul class="list-group scrollable-list">
+                        @foreach ($subdepartments as $subdept)
+                            <li class="list-group-item d-flex justify-content-between">
+                                {{ $subdept->name }}
+                                <form action="{{ route('masters.subdept.destroy', $subdept->id) }}" method="POST">
+                                    @csrf @method('DELETE')
+                                    <button class="btn btn-xs text-danger"> <i class="mdi mdi-trash-can"></i></button>
+                                </form>
+                            </li>
+                        @endforeach
+                    </ul>
+
+                </div>
+            </div>
+        </div>
     </div>
 @endsection

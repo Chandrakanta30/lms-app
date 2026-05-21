@@ -37,11 +37,15 @@ class TrainingModuleController extends Controller
         } elseif ($routeName === 'created-training-setup') {
             $query = $query->where('is_active', 1);
 
+        } elseif ($routeName === 'annual-training') {
+            $query = $query->whereNotNull('annual_parent_id')
+                ->where('is_anuual', '1')
+                ->where('is_active', 0);
+
         } elseif ($routeName === 'created-annual-training') {
-            $query = $query->where('is_active', 0)
-                ->where('is_anuual', '1');
-
-
+            $query = $query->whereNotNull('annual_parent_id')
+                ->where('is_anuual', '1')
+                ->where('is_active', 1);
         }
 
         $trainings = $query->latest('id')->get();
@@ -187,7 +191,7 @@ class TrainingModuleController extends Controller
 
             'created_by' => auth()->id(),
             'updated_by' => auth()->id(),
-            'is_active' => true,
+            'is_active' => false,
             'activated_at' => now(),
             'activated_by' => auth()->id(),
         ]);
@@ -268,7 +272,7 @@ class TrainingModuleController extends Controller
 
                     'created_by' => auth()->id(),
                     'updated_by' => auth()->id(),
-                    'is_active' => true,
+                    'is_active' => false,
                     'activated_at' => now(),
                     'activated_by' => auth()->id(),
                 ]);
@@ -333,6 +337,7 @@ class TrainingModuleController extends Controller
         $statusOptions = TrainingModule::STATUSES;
         $statusOptions = array_diff($statusOptions, ['approved', 'reviewed']);
         $departments = Department::all();
+        $subdepartments = SubDepartment::all();
         $user = auth()->user();
 
         // Add back based on role
@@ -344,7 +349,7 @@ class TrainingModuleController extends Controller
             $statusOptions[] = 'approved';
         }
 
-        return view('trainings.edit', compact('training', 'statusOptions', 'departments'));
+        return view('trainings.edit', compact('training', 'statusOptions', 'departments', 'subdepartments'));
     }
 
     public function update(Request $request, TrainingModule $training)
@@ -395,7 +400,7 @@ class TrainingModuleController extends Controller
             $updateData['is_anuual'] = $request->input('is_annual') == '1' ? '1' : '0';
             $updateData['frequency'] = $request->frequency;
             $updateData['department_id'] = $request->department_id;
-             $updateData['subdepartment_id'] = $request->subdepartment_id;
+            $updateData['subdepartment_id'] = $request->subdepartment_id;
         }
 
         $training->update($updateData);

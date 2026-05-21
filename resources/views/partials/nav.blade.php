@@ -270,6 +270,15 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{{ route('annual-training') }}">
+
+                            <i class="mdi mdi-calendar-month-outline menu-icon"></i>
+                            <span class="menu-title">
+                                Annual Plan Setup
+                            </span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{{ route('created-annual-training') }}">
 
                             <i class="mdi mdi-calendar-month-outline menu-icon"></i>

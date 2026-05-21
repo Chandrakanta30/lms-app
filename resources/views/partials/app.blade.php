@@ -898,20 +898,23 @@
 
         body[data-current-route="trainings.index"] .custom-accordion .card-header,
         body[data-current-route="created-training-setup"] .custom-accordion .card-header,
-        body[data-current-route="created-annual-training"] .custom-accordion .card-header {
+        body[data-current-route="created-annual-training"] .custom-accordion .card-header,
+        body[data-current-route="annual-training"] .custom-accordion .card-header {
             border-bottom: 0;
             transition: background 0.3s;
         }
 
         body[data-current-route="trainings.index"] .custom-accordion .card-header:hover,
         body[data-current-route="created-training-setup"] .custom-accordion .card-header:hover,
-        body[data-current-route="created-annual-training"] .custom-accordion .card-header:hover {
+        body[data-current-route="created-annual-training"] .custom-accordion .card-header:hover,
+        body[data-current-route="annual-training"] .custom-accordion .card-header:hover {
             background-color: #f8f9fa !important;
         }
 
         body[data-current-route="trainings.index"] .nav-pills .nav-link,
         body[data-current-route="created-training-setup"] .nav-pills .nav-link,
-        body[data-current-route="created-annual-training"] .nav-pills .nav-link {
+        body[data-current-route="created-annual-training"] .nav-pills .nav-link,
+        body[data-current-route="annual-training"] .nav-pills .nav-link {
             font-size: 0.85rem;
             color: #6c757d;
             border: 1px solid transparent;
@@ -919,14 +922,16 @@
 
         body[data-current-route="trainings.index"] .nav-pills .nav-link.active,
         body[data-current-route="created-training-setup"] .nav-pills .nav-link.active,
-        body[data-current-route="created-annual-training"] .nav-pills .nav-link.active {
+        body[data-current-route="created-annual-training"] .nav-pills .nav-link.active,
+        body[data-current-route="annual-training"] .nav-pills .nav-link.active {
             background-color: #4b49ac !important;
             color: white;
         }
 
         body[data-current-route="trainings.index"] .badge-outline-secondary,
         body[data-current-route="created-training-setup"] .badge-outline-secondary,
-        body[data-current-route="created-annual-training"] .badge-outline-secondary {
+        body[data-current-route="created-annual-training"] .badge-outline-secondary,
+        body[data-current-route="annual-training"] .badge-outline-secondary {
             border: 1px solid #6c757d;
             color: #6c757d;
             background: transparent;
@@ -934,7 +939,8 @@
 
         body[data-current-route="trainings.index"] .status-toggle-btn,
         body[data-current-route="created-training-setup"] .status-toggle-btn,
-        body[data-current-route="created-annual-training"] .status-toggle-btn {
+        body[data-current-route="created-annual-training"] .status-toggle-btn,
+        body[data-current-route="annual-training"] .status-toggle-btn {
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -949,21 +955,24 @@
 
         body[data-current-route="trainings.index"] .status-toggle-btn.active,
         body[data-current-route="created-training-setup"] .status-toggle-btn.active,
-        body[data-current-route="created-annual-training"] .status-toggle-btn.active {
+        body[data-current-route="created-annual-training"] .status-toggle-btn.active,
+        body[data-current-route="annual-training"] .status-toggle-btn.active {
             background: rgba(34, 197, 94, 0.15);
             color: #22c55e;
         }
 
         body[data-current-route="trainings.index"] .status-toggle-btn.inactive,
         body[data-current-route="created-training-setup"] .status-toggle-btn.inactive,
-        body[data-current-route="created-annual-training"] .status-toggle-btn.inactive {
+        body[data-current-route="created-annual-training"] .status-toggle-btn.inactive,
+        body[data-current-route="annual-training"] .status-toggle-btn.inactive {
             background: rgba(148, 163, 184, 0.15);
             color: #94a3b8;
         }
 
         body[data-current-route="trainings.index"] .status-indicator,
         body[data-current-route="created-training-setup"] .status-indicator,
-        body[data-current-route="created-annual-training"] .status-indicator {
+        body[data-current-route="created-annual-training"] .status-indicator,
+        body[data-current-route="annual-training"] .status-indicator {
             width: 10px;
             height: 10px;
             border-radius: 50%;
@@ -972,13 +981,15 @@
 
         body[data-current-route="trainings.index"] .status-toggle-btn:hover,
         body[data-current-route="created-training-setup"] .status-toggle-btn:hover,
-        body[data-current-route="created-annual-training"] .status-toggle-btn:hover {
+        body[data-current-route="created-annual-training"] .status-toggle-btn:hover,
+        body[data-current-route="annual-training"] .status-toggle-btn:hover {
             transform: scale(1.05);
         }
 
         body[data-current-route="trainings.index"] .action-buttons,
         body[data-current-route="created-training-setup"] .action-buttons,
-        body[data-current-route="created-annual-training"] .action-buttons {
+        body[data-current-route="created-annual-training"] .action-buttons,
+        body[data-current-route="annual-training"] .action-buttons {
             display: flex;
             flex-wrap: nowrap;
             gap: 6px;
@@ -988,9 +999,11 @@
         body[data-current-route="trainings.index"] .action-buttons .btn,
         body[data-current-route="created-training-setup"] .action-buttons .btn,
         body[data-current-route="created-annual-training"] .action-buttons .btn,
+        body[data-current-route="annual-training"] .action-buttons .btn,
         body[data-current-route="trainings.index"] .action-buttons form button,
         body[data-current-route="created-training-setup"] .action-buttons form button,
-        body[data-current-route="created-annual-training"] .action-buttons form button {
+        body[data-current-route="created-annual-training"] .action-buttons form button,
+        body[data-current-route="annual-training"] .action-buttons form button {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -1003,7 +1016,8 @@
 
         body[data-current-route="trainings.index"] .action-buttons form,
         body[data-current-route="created-training-setup"] .action-buttons form,
-        body[data-current-route="created-annual-training"] .action-buttons form {
+        body[data-current-route="created-annual-training"] .action-buttons form,
+        body[data-current-route="annual-training"] .action-buttons form {
             margin: 0;
         }
 

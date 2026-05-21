@@ -60,6 +60,7 @@ Route::group(['middleware' => ['auth']], function () {
         ->name('created-training-setup');
 
     Route::get('/created-annual-training', [TrainingModuleController::class, 'index'])->name('created-annual-training');
+    Route::get('\annual-training', [TrainingModuleController::class, 'index'])->name('annual-training');
     Route::get('training-list', [TrainingModuleController::class, 'traininglist'])->name('training-list');
     Route::get('attendace/{id}', [TrainingModuleController::class, 'traineeAttendace'])->name('attendance');
     Route::post('attendace/{id}', [TrainingModuleController::class, 'submitAttendace'])->name('attendance.submit');

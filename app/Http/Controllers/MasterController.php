@@ -134,11 +134,11 @@ class MasterController extends Controller
         return back()->with('success', 'Sub department Added');
     }
 
-    public function destroySubDept(Section $subdept)
+    public function destroySubDept(SubDepartment $subdept)
     {
         $mapping = [
-            'master_documents' => 'subdepartment_id'
-
+            'master_documents' => 'subdepartment_id',
+            'training_modules' => 'subdepartment_id',
         ];
 
         if ($this->isMasterUsed($subdept->id, $mapping)) {

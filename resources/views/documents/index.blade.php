@@ -151,8 +151,29 @@
                                     </select>
                                 </div>
                             </div>
-
                             <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label">Sub Department</label>
+
+                                    <select name="subdepartment_id" class="form-control" required>
+
+                                        <option value="">Select Subdepartment</option>
+
+                                        @foreach ($subdepartments as $subdept)
+                                            <option value="{{ $subdept->id }}">
+                                                {{ $subdept->name }}
+                                            </option>
+                                        @endforeach
+
+                                    </select>
+                                </div>
+                            </div>
+
+
+
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
                                 <div class="form-group mb-3">
                                     <label class="form-label">Section</label>
 
@@ -169,7 +190,6 @@
                                     </select>
                                 </div>
                             </div>
-
                         </div>
 
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use App\Models\Designation;
+use App\Models\SubDepartment;
 use App\Models\Venue;
 use App\Models\Section;
 use Illuminate\Http\Request;
@@ -18,7 +19,8 @@ class MasterController extends Controller
         $designations = Designation::all();
         $venues = Venue::all();
         $sections = Section::all();
-        return view('masters.index', compact('departments', 'designations', 'venues', 'sections'));
+        $subdepartments = SubDepartment::all();
+        return view('masters.index', compact('departments', 'designations', 'venues', 'sections', 'subdepartments'));
     }
 
     public function storeDepartment(Request $request)
@@ -121,6 +123,29 @@ class MasterController extends Controller
         }
 
         $section->delete();
+        return back()->with('success', 'Deleted successfully');
+    }
+    public function storeSubDept(Request $request)
+    {
+        SubDepartment::create($request->validate([
+            'name' => 'required|unique:sub_departments,name'
+        ]));
+
+        return back()->with('success', 'Sub department Added');
+    }
+
+    public function destroySubDept(Section $subdept)
+    {
+        $mapping = [
+            'master_documents' => 'subdepartment_id'
+
+        ];
+
+        if ($this->isMasterUsed($subdept->id, $mapping)) {
+            return back()->with('error', 'Subdepartment is already in use');
+        }
+
+        $subdept->delete();
         return back()->with('success', 'Deleted successfully');
     }
 }

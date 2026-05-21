@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 
+use App\Models\Department;
+use App\Models\SubDepartment;
 use Illuminate\Support\Facades\Auth;
 
 use App\Models\TrainingDocument;
@@ -29,19 +31,20 @@ class TrainingModuleController extends Controller
             'documents'
         ])->whereNull('parent_id');
 
-        // Training Setup => Inactive
         if ($routeName === 'trainings.index') {
-            $query->where('is_active', 0);
+            $query = $query->where('is_active', 0);
+
+        } elseif ($routeName === 'created-training-setup') {
+            $query = $query->where('is_active', 1);
+
+        } elseif ($routeName === 'created-annual-training') {
+            $query = $query->where('is_active', 0)
+                ->where('is_anuual', '1');
+
+
         }
 
-        // Created Training Setup => Active
-        if ($routeName === 'created-training-setup') {
-            $query->where('is_active', 1);
-        }
-
-        $trainings = $query
-            ->latest('id')
-            ->get();
+        $trainings = $query->latest('id')->get();
 
         $statusOptions = TrainingModule::STATUSES;
 
@@ -51,9 +54,92 @@ class TrainingModuleController extends Controller
     public function create()
     {
         $statusOptions = TrainingModule::STATUSES;
+        $departments = Department::all();
+        $subdepartments = SubDepartment::all();
 
-        return view('trainings.create', compact('statusOptions'));
+        return view('trainings.create', compact('statusOptions', 'departments', 'subdepartments'));
     }
+
+    // public function store(Request $request)
+    // {
+    //     $request->validate([
+    //         'name' => 'required|string|max:255',
+    //         'training_type' => 'required|in:classroom,self_training',
+    //         'status' => 'required|in:' . implode(',', TrainingModule::STATUSES),
+    //         'start_date' => 'required|date',
+    //         'end_date' => 'required|date|after_or_equal:start_date',
+    //         'start_time' => 'nullable',
+    //         'end_time' => 'nullable',
+
+    //         'step_names' => 'nullable|array',
+    //         'step_names.*' => 'nullable|string|max:255',
+    //         'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
+    //         'docs.*.name' => 'required_if:training_type,self_training',
+    //         'docs.*.file' => 'nullable|file|mimes:pdf,ppt,pptx,doc,docx|max:10240',
+
+    //     ]);
+
+    //     $parent = TrainingModule::create([
+    //         'name' => $request->name,
+    //         'training_type' => $request->training_type,
+    //         'status' => $request->status,
+    //         'start_date' => $request->start_date,
+    //         'end_date' => $request->end_date,
+    //         'start_time' => $request->start_time,
+    //         'end_time' => $request->end_time,
+    //         'parent_id' => null,
+    //         'created_by' => auth()->id(),
+    //         'updated_by' => auth()->id(),
+    //         'is_active' => true,
+    //         'activated_at' => now(),
+    //         'activated_by' => auth()->id(),
+    //     ]);
+
+    //     foreach (array_values(array_filter($request->input('step_names', []), fn($stepName) => filled($stepName))) as $index => $stepName) {
+    //         $parent->steps()->create([
+    //             'name' => $stepName,
+    //             'step_number' => $index + 1,
+    //             'training_type' => $request->training_type,
+    //             'status' => $request->status,
+    //             'start_date' => $request->start_date,
+    //             'end_date' => $request->end_date,
+    //             'start_time' => $request->start_time,
+    //             'end_time' => $request->end_time,
+    //         ]);
+    //     }
+
+    //     if ($request->training_type === 'self_training' && $request->has('docs')) {
+    //         foreach ($request->docs as $doc) {
+    //             if (isset($doc['file']) && $doc['file'] instanceof UploadedFile) {
+    //                 $path = $doc['file']->store('training_materials', 'public');
+
+    //                 TrainingDocument::create([
+    //                     'training_id' => $parent->id,
+    //                     'doc_type' => $doc['type'],
+    //                     'doc_name' => $doc['name'],
+    //                     'doc_number' => $doc['number'] ?? 'N/A',
+    //                     'doc_version' => $doc['version'] ?? 'v1.0',
+    //                     'file_path' => $path,
+    //                 ]);
+    //             }
+    //         }
+    //     }
+
+    //     activity()
+    //         ->performedOn($parent)
+    //         ->causedBy(auth()->user())
+    //         ->withProperties([
+    //             'attributes' => [
+    //                 'name' => $parent->name,
+    //                 'status' => $parent->status,
+    //                 'training_type' => $parent->training_type,
+    //             ],
+    //         ])
+    //         ->log('created');
+
+    //     return redirect()->route('trainings.index')->with('success', 'Training program and materials created successfully.');
+    // }
+
 
     public function store(Request $request)
     {
@@ -66,13 +152,20 @@ class TrainingModuleController extends Controller
             'start_time' => 'nullable',
             'end_time' => 'nullable',
 
+            'is_annual' => 'nullable',
+            'frequency' => 'nullable|in:monthly,quarterly,half_yearly,yearly',
+
+            'department_id' => 'nullable|integer',
+            'subdepartment_id' => 'nullable|integer',
+
             'step_names' => 'nullable|array',
             'step_names.*' => 'nullable|string|max:255',
+
             'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
             'docs.*.name' => 'required_if:training_type,self_training',
             'docs.*.file' => 'nullable|file|mimes:pdf,ppt,pptx,doc,docx|max:10240',
-
         ]);
+
 
         $parent = TrainingModule::create([
             'name' => $request->name,
@@ -82,7 +175,16 @@ class TrainingModuleController extends Controller
             'end_date' => $request->end_date,
             'start_time' => $request->start_time,
             'end_time' => $request->end_time,
+
             'parent_id' => null,
+            'annual_parent_id' => null,
+
+            'is_anuual' => $request->input('is_annual') == '1' ? '1' : '0',
+            'frequency' => $request->frequency,
+
+            'department_id' => $request->department_id,
+            'subdepartment_id' => $request->subdepartment_id,
+
             'created_by' => auth()->id(),
             'updated_by' => auth()->id(),
             'is_active' => true,
@@ -90,7 +192,12 @@ class TrainingModuleController extends Controller
             'activated_by' => auth()->id(),
         ]);
 
-        foreach (array_values(array_filter($request->input('step_names', []), fn($stepName) => filled($stepName))) as $index => $stepName) {
+
+        foreach (
+            array_values(
+                array_filter($request->input('step_names', []), fn($step) => filled($step))
+            ) as $index => $stepName
+        ) {
             $parent->steps()->create([
                 'name' => $stepName,
                 'step_number' => $index + 1,
@@ -103,9 +210,13 @@ class TrainingModuleController extends Controller
             ]);
         }
 
+
         if ($request->training_type === 'self_training' && $request->has('docs')) {
+
             foreach ($request->docs as $doc) {
+
                 if (isset($doc['file']) && $doc['file'] instanceof UploadedFile) {
+
                     $path = $doc['file']->store('training_materials', 'public');
 
                     TrainingDocument::create([
@@ -120,6 +231,71 @@ class TrainingModuleController extends Controller
             }
         }
 
+        if ($request->input('is_annual') == '1' && $request->frequency) {
+
+            $frequencyMap = [
+                'monthly' => 12,
+                'quarterly' => 4,
+                'half_yearly' => 2,
+                'yearly' => 1,
+            ];
+
+            $count = $frequencyMap[$request->frequency] ?? 0;
+
+            for ($i = 0; $i < $count; $i++) {
+
+                $monthName = now()->addMonths($i)->format('F');
+
+                $child = TrainingModule::create([
+                    'name' => $parent->name . ' - ' . $monthName . ' Training',
+
+                    'training_type' => $parent->training_type,
+                    'status' => $parent->status,
+
+                    'start_date' => $parent->start_date,
+                    'end_date' => $parent->end_date,
+                    'start_time' => $parent->start_time,
+                    'end_time' => $parent->end_time,
+
+                    'parent_id' => null,
+                    'annual_parent_id' => $parent->id,
+
+                    'is_anuual' => $parent->is_anuual,
+                    'frequency' => $parent->frequency,
+
+                    'department_id' => $parent->department_id,
+                    'subdepartment_id' => $parent->subdepartment_id,
+
+                    'created_by' => auth()->id(),
+                    'updated_by' => auth()->id(),
+                    'is_active' => true,
+                    'activated_at' => now(),
+                    'activated_by' => auth()->id(),
+                ]);
+                // activity()
+                //     ->performedOn($child)
+                //     ->causedBy(auth()->user())
+                //     ->withProperties([
+                //         'parent_id' => $parent->id,
+                //         'frequency' => $request->frequency,
+                //         'month' => $monthName,
+                //     ])
+                //     ->log('annual training auto-generated');
+
+                foreach ($parent->steps as $step) {
+                    $child->steps()->create([
+                        'name' => $step->name,
+                        'step_number' => $step->step_number,
+                        'training_type' => $step->training_type,
+                        'status' => $step->status,
+                        'start_date' => $step->start_date,
+                        'end_date' => $step->end_date,
+                        'start_time' => $step->start_time,
+                        'end_time' => $step->end_time,
+                    ]);
+                }
+            }
+        }
         activity()
             ->performedOn($parent)
             ->causedBy(auth()->user())
@@ -128,13 +304,16 @@ class TrainingModuleController extends Controller
                     'name' => $parent->name,
                     'status' => $parent->status,
                     'training_type' => $parent->training_type,
+                    'is_annual' => $parent->is_anuual,
+                    'frequency' => $parent->frequency,
                 ],
             ])
             ->log('created');
 
-        return redirect()->route('trainings.index')->with('success', 'Training program and materials created successfully.');
+        return redirect()
+            ->route('trainings.index')
+            ->with('success', 'Training program created successfully.');
     }
-
     public function show(TrainingModule $training)
     {
         $training->load([
@@ -153,6 +332,7 @@ class TrainingModuleController extends Controller
         $training->load(['steps', 'documents']);
         $statusOptions = TrainingModule::STATUSES;
         $statusOptions = array_diff($statusOptions, ['approved', 'reviewed']);
+        $departments = Department::all();
         $user = auth()->user();
 
         // Add back based on role
@@ -164,7 +344,7 @@ class TrainingModuleController extends Controller
             $statusOptions[] = 'approved';
         }
 
-        return view('trainings.edit', compact('training', 'statusOptions'));
+        return view('trainings.edit', compact('training', 'statusOptions', 'departments'));
     }
 
     public function update(Request $request, TrainingModule $training)
@@ -175,8 +355,12 @@ class TrainingModuleController extends Controller
             'status' => 'required|in:' . implode(',', TrainingModule::STATUSES),
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'start_time' => 'nullable|date_format:H:i',  // Add this
-            'end_time' => 'nullable|date_format:H:i',    // Add this
+            'start_time' => 'nullable',
+            'end_time' => 'nullable',
+            'is_annual' => 'nullable',
+            'frequency' => 'nullable|in:monthly,quarterly,half_yearly,yearly',
+            'department_id' => 'nullable|integer',
+            'subdepartment_id' => 'nullable|integer',
             'step_names' => 'nullable|array',
             'step_names.*' => 'nullable|string|max:255',
             'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
@@ -190,9 +374,13 @@ class TrainingModuleController extends Controller
             'end_date',
             'start_time',
             'end_time',
+            'is_anuual',
+            'frequency',
+            'department_id',
+            'subdepartment_id',
         ]);
 
-        $training->update([
+        $updateData = [
             'name' => $request->name,
             'training_type' => $request->training_type,
             'status' => $request->status,
@@ -201,7 +389,16 @@ class TrainingModuleController extends Controller
             'start_time' => $request->start_time,
             'end_time' => $request->end_time,
             'updated_by' => auth()->id(),
-        ]);
+        ];
+
+        if (!$training->annual_parent_id) {
+            $updateData['is_anuual'] = $request->input('is_annual') == '1' ? '1' : '0';
+            $updateData['frequency'] = $request->frequency;
+            $updateData['department_id'] = $request->department_id;
+             $updateData['subdepartment_id'] = $request->subdepartment_id;
+        }
+
+        $training->update($updateData);
 
         $newData = $training->only([
             'name',
@@ -211,6 +408,10 @@ class TrainingModuleController extends Controller
             'end_date',
             'start_time',
             'end_time',
+            'is_anuual',
+            'frequency',
+            'department_id',
+            'subdepartment_id',
         ]);
 
         activity()
@@ -684,5 +885,12 @@ class TrainingModuleController extends Controller
         return redirect()
             ->route('attendance', ['id' => $module->id, 'page' => $request->query('page')])
             ->with('success', 'Attendance submitted successfully.');
+    }
+
+    public function annual_training(Request $request)
+    {
+
+        return view('trainings.annual_training');
+
     }
 }

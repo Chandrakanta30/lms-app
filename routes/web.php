@@ -59,6 +59,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/created-training-setup', [TrainingModuleController::class, 'index'])
         ->name('created-training-setup');
 
+    Route::get('/created-annual-training', [TrainingModuleController::class, 'index'])->name('created-annual-training');
     Route::get('training-list', [TrainingModuleController::class, 'traininglist'])->name('training-list');
     Route::get('attendace/{id}', [TrainingModuleController::class, 'traineeAttendace'])->name('attendance');
     Route::post('attendace/{id}', [TrainingModuleController::class, 'submitAttendace'])->name('attendance.submit');
@@ -80,6 +81,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::delete('masters/venue/{venue}', [MasterController::class, 'destroyVenue'])->name('masters.venue.destroy');
     Route::post('masters/section', [MasterController::class, 'storeSection'])->name('masters.section.store');
     Route::delete('masters/section/{section}', [MasterController::class, 'destroySection'])->name('masters.section.destroy');
+    Route::post('masters/sub-dept', [MasterController::class, 'storeSubDept'])->name('masters.subdept.store');
+    Route::delete('masters/sub-dept/{subdept}', [MasterController::class, 'destroySubDept'])->name('masters.subdept.destroy');
 
     Route::get('masters/trainers', [MasterController::class, 'showTrainers'])->name('masters.trainers');
 
@@ -172,5 +175,5 @@ Route::group(['middleware' => ['auth']], function () {
         ->name('audit.logs.module');
 
     Route::get('/view-document/{id}', [MasterDocumentController::class, 'view'])
-    ->name('documents.view');
+        ->name('documents.view');
 });

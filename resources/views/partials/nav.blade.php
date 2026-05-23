@@ -298,6 +298,16 @@
                             </span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('training-calendar') }}">
+
+                            <i class="mdi mdi-calendar-blank-multiple menu-icon"></i>
+
+                            <span class="menu-title">
+                                Training Calendar
+                            </span>
+                        </a>
+                    </li>
                 @endcan
 
                 @can('session-list')

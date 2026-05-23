@@ -771,9 +771,44 @@ class TrainingModuleController extends Controller
         if (!$user) {
             return ("unauthorized user,user not found plz check");
         }
-        //  $modules = $user->modules->pluck('name');
-        $modules = $user->modules;
+        $modules = $user->trainings;
         return view('trainings.assign_training_list', compact('modules'));
+    }
+
+    public function calendar()
+    {
+        return view('trainings.calendar');
+    }
+
+    public function calendarEvents(Request $request)
+    {
+        $year = (int) ($request->input('year') ?: now()->year);
+        $yearStart = Carbon::create($year, 1, 1)->startOfDay();
+        $yearEnd = Carbon::create($year, 12, 31)->endOfDay();
+
+        $modules = TrainingModule::query()
+            ->whereNotNull('start_date')
+            ->whereNotNull('end_date')
+            ->whereDate('start_date', '<=', $yearEnd->toDateString())
+            ->whereDate('end_date', '>=', $yearStart->toDateString())
+            ->get(['id', 'name', 'status', 'start_date', 'end_date', 'is_active']);
+
+        $events = $modules->map(function ($module) {
+            return [
+                'id' => $module->id,
+                'title' => $module->name,
+                'start' => $module->start_date,        
+                'end' => Carbon::parse($module->end_date)->addDay()->toDateString(),
+                'allDay' => true,
+                'url' => route('trainings.show', $module->id),
+                'extendedProps' => [
+                    'status' => $module->status,
+                    'is_active' => (int) $module->is_active,
+                ],
+            ];
+        });
+
+        return response()->json($events);
     }
     public function traineeAttendace($id)
     {
@@ -784,7 +819,7 @@ class TrainingModuleController extends Controller
         }
 
         $module = TrainingModule::with(['documents', 'trainers'])->findOrFail($id);
-        if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
+        if (!$user->can('training-list') && !$user->trainings()->where('training_modules.id', $module->id)->exists()) {
             abort(403, 'Unauthorized access to this module attendance sheet.');
         }
 
@@ -820,7 +855,7 @@ class TrainingModuleController extends Controller
             return "unauthorized user, user not found";
         }
         $module = TrainingModule::findOrFail($id);
-        if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
+        if (!$user->can('training-list') && !$user->trainings()->where('training_modules.id', $module->id)->exists()) {
             abort(403, 'Unauthorized access to this module attendance sheet.');
         }
 

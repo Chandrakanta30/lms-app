@@ -62,6 +62,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/created-annual-training', [TrainingModuleController::class, 'index'])->name('created-annual-training');
     Route::get('\annual-training', [TrainingModuleController::class, 'index'])->name('annual-training');
     Route::get('training-list', [TrainingModuleController::class, 'traininglist'])->name('training-list');
+    Route::get('training-calendar', [TrainingModuleController::class, 'calendar'])->name('training-calendar');
+    Route::get('training-calendar/events', [TrainingModuleController::class, 'calendarEvents'])->name('training-calendar.events');
     Route::get('attendace/{id}', [TrainingModuleController::class, 'traineeAttendace'])->name('attendance');
     Route::post('attendace/{id}', [TrainingModuleController::class, 'submitAttendace'])->name('attendance.submit');
 

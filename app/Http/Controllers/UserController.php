@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SubDepartment;
 use App\Models\User;
 use App\Models\Designation;
 use App\Models\Department;
 use App\Models\ExamResult;
+use App\Models\TrainingModule;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
@@ -57,8 +60,9 @@ class UserController extends Controller
 
         $departments = Department::all();
         $designations = Designation::all();
+        $subdepartments=SubDepartment::all();
 
-        return view('users.create', compact('roles','departments','designations'));
+        return view('users.create', compact('roles','departments','designations','subdepartments'));
     }
 
     // 2A. SHOW USER PROFILE
@@ -92,6 +96,7 @@ class UserController extends Controller
             'roles' => 'required|array',
             'roles.*' => 'exists:roles,name',  //for internalid validation
             'department_id' => 'nullable|exists:departments,id',
+            'subdepartment_id' => 'nullable|exists:sub_departments,id',
             'designation_id' => 'nullable|exists:designations,id',
             'qualification' => 'nullable|string',
             'job_description'=>'nullable|string',
@@ -102,6 +107,7 @@ class UserController extends Controller
         $userData = $request->only(['name',
                                     'email',
                                     'department_id', 
+                                    'subdepartment_id',
                                     'designation_id', 
                                     'qualification', 
                                     'job_description',
@@ -114,6 +120,7 @@ class UserController extends Controller
         }
         $userData['is_trainer'] = $request->has('is_trainer') ? 1 : 0;
         $user=User::create($userData);
+        $this->autoEnrollUserInMatchingTrainings($user);
         // $user = User::create([
         //     'name' => $request->name,
         //     'email' => $request->email,
@@ -129,8 +136,9 @@ class UserController extends Controller
         $roles = Role::all();
         $departments = Department::all();
         $designations = Designation::all();
+        $subdepartments = SubDepartment::all();
         $userRoles = $user->roles->pluck('name')->toArray();
-        return view('users.create', compact('user', 'roles', 'userRoles','departments','designations'));
+        return view('users.create', compact('user', 'roles', 'userRoles','departments','designations','subdepartments'));
     }
 
     // 5. UPDATE USER
@@ -143,6 +151,7 @@ class UserController extends Controller
             'internal_id' => 'nullable|string|unique:users,internal_id,' . $user->id,   // add internal id updataion
             'roles' => 'required|array',
             'department_id' => 'nullable|exists:departments,id',
+            'subdepartment_id' => 'nullable|exists:sub_departments,id',
             'designation_id' => 'nullable|exists:designations,id',
             'qualification' => 'nullable|string',
             'job_description'=>'nullable|string',
@@ -154,6 +163,7 @@ class UserController extends Controller
             'name', 
             'email', 
             'department_id', 
+            'subdepartment_id',
             'designation_id', 
             'qualification', 
             'job_description',
@@ -169,6 +179,7 @@ class UserController extends Controller
         $userData['is_trainer'] = $request->has('is_trainer') ? 1 : 0;
         // 3. Update the User Model (CRITICAL: This was missing)
         $user->update($userData);
+        $this->autoEnrollUserInMatchingTrainings($user);
     
         // 4. Sync Spatie Roles
         $user->syncRoles($request->roles);
@@ -180,6 +191,55 @@ class UserController extends Controller
     public function destroy(User $user) {
         $user->delete();
         return redirect()->route('users.index')->with('success', 'User deleted.');
+    }
+
+    private function autoEnrollUserInMatchingTrainings(User $user): void
+    {
+        if ((int) $user->is_trainer === 1) {
+            return;
+        }
+
+        if (empty($user->department_id) || empty($user->subdepartment_id)) {
+            return;
+        }
+
+        $matchingTrainings = TrainingModule::query()
+            ->where('department_id', $user->department_id)
+            ->where('subdepartment_id', $user->subdepartment_id)
+            ->get(['id', 'name', 'is_active']);
+
+        if ($matchingTrainings->isEmpty()) {
+            return;
+        }
+
+        $syncData = [];
+        foreach ($matchingTrainings as $training) {
+            $syncData[$training->id] = [
+                'status' => 'pending',
+                'start_date' => null,
+                'end_date' => null,
+            ];
+        }
+
+        $existingTrainingIds = $user->trainings()->pluck('training_modules.id')->toArray();
+        $user->trainings()->syncWithoutDetaching($syncData);
+        $newlyEnrolledIds = array_diff(array_keys($syncData), $existingTrainingIds);
+
+        foreach ($matchingTrainings as $training) {
+            if (!in_array($training->id, $newlyEnrolledIds, true)) {
+                continue;
+            }
+
+            if ((int) $training->is_active === 1) {
+                Notification::create([
+                    'user_id' => $user->id,
+                    'title' => 'New Training Assigned',
+                    'message' => 'You have been assigned to training: ' . $training->name,
+                    'type' => 'training_assigned',
+                    'training_id' => $training->id,
+                ]);
+            }
+        }
     }
 
     

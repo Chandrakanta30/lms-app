@@ -195,6 +195,10 @@ class UserController extends Controller
 
     private function autoEnrollUserInMatchingTrainings(User $user): void
     {
+        if ((int) $user->is_trainer === 1) {
+            return;
+        }
+
         if (empty($user->department_id) || empty($user->subdepartment_id)) {
             return;
         }

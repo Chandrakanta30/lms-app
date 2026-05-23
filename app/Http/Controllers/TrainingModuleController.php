@@ -771,8 +771,7 @@ class TrainingModuleController extends Controller
         if (!$user) {
             return ("unauthorized user,user not found plz check");
         }
-        //  $modules = $user->modules->pluck('name');
-        $modules = $user->modules;
+        $modules = $user->trainings;
         return view('trainings.assign_training_list', compact('modules'));
     }
     public function traineeAttendace($id)
@@ -784,7 +783,7 @@ class TrainingModuleController extends Controller
         }
 
         $module = TrainingModule::with(['documents', 'trainers'])->findOrFail($id);
-        if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
+        if (!$user->can('training-list') && !$user->trainings()->where('training_modules.id', $module->id)->exists()) {
             abort(403, 'Unauthorized access to this module attendance sheet.');
         }
 
@@ -820,7 +819,7 @@ class TrainingModuleController extends Controller
             return "unauthorized user, user not found";
         }
         $module = TrainingModule::findOrFail($id);
-        if (!$user->can('training-list') && !$user->modules()->where('training_modules.id', $module->id)->exists()) {
+        if (!$user->can('training-list') && !$user->trainings()->where('training_modules.id', $module->id)->exists()) {
             abort(403, 'Unauthorized access to this module attendance sheet.');
         }
 

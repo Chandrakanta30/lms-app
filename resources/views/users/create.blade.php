@@ -90,8 +90,23 @@
                                     <option value="">Select Department</option>
                                     @foreach ($departments as $dept)
                                         <option value="{{ $dept->id }}"
-                                            {{ isset($user) && $user->department_id == $dept->id ? 'selected' : '' }}>
+                                            {{ old('department_id', $user->department_id ?? '') == $dept->id ? 'selected' : '' }}>
                                             {{ $dept->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Subdepartment</label>
+                                <select name="subdepartment_id" class="form-control">
+                                    <option value="">Select Subdepartment</option>
+                                    @foreach ($subdepartments as $subdept)
+                                        <option value="{{ $subdept->id }}"
+                                            {{ old('subdepartment_id', $user->subdepartment_id ?? '') == $subdept->id ? 'selected' : '' }}>
+                                            {{ $subdept->name }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -105,7 +120,7 @@
                                     <option value="">Select Designation</option>
                                     @foreach ($designations as $desg)
                                         <option value="{{ $desg->id }}"
-                                            {{ isset($user) && $user->designation_id == $desg->id ? 'selected' : '' }}>
+                                            {{ old('designation_id', $user->designation_id ?? '') == $desg->id ? 'selected' : '' }}>
                                             {{ $desg->name }}
                                         </option>
                                     @endforeach

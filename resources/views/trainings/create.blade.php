@@ -47,9 +47,6 @@
                                     Add
                                     Step</button>
                             </div>
-
-
-
                             <div class="form-group">
                                 <label>Training Type</label>
                                 <select name="training_type" id="training_type" class="form-control">
@@ -60,60 +57,6 @@
                                         {{ old('training_type') === 'self_training' ? 'selected' : '' }}>
                                         Self Training (E-Learning)</option>
                                 </select>
-                            </div>
-                            <div class="form-group mt-3">
-
-                                <div class="form-check">
-
-                                    <input type="checkbox" name="is_annual" value="1" id="is_annual">
-                                    <label class="form-check-label" for="is_annual">
-                                        Annual Training Program
-                                    </label>
-                                </div>
-
-                            </div>
-                            <div id="annual_fields_section" class="row d-none">
-
-                                <!-- Department -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label>Department</label>
-                                        <select name="department_id" class="form-control">
-                                            <option value="">Select Department</option>
-                                            @foreach ($departments ?? [] as $dept)
-                                                <option value="{{ $dept->id }}">{{ $dept->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <!-- Sub Department -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label>Sub Department</label>
-                                        <select name="subdepartment_id" class="form-control">
-                                            <option value="">Select Sub Department</option>
-                                            @foreach ($subdepartments ?? [] as $sub)
-                                                <option value="{{ $sub->id }}">{{ $sub->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <!-- Frequency -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label>Frequency</label>
-                                        <select name="frequency" class="form-control">
-                                            <option value="">Select Frequency</option>
-                                            <option value="monthly">Monthly</option>
-                                            <option value="quarterly">Quarterly</option>
-                                            <option value="half_yearly">Half Yearly</option>
-                                            <option value="yearly">Yearly</option>
-                                        </select>
-                                    </div>
-                                </div>
-
                             </div>
 
                             <div class="row">
@@ -188,20 +131,6 @@
                 const selfTrainingSection = document.getElementById('self_training_section');
                 if (selfTrainingSection) {
                     selfTrainingSection.style.display = (this.value === 'self_training') ? 'block' : 'none';
-                }
-            });
-        </script>
-        <script>
-            document.getElementById('is_annual').addEventListener('change', function() {
-                const section = document.getElementById('annual_fields_section');
-
-                if (this.checked) {
-                    section.classList.remove('d-none');
-                } else {
-                    section.classList.add('d-none');
-
-                    // reset values
-                    section.querySelectorAll('select').forEach(el => el.value = '');
                 }
             });
         </script>

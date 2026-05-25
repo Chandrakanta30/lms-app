@@ -22,8 +22,6 @@ class TrainingModuleController extends Controller
 {
     public function index()
     {
-        $routeName = request()->route()->getName();
-
         $query = TrainingModule::with([
             'steps',
             'trainers.designation',
@@ -31,21 +29,10 @@ class TrainingModuleController extends Controller
             'documents'
         ])->whereNull('parent_id');
 
-        if ($routeName === 'trainings.index') {
-            $query = $query->where('is_active', 0);
-
-        } elseif ($routeName === 'created-training-setup') {
+        if (request()->route()->getName() === 'created-training-setup') {
             $query = $query->where('is_active', 1);
-
-        } elseif ($routeName === 'annual-training') {
-            $query = $query->whereNotNull('annual_parent_id')
-                ->where('is_anuual', '1')
-                ->where('is_active', 0);
-
-        } elseif ($routeName === 'created-annual-training') {
-            $query = $query->whereNotNull('annual_parent_id')
-                ->where('is_anuual', '1')
-                ->where('is_active', 1);
+        } else {
+            $query = $query->where('is_active', 0);
         }
 
         $trainings = $query->latest('id')->get();
@@ -55,6 +42,44 @@ class TrainingModuleController extends Controller
         return view('trainings.index', compact('trainings', 'statusOptions'));
     }
 
+    public function annualTrainingIndex()
+    {
+        $trainings = TrainingModule::with([
+            'steps',
+            'trainers.designation',
+            'trainees.designation',
+            'documents'
+        ])->whereNull('parent_id')
+            ->whereNotNull('annual_parent_id')
+            ->where('is_anuual', '1')
+            ->where('is_active', 0)
+            ->latest('id')
+            ->get();
+
+        $statusOptions = TrainingModule::STATUSES;
+
+        return view('trainings.annual_training', compact('trainings', 'statusOptions'));
+    }
+
+    public function createdAnnualTrainingIndex()
+    {
+        $trainings = TrainingModule::with([
+            'steps',
+            'trainers.designation',
+            'trainees.designation',
+            'documents'
+        ])->whereNull('parent_id')
+            ->whereNotNull('annual_parent_id')
+            ->where('is_anuual', '1')
+            ->where('is_active', 1)
+            ->latest('id')
+            ->get();
+
+        $statusOptions = TrainingModule::STATUSES;
+
+        return view('trainings.annual_training', compact('trainings', 'statusOptions'));
+    }
+
     public function create()
     {
         $statusOptions = TrainingModule::STATUSES;
@@ -62,6 +87,15 @@ class TrainingModuleController extends Controller
         $subdepartments = SubDepartment::all();
 
         return view('trainings.create', compact('statusOptions', 'departments', 'subdepartments'));
+    }
+
+    public function createAnnual()
+    {
+        $statusOptions = TrainingModule::STATUSES;
+        $departments = Department::all();
+        $subdepartments = SubDepartment::all();
+
+        return view('trainings.annual_Program_create', compact('statusOptions', 'departments', 'subdepartments'));
     }
 
     // public function store(Request $request)

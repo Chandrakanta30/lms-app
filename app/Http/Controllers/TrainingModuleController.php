@@ -348,8 +348,15 @@ class TrainingModuleController extends Controller
             ])
             ->log('created');
 
-        return redirect()
-            ->route('trainings.index')
+        // return redirect()
+        //     ->route('trainings.index')
+        //     ->with('success', 'Training program created successfully.');
+        if ($request->input('is_annual') == '1') {
+            return redirect()->route('annual-training')
+                ->with('success', 'Annual training program created successfully.');
+        }
+
+        return redirect()->route('trainings.index')
             ->with('success', 'Training program created successfully.');
     }
     public function show(TrainingModule $training)
@@ -831,7 +838,7 @@ class TrainingModuleController extends Controller
             return [
                 'id' => $module->id,
                 'title' => $module->name,
-                'start' => $module->start_date,        
+                'start' => $module->start_date,
                 'end' => Carbon::parse($module->end_date)->addDay()->toDateString(),
                 'allDay' => true,
                 'url' => route('trainings.show', $module->id),

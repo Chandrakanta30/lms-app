@@ -62,6 +62,12 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/created-annual-training', [TrainingModuleController::class, 'createdAnnualTrainingIndex'])->name('created-annual-training');
     Route::get('/annual-training', [TrainingModuleController::class, 'annualTrainingIndex'])->name('annual-training');
     Route::get('/annual-training/create', [TrainingModuleController::class, 'createAnnual'])->name('annual-training.create');
+    Route::get('/annual-training/{parentId}/programs', [TrainingModuleController::class, 'annualTrainingPrograms'])
+        ->whereNumber('parentId')
+        ->name('annual-training.programs');
+    Route::get('/created-annual-training/{parentId}/programs', [TrainingModuleController::class, 'createdAnnualTrainingPrograms'])
+        ->whereNumber('parentId')
+        ->name('created-annual-training.programs');
     Route::get('training-list', [TrainingModuleController::class, 'traininglist'])->name('training-list');
     Route::get('training-calendar', [TrainingModuleController::class, 'calendar'])->name('training-calendar');
     Route::get('training-calendar/events', [TrainingModuleController::class, 'calendarEvents'])->name('training-calendar.events');

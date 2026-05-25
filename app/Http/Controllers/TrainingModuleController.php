@@ -373,8 +373,12 @@ class TrainingModuleController extends Controller
                         'end_time' => $step->end_time,
                     ]);
                 }
+
+                $this->autoEnrollMatchingUsersToTraining($child);
             }
         }
+
+        $this->autoEnrollMatchingUsersToTraining($parent);
         activity()
             ->performedOn($parent)
             ->causedBy(auth()->user())
@@ -400,6 +404,36 @@ class TrainingModuleController extends Controller
         return redirect()->route('trainings.index')
             ->with('success', 'Training program created successfully.');
     }
+
+    private function autoEnrollMatchingUsersToTraining(TrainingModule $training): void
+    {
+        if (empty($training->department_id) || empty($training->subdepartment_id)) {
+            return;
+        }
+
+        $matchingUserIds = User::query()
+            ->where('is_trainer', 0)
+            ->where('department_id', $training->department_id)
+            ->where('subdepartment_id', $training->subdepartment_id)
+            ->pluck('id')
+            ->toArray();
+
+        if (empty($matchingUserIds)) {
+            return;
+        }
+
+        $syncData = [];
+        foreach ($matchingUserIds as $userId) {
+            $syncData[$userId] = [
+                'status' => 'pending',
+                'start_date' => null,
+                'end_date' => null,
+            ];
+        }
+
+        $training->trainees()->syncWithoutDetaching($syncData);
+    }
+
     public function show(TrainingModule $training)
     {
         $training->load([

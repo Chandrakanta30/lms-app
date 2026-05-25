@@ -24,11 +24,11 @@
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
                     <div>
                         <h4 class="card-title mb-1">
-                            {{ $isChildView ? 'Annual Child Programs' : 'Annual Plan Setup' }}
+                            {{ $isChildView ? 'Annual  Programs' : 'Annual Main Plan Setup' }}
                         </h4>
                         <p class="text-muted mb-0">
                             @if ($isChildView)
-                                Parent Plan: <strong>{{ $parentPlan->name }}</strong>
+                                Main Plan: <strong>{{ $parentPlan->name }}</strong>
                             @else
                                 Click a plan to view its child programs.
                             @endif
@@ -56,9 +56,7 @@
                                     <div class="card-body d-flex justify-content-between align-items-start">
                                         <div>
                                             <h5 class="mb-1">{{ $plan->name }}</h5>
-                                            <div class="text-muted small">
-                                                Steps: {{ $plan->steps_count ?? 0 }}
-                                            </div>
+        
                                         </div>
                                         <a href="{{ $isCreatedRoute ? route('created-annual-training.programs', $plan->id) : route('annual-training.programs', $plan->id) }}"
                                             class="btn btn-sm btn-outline-primary">
@@ -83,7 +81,8 @@
                                 <div class="card-header bg-white py-3">
                                     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
                                         <div class="training-left">
-                                            <button class="btn btn-link text-decoration-none text-dark font-weight-bold p-0 training-title"
+                                            <button
+                                                class="btn btn-link text-decoration-none text-dark font-weight-bold p-0 training-title"
                                                 data-toggle="collapse" data-target="#collapse{{ $training->id }}"
                                                 aria-expanded="false">
                                                 <i class="mdi mdi-chevron-down-circle-outline mr-2 text-primary"></i>
@@ -92,7 +91,8 @@
                                             <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
                                                 <span class="badge badge-outline-secondary">{{ $training->steps->count() }}
                                                     Steps</span>
-                                                <span class="badge {{ $statusMeta['class'] }}">{{ $statusMeta['label'] }}</span>
+                                                <span
+                                                    class="badge {{ $statusMeta['class'] }}">{{ $statusMeta['label'] }}</span>
                                             </div>
                                         </div>
                                         <div class="action-buttons">
@@ -149,7 +149,8 @@
                                 <div id="collapse{{ $training->id }}" class="collapse" data-parent="#trainingAccordion">
                                     <div class="card-body bg-light">
                                         <div class="row mb-3">
-                                            <div class="col-md-3 mb-2"><strong>Status:</strong> {{ $statusMeta['label'] }}</div>
+                                            <div class="col-md-3 mb-2"><strong>Status:</strong> {{ $statusMeta['label'] }}
+                                            </div>
                                             <div class="col-md-3 mb-2"><strong>Type:</strong>
                                                 {{ ucwords(str_replace('_', ' ', $training->training_type ?? 'classroom')) }}
                                             </div>
@@ -197,7 +198,8 @@
                                             <div class="tab-pane fade" id="trainers-{{ $training->id }}">
                                                 @forelse($training->trainers as $trainer)
                                                     <div class="d-inline-block border rounded p-2 m-1 bg-light">
-                                                        <i class="mdi mdi-account-star text-primary"></i> {{ $trainer->name }}
+                                                        <i class="mdi mdi-account-star text-primary"></i>
+                                                        {{ $trainer->name }}
                                                         <div class="text-muted small">
                                                             {{ $trainer->designation->name ?? 'No designation' }}</div>
                                                     </div>

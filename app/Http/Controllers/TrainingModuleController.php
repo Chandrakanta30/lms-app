@@ -887,7 +887,13 @@ class TrainingModuleController extends Controller
         if (!$user) {
             return ("unauthorized user,user not found plz check");
         }
-        $modules = $user->trainings;
+        if ((int) $user->is_trainer === 1) {
+            $modules = $user->modules()
+                ->wherePivot('acceptance_status', 'accepted')
+                ->get();
+        } else {
+            $modules = $user->trainings;
+        }
         return view('trainings.assign_training_list', compact('modules'));
     }
 
@@ -935,7 +941,17 @@ class TrainingModuleController extends Controller
         }
 
         $module = TrainingModule::with(['documents', 'trainers'])->findOrFail($id);
-        if (!$user->can('training-list') && !$user->trainings()->where('training_modules.id', $module->id)->exists()) {
+        $isAssignedTrainee = $user->trainings()->where('training_modules.id', $module->id)->exists();
+        $isAcceptedTrainer = $module->trainers()
+            ->where('users.id', $user->id)
+            ->wherePivot('acceptance_status', 'accepted')
+            ->exists();
+
+        if (
+            !$user->can('training-list')
+            && !$isAssignedTrainee
+            && !$isAcceptedTrainer
+        ) {
             abort(403, 'Unauthorized access to this module attendance sheet.');
         }
 
@@ -971,7 +987,17 @@ class TrainingModuleController extends Controller
             return "unauthorized user, user not found";
         }
         $module = TrainingModule::findOrFail($id);
-        if (!$user->can('training-list') && !$user->trainings()->where('training_modules.id', $module->id)->exists()) {
+        $isAssignedTrainee = $user->trainings()->where('training_modules.id', $module->id)->exists();
+        $isAcceptedTrainer = $module->trainers()
+            ->where('users.id', $user->id)
+            ->wherePivot('acceptance_status', 'accepted')
+            ->exists();
+
+        if (
+            !$user->can('training-list')
+            && !$isAssignedTrainee
+            && !$isAcceptedTrainer
+        ) {
             abort(403, 'Unauthorized access to this module attendance sheet.');
         }
 

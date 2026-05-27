@@ -52,7 +52,7 @@ class TrainingModule extends Model
     public function trainers()
     {
         return $this->belongsToMany(User::class, 'trainer_training', 'training_module_id', 'user_id')
-            ->withPivot('start_date', 'end_date')
+            ->withPivot('start_date', 'end_date', 'acceptance_status')
             ->withTimestamps();
     }
     public function acceptedTrainers()

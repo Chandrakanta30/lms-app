@@ -85,7 +85,8 @@ class User extends Authenticatable
             'trainer_training',
             'user_id',
             'training_module_id'
-        );
+        )->withPivot('start_date', 'end_date', 'acceptance_status')
+            ->withTimestamps();
     }
 
     public function notifications()

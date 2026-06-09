@@ -60,6 +60,7 @@ class MasterDocumentController extends Controller
             'department_id' => 'required',
             'subdepartment_id' => 'required',
             'section_id' => 'required',
+            'read_time' => 'nullable|string|max:50',
         ]);
 
         $path = $request->file('file')->store('master_docs', 'public');
@@ -75,6 +76,7 @@ class MasterDocumentController extends Controller
             'department_id' => $request->department_id,
             'subdepartment_id' => $request->subdepartment_id,
             'section_id' => $request->section_id,
+            'read_time' => $request->filled('read_time') ? trim($request->read_time) : null,
         ]);
 
         return back()->with('success', 'Master Document added to Global Pool.');

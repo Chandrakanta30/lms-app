@@ -44,8 +44,8 @@
                                             placeholder="Administration & Maintenance">
                                     </div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-info mt-2"
-                                    onclick="addStepField()">+ Add Step</button>
+                                <button type="button" class="btn btn-sm btn-outline-info mt-2" onclick="addStepField()">+
+                                    Add Step</button>
                             </div>
 
                             <div class="form-group">
@@ -89,10 +89,10 @@
                                         <label>Frequency</label>
                                         <select name="frequency" class="form-control" required>
                                             <option value="">Select Frequency</option>
-                                            <option value="monthly">Monthly</option>
+
                                             <option value="quarterly">Quarterly</option>
                                             <option value="half_yearly">Half Yearly</option>
-                                            <option value="yearly">Yearly</option>
+
                                         </select>
                                     </div>
                                 </div>

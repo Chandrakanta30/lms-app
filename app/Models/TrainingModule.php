@@ -39,6 +39,15 @@ class TrainingModule extends Model
             ->withTimestamps();
     }
 
+    public function requiredReadingSeconds(): int
+    {
+        $this->loadMissing('documents');
+
+        return max(60, $this->documents->sum(function ($document) {
+            return (int) ($document->read_time_seconds ?? 60);
+        }));
+    }
+
     public function questions()
     {
         // A Training Module HAS MANY Questions

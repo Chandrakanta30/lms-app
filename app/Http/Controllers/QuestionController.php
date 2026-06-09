@@ -48,7 +48,7 @@ class QuestionController extends Controller
     public function showReadingRoom($moduleId)
     {
         $module = TrainingModule::with('documents')->findOrFail($moduleId);
-        $requiredSeconds = max(60, $module->documents->count() * 60);
+        $requiredSeconds = $module->requiredReadingSeconds();
 
         $tracker = DocumentReadTracker::firstOrCreate(
             [
@@ -81,7 +81,7 @@ class QuestionController extends Controller
             ->where('training_module_id', $module->id)
             ->firstOrFail();
 
-        $requiredSeconds = max(60, $module->documents->count() * 60, (int) $tracker->required_seconds);
+        $requiredSeconds = max($module->requiredReadingSeconds(), (int) $tracker->required_seconds);
         $elapsedSeconds = $tracker->started_at ? $tracker->started_at->diffInSeconds(now()) : 0;
 
         if ($elapsedSeconds < $requiredSeconds) {

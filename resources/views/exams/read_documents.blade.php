@@ -57,6 +57,9 @@
 
                                             <i class="mdi mdi-open-in-new"></i> Open Document
                                         </a>
+                                        <div class="small text-muted mt-2">
+                                            Read time: {{ $document->read_time_label }}
+                                        </div>
                                     </div>
                                 </div>
                             @endforeach

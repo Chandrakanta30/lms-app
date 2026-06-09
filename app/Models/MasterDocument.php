@@ -21,7 +21,8 @@ class MasterDocument extends Model
         'reviewed_at',
         'department_id',
         'section_id',
-        'subdepartment_id'
+        'subdepartment_id',
+        'read_time',
     ];
 
     protected $casts = [
@@ -61,5 +62,37 @@ class MasterDocument extends Model
     public function section()
     {
         return $this->belongsTo(Section::class, 'section_id', 'sec_id');
+    }
+
+    public function getReadTimeMinutesAttribute(): int
+    {
+        return self::normalizeReadTimeToMinutes($this->read_time);
+    }
+
+    public function getReadTimeSecondsAttribute(): int
+    {
+        return $this->read_time_minutes * 60;
+    }
+
+    public function getReadTimeLabelAttribute(): string
+    {
+        return $this->read_time_minutes . ' min';
+    }
+
+    public static function normalizeReadTimeToMinutes($value): int
+    {
+        if (is_numeric($value)) {
+            return max(1, (int) $value);
+        }
+
+        if (!is_string($value) || trim($value) === '') {
+            return 1;
+        }
+
+        if (preg_match('/(\d+(?:\.\d+)?)/', $value, $matches)) {
+            return max(1, (int) ceil((float) $matches[1]));
+        }
+
+        return 1;
     }
 }

@@ -173,7 +173,7 @@
 
                         </div>
                         <div class="row">
-                            <div class="col-md-12">
+                            <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label class="form-label">Section</label>
 
@@ -188,6 +188,14 @@
                                         @endforeach
 
                                     </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label">Read Time</label>
+
+                                    <input type="text" name="read_time" class="form-control"
+                                        placeholder="Enter read time (e.g. 5 min)" required>
                                 </div>
                             </div>
                         </div>

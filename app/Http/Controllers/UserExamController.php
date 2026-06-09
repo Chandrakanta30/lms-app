@@ -32,7 +32,7 @@ class UserExamController extends Controller
             ->keyBy('training_module_id');
 
         $modules->each(function ($module) use ($trackerMap) {
-            $requiredSeconds = max(60, $module->documents->count() * 60);
+            $requiredSeconds = $module->requiredReadingSeconds();
             $tracker = $trackerMap->get($module->id);
 
             if (!$tracker) {

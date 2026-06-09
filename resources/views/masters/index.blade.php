@@ -57,7 +57,7 @@
         <div class="col-md-6">
             <div class="card fixed-card">
                 <div class="card-body">
-                    <h4 class="card-title">Venus</h4>
+                    <h4 class="card-title">Venues</h4>
                     <form action="{{ route('masters.venue.store') }}" method="POST" class="d-flex mb-3">
                         @csrf
                         <input type="text" name="name" class="form-control mr-2" placeholder="e.g. Room-1" required>

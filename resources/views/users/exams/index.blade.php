@@ -151,6 +151,9 @@
 
                                             {{ $doc->doc_name }}
                                             ({{ $doc->doc_number }})
+                                            <small class="d-block text-muted ms-4">
+                                                Read time: {{ $doc->read_time_label }}
+                                            </small>
                                         </a>
 
                                     </li>
@@ -432,6 +435,5 @@
                 }, 2000);
             }
         });
-
     </script>
 @endpush

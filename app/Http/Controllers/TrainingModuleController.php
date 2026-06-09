@@ -313,17 +313,21 @@ class TrainingModuleController extends Controller
         if ($request->input('is_annual') == '1' && $request->frequency) {
 
             $frequencyMap = [
-                'monthly' => 12,
-                'quarterly' => 4,
-                'half_yearly' => 2,
-                'yearly' => 1,
+                'monthly' => ['count' => 12, 'gap' => 1],
+                'quarterly' => ['count' => 3, 'gap' => 4],
+                'half_yearly' => ['count' => 2, 'gap' => 6],
+                'yearly' => ['count' => 1, 'gap' => 12],
             ];
 
-            $count = $frequencyMap[$request->frequency] ?? 0;
+            $config = $frequencyMap[$request->frequency] ?? ['count' => 0, 'gap' => 1];
+
+            $count = $config['count'];
+            $gap = $config['gap'];
 
             for ($i = 0; $i < $count; $i++) {
 
-                $monthName = now()->addMonths($i)->format('F');
+                $monthDate = now()->addMonths($i * $gap);
+                $monthName = $monthDate->format('F');
 
                 $child = TrainingModule::create([
                     'name' => $parent->name . ' - ' . $monthName . ' Training',
@@ -407,14 +411,20 @@ class TrainingModuleController extends Controller
 
     private function autoEnrollMatchingUsersToTraining(TrainingModule $training): void
     {
-        if (empty($training->department_id) || empty($training->subdepartment_id)) {
+        $isDqaTraining = Department::whereKey($training->department_id)
+            ->where('name', 'Development Quality Assurance')
+            ->exists();
+
+        if (!$isDqaTraining && (empty($training->department_id) || empty($training->subdepartment_id))) {
             return;
         }
 
         $matchingUserIds = User::query()
             ->where('is_trainer', 0)
-            ->where('department_id', $training->department_id)
-            ->where('subdepartment_id', $training->subdepartment_id)
+            ->when(!$isDqaTraining, function ($query) use ($training) {
+                $query->where('department_id', $training->department_id)
+                    ->where('subdepartment_id', $training->subdepartment_id);
+            })
             ->pluck('id')
             ->toArray();
 

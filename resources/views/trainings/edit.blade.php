@@ -77,16 +77,45 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>Sub Department</label>
-                                        <select name="subdepartment_id" class="form-control"
-                                            {{ $training->annual_parent_id ? 'disabled' : '' }}>
-                                            <option value="">Select Sub Department</option>
-                                            @foreach ($subdepartments ?? [] as $sub)
-                                                <option value="{{ $sub->id }}"
-                                                    {{ $training->subdepartment_id == $sub->id ? 'selected' : '' }}>
-                                                    {{ $sub->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
+                                        @php
+                                            $selectedSubdepartments = old('subdepartment_id', $training->subdepartment_id ?? []);
+                                            if (!is_array($selectedSubdepartments)) {
+                                                $selectedSubdepartments = filled($selectedSubdepartments)
+                                                    ? [$selectedSubdepartments]
+                                                    : [];
+                                            }
+                                        @endphp
+
+                                        @if ($training->annual_parent_id || (is_array($training->subdepartment_id) && count($training->subdepartment_id) > 1))
+                                            <div class="border rounded p-2"
+                                                style="max-height: 240px; overflow-y: auto; background: #f8fafc; border-color: #cbd5e1 !important;">
+                                                <div class="text-muted small mb-2">Select one or more sub departments</div>
+                                                @foreach ($subdepartments ?? [] as $sub)
+                                                    <div class="form-check">
+                                                        <label class="form-check-label d-block position-relative pl-4 mb-2"
+                                                            style="color: #0f172a;">
+                                                            <input class="subdepartment-checkbox" type="checkbox"
+                                                                name="subdepartment_id[]" id="edit_subdept_{{ $sub->id }}"
+                                                                value="{{ $sub->id }}"
+                                                                {{ in_array((string) $sub->id, array_map('strval', $selectedSubdepartments)) ? 'checked' : '' }}>
+                                                            <i class="input-helper"></i>
+                                                            {{ $sub->name }}
+                                                        </label>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <select name="subdepartment_id" class="form-control"
+                                                {{ $training->annual_parent_id ? 'disabled' : '' }}>
+                                                <option value="">Select Sub Department</option>
+                                                @foreach ($subdepartments ?? [] as $sub)
+                                                    <option value="{{ $sub->id }}"
+                                                        {{ in_array((string) $sub->id, array_map('strval', $selectedSubdepartments)) ? 'selected' : '' }}>
+                                                        {{ $sub->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        @endif
                                     </div>
                                 </div>
 

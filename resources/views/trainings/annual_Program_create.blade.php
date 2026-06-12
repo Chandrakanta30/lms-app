@@ -75,12 +75,33 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>Sub Department</label>
-                                        <select name="subdepartment_id" class="form-control" required>
-                                            <option value="">Select Sub Department</option>
-                                            @foreach ($subdepartments ?? [] as $sub)
-                                                <option value="{{ $sub->id }}">{{ $sub->name }}</option>
-                                            @endforeach
-                                        </select>
+                                        @php
+                                            $selectedSubdepartments = old('subdepartment_id', []);
+                                            if (!is_array($selectedSubdepartments)) {
+                                                $selectedSubdepartments = filled($selectedSubdepartments)
+                                                    ? [$selectedSubdepartments]
+                                                    : [];
+                                            }
+                                        @endphp
+                                        <div class="border rounded p-2"
+                                            style="max-height: 240px; overflow-y: auto; background: #f8fafc; border-color: #cbd5e1 !important;">
+                                            <div class="text-muted small mb-2">Select one or more sub departments</div>
+                                            @forelse ($subdepartments ?? [] as $sub)
+                                                <div class="form-check">
+                                                    <label class="form-check-label d-block position-relative pl-4 mb-2"
+                                                        style="color: #0f172a;">
+                                                        <input class="subdepartment-checkbox" type="checkbox"
+                                                            name="subdepartment_id[]" id="subdept_{{ $sub->id }}"
+                                                            value="{{ $sub->id }}"
+                                                            {{ in_array((string) $sub->id, array_map('strval', $selectedSubdepartments)) ? 'checked' : '' }}>
+                                                        <i class="input-helper"></i>
+                                                        {{ $sub->name }}
+                                                    </label>
+                                                </div>
+                                            @empty
+                                                <div class="text-muted small">No sub departments found.</div>
+                                            @endforelse
+                                        </div>
                                     </div>
                                 </div>
 
@@ -157,9 +178,21 @@
                 <div class="input-group-append">
                     <button type="button" class="btn btn-danger" onclick="this.parentElement.parentElement.remove()">x</button>
                 </div>
-            `;
+                `;
                 wrapper.appendChild(div);
             }
+
+            function updateSubdepartmentLabel() {
+                return;
+            }
+
+            document.addEventListener('change', function(event) {
+                if (event.target.classList.contains('subdepartment-checkbox')) {
+                    updateSubdepartmentLabel();
+                }
+            });
+
+            document.addEventListener('DOMContentLoaded', updateSubdepartmentLabel);
         </script>
     @endpush
 @endsection

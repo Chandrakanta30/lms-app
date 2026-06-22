@@ -15,6 +15,9 @@ class TrainingModule extends Model
     public const STATUSES = ['created', 'inreview', 'reviewed', 'approved'];
 
     protected $guarded = [];
+    protected $casts = [
+        'subdepartment_id' => 'array',
+    ];
     // Get the Main Training (Parent)
     public function parent()
     {

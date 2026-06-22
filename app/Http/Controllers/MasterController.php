@@ -8,6 +8,7 @@ use App\Models\SubDepartment;
 use App\Models\Venue;
 use App\Models\Section;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Traits\MasterCheck;
 
 class MasterController extends Controller
@@ -138,10 +139,18 @@ class MasterController extends Controller
     {
         $mapping = [
             'master_documents' => 'subdepartment_id',
-            'training_modules' => 'subdepartment_id',
         ];
 
         if ($this->isMasterUsed($subdept->id, $mapping)) {
+            return back()->with('error', 'Subdepartment is already in use');
+        }
+
+        $isUsedByTrainingModule = DB::table('training_modules')
+            ->whereNotNull('subdepartment_id')
+            ->whereJsonContains('subdepartment_id', $subdept->id)
+            ->exists();
+
+        if ($isUsedByTrainingModule) {
             return back()->with('error', 'Subdepartment is already in use');
         }
 

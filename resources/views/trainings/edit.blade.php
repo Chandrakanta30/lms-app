@@ -77,16 +77,47 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>Sub Department</label>
-                                        <select name="subdepartment_id" class="form-control"
-                                            {{ $training->annual_parent_id ? 'disabled' : '' }}>
-                                            <option value="">Select Sub Department</option>
-                                            @foreach ($subdepartments ?? [] as $sub)
-                                                <option value="{{ $sub->id }}"
-                                                    {{ $training->subdepartment_id == $sub->id ? 'selected' : '' }}>
-                                                    {{ $sub->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
+                                        @php
+                                            $selectedSubdepartments = old('subdepartment_id', $training->subdepartment_id ?? []);
+                                            if (!is_array($selectedSubdepartments)) {
+                                                $selectedSubdepartments = filled($selectedSubdepartments)
+                                                    ? [$selectedSubdepartments]
+                                                    : [];
+                                            }
+                                        @endphp
+                                        <div class="subdept-dropdown-wrapper" style="position:relative;">
+                                            <div id="subdept-toggle" onclick="toggleSubdeptDropdown()"
+                                                style="min-height:48px; border-radius:14px; border:1px solid rgba(148,163,184,0.22); background:rgba(255,255,255,0.88); padding:8px 14px; cursor:pointer; display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+                                                <span id="subdept-placeholder"
+                                                    style="color:#94a3b8; font-size:0.9rem;">Select sub departments</span>
+                                            </div>
+                                            <div id="subdept-dropdown"
+                                                style="display:none; position:absolute; z-index:999; width:100%; top:calc(100% + 4px); background:#fff; border:1px solid rgba(148,163,184,0.3); border-radius:14px; box-shadow:0 8px 24px rgba(15,23,42,0.1); overflow:hidden;">
+                                                <div style="padding:10px;">
+                                                    <input type="text" id="subdept-search" oninput="filterSubdepts()"
+                                                        placeholder="Search..."
+                                                        style="width:100%; border-radius:10px; border:1px solid rgba(148,163,184,0.3); padding:6px 12px; font-size:0.85rem;">
+                                                </div>
+                                                <div style="max-height:200px; overflow-y:auto; padding:0 6px 8px;">
+                                                    @forelse ($subdepartments ?? [] as $sub)
+                                                        <label id="subdept-item-{{ $sub->id }}"
+                                                            style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:500; color:#0f172a; margin:0;"
+                                                            onmouseover="this.style.background='rgba(37,99,235,0.07)'"
+                                                            onmouseout="this.style.background='transparent'">
+                                                            <input class="subdepartment-checkbox" type="checkbox"
+                                                                name="subdepartment_id[]" value="{{ $sub->id }}"
+                                                                onchange="updateSubdeptTags()"
+                                                                {{ in_array((string) $sub->id, array_map('strval', $selectedSubdepartments)) ? 'checked' : '' }}
+                                                                {{ $training->annual_parent_id ? 'disabled' : '' }}
+                                                                style="width:16px; height:16px; cursor:pointer; accent-color:#2563eb;">
+                                                            {{ $sub->name }}
+                                                        </label>
+                                                    @empty
+                                                        <div class="text-muted small p-2">No sub departments found.</div>
+                                                    @endforelse
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -261,6 +292,55 @@
             $(document).on('click', '.removeRow', function() {
                 $(this).closest('tr').remove();
             });
+
+            function toggleSubdeptDropdown() {
+                const dropdown = document.getElementById('subdept-dropdown');
+                if (!dropdown) {
+                    return;
+                }
+
+                dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            }
+
+            function filterSubdepts() {
+                const search = document.getElementById('subdept-search');
+                if (!search) {
+                    return;
+                }
+
+                const query = search.value.toLowerCase();
+                document.querySelectorAll('[id^="subdept-item-"]').forEach((item) => {
+                    item.style.display = item.innerText.toLowerCase().includes(query) ? 'flex' : 'none';
+                });
+            }
+
+            function updateSubdeptTags() {
+                const toggle = document.getElementById('subdept-toggle');
+                const placeholder = document.getElementById('subdept-placeholder');
+                const checked = document.querySelectorAll('.subdepartment-checkbox:checked');
+
+                if (!toggle || !placeholder) {
+                    return;
+                }
+
+                toggle.querySelectorAll('.subdept-tag').forEach((tag) => tag.remove());
+
+                if (checked.length === 0) {
+                    placeholder.style.display = 'inline';
+                    return;
+                }
+
+                placeholder.style.display = 'none';
+                checked.forEach((checkbox) => {
+                    const tag = document.createElement('span');
+                    tag.className = 'subdept-tag';
+                    tag.style =
+                        'background:rgba(37,99,235,0.1); color:#2563eb; padding:3px 10px; border-radius:999px; font-size:0.8rem; font-weight:600;';
+                    tag.innerText = checkbox.closest('label').innerText.trim();
+                    toggle.appendChild(tag);
+                });
+            }
+
             document.addEventListener('DOMContentLoaded', function() {
                 const checkbox = document.getElementById('is_annual');
                 const section = document.getElementById('annual_fields_section');
@@ -275,6 +355,17 @@
 
                         // reset values
                         section.querySelectorAll('select').forEach(el => el.value = '');
+                    }
+                });
+
+                updateSubdeptTags();
+
+                document.addEventListener('click', function(e) {
+                    if (!e.target.closest('.subdept-dropdown-wrapper')) {
+                        const dropdown = document.getElementById('subdept-dropdown');
+                        if (dropdown) {
+                            dropdown.style.display = 'none';
+                        }
                     }
                 });
             });

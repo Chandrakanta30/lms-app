@@ -5,7 +5,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="card-title">Training Register Log</h4>
+                    <h4 class="card-title">Staff training Log</h4>
                     <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#logSessionModal"
                         data-bs-toggle="modal" data-bs-target="#logSessionModal">
                         + Add New Entry
@@ -56,7 +56,7 @@
                                 <th>Date</th>
                                 <th>Name of the Trainee</th>
                                 <th>Topic</th>
-                                <th>Session Brief</th>
+                                <th>Type of Training </th>
                                 <th>Duration</th>
                                 <th>Name of the Trainer</th>
                                 <th>Signature of the Trainer</th>

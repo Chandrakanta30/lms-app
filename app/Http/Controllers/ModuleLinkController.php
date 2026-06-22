@@ -14,7 +14,8 @@ class ModuleLinkController extends Controller
         $module = TrainingModule::with('documents')->findOrFail($moduleId);
 
         $isAnnual = (string) $module->is_anuual === '1';
-        $hasDeptAndSubdept = !empty($module->department_id) && !empty($module->subdepartment_id);
+        $subdepartmentIds = array_values(array_filter($module->subdepartment_id ?? []));
+        $hasDeptAndSubdept = !empty($module->department_id) && !empty($subdepartmentIds);
 
 
         $allDocsQuery = MasterDocument::withCount('questions');
@@ -24,7 +25,7 @@ class ModuleLinkController extends Controller
             if ($hasDeptAndSubdept) {
                 $allDocsQuery = MasterDocument::withCount('questions')
                     ->where('department_id', $module->department_id)
-                    ->where('subdepartment_id', $module->subdepartment_id);
+                    ->whereIn('subdepartment_id', $subdepartmentIds);
             }
         }
 

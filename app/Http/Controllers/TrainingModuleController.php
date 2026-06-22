@@ -235,7 +235,8 @@ class TrainingModuleController extends Controller
             'frequency' => 'nullable|in:monthly,quarterly,half_yearly,yearly',
 
             'department_id' => 'nullable|integer',
-            'subdepartment_id' => 'nullable|integer',
+            'subdepartment_id' => 'nullable',
+            'subdepartment_id.*' => 'integer|exists:sub_departments,id',
 
             'step_names' => 'nullable|array',
             'step_names.*' => 'nullable|string|max:255',
@@ -245,6 +246,8 @@ class TrainingModuleController extends Controller
             'docs.*.file' => 'nullable|file|mimes:pdf,ppt,pptx,doc,docx|max:10240',
         ]);
 
+
+        $subdepartmentIds = $this->normalizeSubdepartmentIds($request->input('subdepartment_id'));
 
         $parent = TrainingModule::create([
             'name' => $request->name,
@@ -262,7 +265,7 @@ class TrainingModuleController extends Controller
             'frequency' => $request->frequency,
 
             'department_id' => $request->department_id,
-            'subdepartment_id' => $request->subdepartment_id,
+            'subdepartment_id' => $subdepartmentIds ?: null,
 
             'created_by' => auth()->id(),
             'updated_by' => auth()->id(),
@@ -415,7 +418,9 @@ class TrainingModuleController extends Controller
             ->where('name', 'Development Quality Assurance')
             ->exists();
 
-        if (!$isDqaTraining && (empty($training->department_id) || empty($training->subdepartment_id))) {
+        $trainingSubdepartmentIds = $this->normalizeSubdepartmentIds($training->subdepartment_id);
+
+        if (!$isDqaTraining && (empty($training->department_id) || empty($trainingSubdepartmentIds))) {
             return;
         }
 
@@ -423,7 +428,7 @@ class TrainingModuleController extends Controller
             ->where('is_trainer', 0)
             ->when(!$isDqaTraining, function ($query) use ($training) {
                 $query->where('department_id', $training->department_id)
-                    ->where('subdepartment_id', $training->subdepartment_id);
+                    ->whereIn('subdepartment_id', $this->normalizeSubdepartmentIds($training->subdepartment_id));
             })
             ->pluck('id')
             ->toArray();
@@ -491,7 +496,8 @@ class TrainingModuleController extends Controller
             'is_annual' => 'nullable',
             'frequency' => 'nullable|in:monthly,quarterly,half_yearly,yearly',
             'department_id' => 'nullable|integer',
-            'subdepartment_id' => 'nullable|integer',
+            'subdepartment_id' => 'nullable',
+            'subdepartment_id.*' => 'integer|exists:sub_departments,id',
             'step_names' => 'nullable|array',
             'step_names.*' => 'nullable|string|max:255',
             'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
@@ -526,7 +532,7 @@ class TrainingModuleController extends Controller
             $updateData['is_anuual'] = $request->input('is_annual') == '1' ? '1' : '0';
             $updateData['frequency'] = $request->frequency;
             $updateData['department_id'] = $request->department_id;
-            $updateData['subdepartment_id'] = $request->subdepartment_id;
+            $updateData['subdepartment_id'] = $this->normalizeSubdepartmentIds($request->input('subdepartment_id')) ?: null;
         }
 
         $training->update($updateData);
@@ -618,6 +624,15 @@ class TrainingModuleController extends Controller
         }
 
         return redirect()->route('trainings.index')->with('success', 'Training updated successfully.');
+    }
+
+    private function normalizeSubdepartmentIds(mixed $value): array
+    {
+        if (is_array($value)) {
+            return array_values(array_filter(array_map('intval', $value)));
+        }
+
+        return filled($value) ? [(int) $value] : [];
     }
 
     public function destroy(TrainingModule $training)

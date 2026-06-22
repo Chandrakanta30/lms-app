@@ -126,7 +126,6 @@ class UserController extends Controller
         }
         $userData['is_trainer'] = $request->has('is_trainer') ? 1 : 0;
         $user = User::create($userData);
-        $this->autoEnrollUserInMatchingTrainings($user);
         // $user = User::create([
         //     'name' => $request->name,
         //     'email' => $request->email,
@@ -134,6 +133,7 @@ class UserController extends Controller
         // ]);
 
         $user->assignRole($request->roles);
+        $this->autoEnrollUserInMatchingTrainings($user);
         return redirect()->route('users.index')->with('success', 'User created successfully.');
     }
 
@@ -186,10 +186,10 @@ class UserController extends Controller
         $userData['is_trainer'] = $request->has('is_trainer') ? 1 : 0;
         // 3. Update the User Model (CRITICAL: This was missing)
         $user->update($userData);
-        $this->autoEnrollUserInMatchingTrainings($user);
 
         // 4. Sync Spatie Roles
         $user->syncRoles($request->roles);
+        $this->autoEnrollUserInMatchingTrainings($user);
 
         return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }
@@ -203,18 +203,19 @@ class UserController extends Controller
 
     private function autoEnrollUserInMatchingTrainings(User $user): void
     {
-        if ((int) $user->is_trainer === 1) {
+        if ((int) $user->is_trainer === 1 || !$user->hasRole('Trainee')) {
             return;
         }
 
         $dqaDepartmentId = Department::where('name', 'Development Quality Assurance')->value('id');
 
         $matchingTrainings = TrainingModule::query()
+            ->where('is_anuual', '1')
             ->where(function ($query) use ($user, $dqaDepartmentId) {
                 if (!empty($user->department_id) && !empty($user->subdepartment_id)) {
                     $query->where(function ($normalQuery) use ($user) {
                         $normalQuery->where('department_id', $user->department_id)
-                            ->where('subdepartment_id', $user->subdepartment_id);
+                            ->whereJsonContains('subdepartment_id', (int) $user->subdepartment_id);
                     });
                 }
 

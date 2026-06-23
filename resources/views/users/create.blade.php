@@ -149,19 +149,18 @@
                         </div>
                     </div>
 
-                        <div class="col-md-6 d-flex align-items-end">
-                            <div class="form-group w-100 mb-md-4">
-                                <div class="form-check form-check-flat form-check-primary p-3 rounded"
-                                    style="background: rgba(37, 99, 235, 0.05); border: 1px solid rgba(37, 99, 235, 0.08);">
-                                    <label class="form-check-label">
-                                        <input type="checkbox" name="is_trainer" value="1" class="form-check-input"
+                        <div class="col-md-6 d-flex align-items-center mt-3">
+                            <div class="card bg-label-primary border-0 w-100 shadow-none">
+                                <div class="card-body p-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="is_trainer" value="1" id="is_trainer" class="form-check-input"
                                             {{ isset($user) && $user->is_trainer ? 'checked' : '' }}>
-                                        Authorize as a Trainer
-                                        <i class="input-helper"></i>
-                                    </label>
-                                    <div class="mt-2">
-                                        <small class="text-muted">If checked, this user will appear in the interacted person
-                                            list during training logs.</small>
+                                        <label class="form-check-label fw-semibold text-primary" for="is_trainer">
+                                            Authorize as a Trainer
+                                        </label>
+                                    </div>
+                                    <div class="mt-1 ps-4">
+                                        <small class="text-muted d-block">If checked, this user will appear in the trainer assignments and session log lists.</small>
                                     </div>
                                 </div>
                             </div>
@@ -178,3 +177,14 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        $(document).ready(function() {
+            $('.js-example-basic-multiple').select2({
+                placeholder: "Select job roles",
+                allowClear: true
+            });
+        });
+    </script>
+@endpush

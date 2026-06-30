@@ -14,8 +14,9 @@
                             </div>
                             <div class="mt-3 mt-lg-0 text-lg-right">
                                 <div class="small text-muted">Required reading time</div>
-                                <div class="h4 mb-0 text-primary" id="readingTimer">
-                                    {{ gmdate('i:s', $remainingSeconds) }}
+                                <div class="h4 mb-0 text-primary" id="readingTimer"
+                                    data-remaining-seconds="{{ (int) $remainingSeconds }}">
+                                    {{ $remainingSeconds > 3600 ? gmdate('H:i:s', $remainingSeconds) : gmdate('i:s', $remainingSeconds) }}
                                 </div>
                             </div>
                         </div>
@@ -120,14 +121,29 @@
                 var remainingSeconds = {{ (int) $remainingSeconds }};
                 var timerEl = document.getElementById('readingTimer');
                 var completeButton = document.getElementById('completeReadingBtn');
+                var endAt = Date.now() + (remainingSeconds * 1000);
 
                 function formatTime(totalSeconds) {
-                    var minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-                    var seconds = (totalSeconds % 60).toString().padStart(2, '0');
-                    return minutes + ':' + seconds;
+                    var hours = Math.floor(totalSeconds / 3600);
+                    var minutes = Math.floor((totalSeconds % 3600) / 60);
+                    var seconds = totalSeconds % 60;
+
+                    if (hours > 0) {
+                        return [
+                            hours.toString().padStart(2, '0'),
+                            minutes.toString().padStart(2, '0'),
+                            seconds.toString().padStart(2, '0')
+                        ].join(':');
+                    }
+
+                    return [
+                        minutes.toString().padStart(2, '0'),
+                        seconds.toString().padStart(2, '0')
+                    ].join(':');
                 }
 
                 function tick() {
+                    remainingSeconds = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
                     timerEl.textContent = formatTime(remainingSeconds);
 
                     if (remainingSeconds <= 0) {
@@ -135,7 +151,6 @@
                         return;
                     }
 
-                    remainingSeconds -= 1;
                     setTimeout(tick, 1000);
                 }
 

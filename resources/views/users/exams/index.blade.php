@@ -112,7 +112,10 @@
                                     Reading completed. Assessment unlocked.
                                 @else
                                     Reading required:
-                                    {{ gmdate('i:s', (int) ($readTracker->required_seconds ?? 60)) }}
+                                    @php
+                                        $requiredSeconds = (int) ($readTracker->required_seconds ?? 60);
+                                    @endphp
+                                    {{ $requiredSeconds > 3600 ? gmdate('H:i:s', $requiredSeconds) : gmdate('i:s', $requiredSeconds) }}
                                 @endif
 
                             </div>

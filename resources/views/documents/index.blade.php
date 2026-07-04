@@ -154,18 +154,46 @@
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label class="form-label">Sub Department</label>
-
-                                    <select name="subdepartment_id" class="form-control" required>
-
-                                        <option value="">Select Subdepartment</option>
-
-                                        @foreach ($subdepartments as $subdept)
-                                            <option value="{{ $subdept->id }}">
-                                                {{ $subdept->name }}
-                                            </option>
-                                        @endforeach
-
-                                    </select>
+                                    @php
+                                        $selectedSubdepartments = old('subdepartment_id', []);
+                                        if (!is_array($selectedSubdepartments)) {
+                                            $selectedSubdepartments = filled($selectedSubdepartments)
+                                                ? [$selectedSubdepartments]
+                                                : [];
+                                        }
+                                    @endphp
+                                    <div class="subdept-dropdown-wrapper" style="position:relative;">
+                                        <div id="subdept-toggle" onclick="toggleDropdown('subdept-dropdown')"
+                                            style="min-height:48px; border-radius:14px; border:1px solid rgba(148,163,184,0.22); background:rgba(255,255,255,0.88); padding:8px 14px; cursor:pointer; display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+                                            <span id="subdept-placeholder"
+                                                style="color:#94a3b8; font-size:0.9rem;">Select sub departments</span>
+                                        </div>
+                                        <div id="subdept-dropdown"
+                                            style="display:none; position:absolute; z-index:999; width:100%; top:calc(100% + 4px); background:#fff; border:1px solid rgba(148,163,184,0.3); border-radius:14px; box-shadow:0 8px 24px rgba(15,23,42,0.1); overflow:hidden;">
+                                            <div style="padding:10px;">
+                                                <input type="text" id="subdept-search" oninput="filterOptions('subdept')"
+                                                    placeholder="Search..."
+                                                    style="width:100%; border-radius:10px; border:1px solid rgba(148,163,184,0.3); padding:6px 12px; font-size:0.85rem;">
+                                            </div>
+                                            <div style="max-height:200px; overflow-y:auto; padding:0 6px 8px;">
+                                                @forelse ($subdepartments ?? [] as $subdept)
+                                                    <label id="subdept-item-{{ $subdept->id }}"
+                                                        style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:500; color:#0f172a; margin:0;"
+                                                        onmouseover="this.style.background='rgba(37,99,235,0.07)'"
+                                                        onmouseout="this.style.background='transparent'">
+                                                        <input class="subdept-checkbox" type="checkbox"
+                                                            name="subdepartment_id[]" value="{{ $subdept->id }}"
+                                                            onchange="updateDropdownTags('subdept')"
+                                                            {{ in_array((string) $subdept->id, array_map('strval', $selectedSubdepartments)) ? 'checked' : '' }}
+                                                            style="width:16px; height:16px; cursor:pointer; accent-color:#2563eb;">
+                                                        {{ $subdept->name }}
+                                                    </label>
+                                                @empty
+                                                    <div class="text-muted small p-2">No sub departments found.</div>
+                                                @endforelse
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -176,18 +204,46 @@
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label class="form-label">Section</label>
-
-                                    <select name="section_id" class="form-control" required>
-
-                                        <option value="">Select Section</option>
-
-                                        @foreach ($sections as $section)
-                                            <option value="{{ $section->sec_id }}">
-                                                {{ $section->name }}
-                                            </option>
-                                        @endforeach
-
-                                    </select>
+                                    @php
+                                        $selectedSections = old('section_id', []);
+                                        if (!is_array($selectedSections)) {
+                                            $selectedSections = filled($selectedSections)
+                                                ? [$selectedSections]
+                                                : [];
+                                        }
+                                    @endphp
+                                    <div class="section-dropdown-wrapper" style="position:relative;">
+                                        <div id="section-toggle" onclick="toggleDropdown('section-dropdown')"
+                                            style="min-height:48px; border-radius:14px; border:1px solid rgba(148,163,184,0.22); background:rgba(255,255,255,0.88); padding:8px 14px; cursor:pointer; display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+                                            <span id="section-placeholder"
+                                                style="color:#94a3b8; font-size:0.9rem;">Select sections</span>
+                                        </div>
+                                        <div id="section-dropdown"
+                                            style="display:none; position:absolute; z-index:999; width:100%; top:calc(100% + 4px); background:#fff; border:1px solid rgba(148,163,184,0.3); border-radius:14px; box-shadow:0 8px 24px rgba(15,23,42,0.1); overflow:hidden;">
+                                            <div style="padding:10px;">
+                                                <input type="text" id="section-search" oninput="filterOptions('section')"
+                                                    placeholder="Search..."
+                                                    style="width:100%; border-radius:10px; border:1px solid rgba(148,163,184,0.3); padding:6px 12px; font-size:0.85rem;">
+                                            </div>
+                                            <div style="max-height:200px; overflow-y:auto; padding:0 6px 8px;">
+                                                @forelse ($sections ?? [] as $section)
+                                                    <label id="section-item-{{ $section->sec_id }}"
+                                                        style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:500; color:#0f172a; margin:0;"
+                                                        onmouseover="this.style.background='rgba(37,99,235,0.07)'"
+                                                        onmouseout="this.style.background='transparent'">
+                                                        <input class="section-checkbox" type="checkbox"
+                                                            name="section_id[]" value="{{ $section->sec_id }}"
+                                                            onchange="updateDropdownTags('section')"
+                                                            {{ in_array((string) $section->sec_id, array_map('strval', $selectedSections)) ? 'checked' : '' }}
+                                                            style="width:16px; height:16px; cursor:pointer; accent-color:#2563eb;">
+                                                        {{ $section->name }}
+                                                    </label>
+                                                @empty
+                                                    <div class="text-muted small p-2">No sections found.</div>
+                                                @endforelse
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -290,5 +346,73 @@
                 }, 700);
             });
         })();
+
+        function toggleDropdown(dropdownId) {
+            var dropdown = document.getElementById(dropdownId);
+            if (!dropdown) {
+                return;
+            }
+
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function filterOptions(prefix) {
+            var input = document.getElementById(prefix + '-search');
+            var query = (input ? input.value : '').toLowerCase();
+
+            document.querySelectorAll('[id^="' + prefix + '-item-"]').forEach(function(el) {
+                el.style.display = el.innerText.toLowerCase().includes(query) ? 'flex' : 'none';
+            });
+        }
+
+        function updateDropdownTags(prefix) {
+            var toggle = document.getElementById(prefix + '-toggle');
+            var placeholder = document.getElementById(prefix + '-placeholder');
+            var checked = document.querySelectorAll('.' + prefix + '-checkbox:checked');
+
+            if (!toggle || !placeholder) {
+                return;
+            }
+
+            toggle.querySelectorAll('.' + prefix + '-tag').forEach(function(tag) {
+                tag.remove();
+            });
+
+            if (checked.length === 0) {
+                placeholder.style.display = 'inline';
+                return;
+            }
+
+            placeholder.style.display = 'none';
+            checked.forEach(function(cb) {
+                var tag = document.createElement('span');
+                tag.className = prefix + '-tag';
+                tag.style =
+                    'background:rgba(37,99,235,0.1); color:#2563eb; padding:3px 10px; border-radius:999px; font-size:0.8rem; font-weight:600;';
+                tag.innerText = cb.closest('label').innerText.trim();
+                toggle.appendChild(tag);
+            });
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.subdept-dropdown-wrapper')) {
+                var subdeptDropdown = document.getElementById('subdept-dropdown');
+                if (subdeptDropdown) {
+                    subdeptDropdown.style.display = 'none';
+                }
+            }
+
+            if (!e.target.closest('.section-dropdown-wrapper')) {
+                var sectionDropdown = document.getElementById('section-dropdown');
+                if (sectionDropdown) {
+                    sectionDropdown.style.display = 'none';
+                }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDropdownTags('subdept');
+            updateDropdownTags('section');
+        });
     </script>
 @endsection

@@ -9,28 +9,28 @@
         </div>
     </div>
 
-    <div class="row">
+    <div class="row g-4">
         @forelse($modules as $module)
         @php
             $attendanceUrl = route('attendance', $module->id);
         @endphp
-        <div class="col-md-6 grid-margin stretch-card">
-            <div class="card shadow-sm border-0">
-                <div class="card-body position-relative">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h4 class="card-title text-primary mb-2">
-                            <a href="{{ $attendanceUrl }}" class="text-primary stretched-link">{{ $module->name }}</a>
-                        </h4>
-                        <label class="badge badge-warning text-white">Assigned</label>
+        <div class="col-md-6 d-flex">
+            <div class="card shadow-sm border-0 h-100 w-100">
+                <div class="card-body position-relative d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title text-primary mb-0">
+                            <a href="{{ $attendanceUrl }}" class="text-primary stretched-link fw-semibold">{{ $module->name }}</a>
+                        </h5>
+                        <span class="badge bg-label-warning text-warning">Assigned</span>
                     </div>
 
-                    <p class="small text-muted mb-4">
-                        <i class="mdi mdi-account-group-outline"></i> View trainee attendance and module details.
+                    <p class="small text-muted mb-4 flex-grow-1">
+                        <i class="icon-base ti tabler-users me-1"></i> View trainee attendance and module details.
                     </p>
 
                     <div class="mt-auto">
-                        <a href="{{ $attendanceUrl }}" class="btn btn-primary btn-block">
-                            <i class="mdi mdi-clipboard-text-outline"></i> Mark Attendance
+                        <a href="{{ $attendanceUrl }}" class="btn btn-primary w-100">
+                            <i class="icon-base ti tabler-clipboard-check me-1"></i> Mark Attendance
                         </a>
                     </div>
                 </div>

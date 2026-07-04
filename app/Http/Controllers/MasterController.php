@@ -39,7 +39,7 @@ class MasterController extends Controller
     public function destroyDepartment(Department $department)
     {
         $mapping = [
-            ' master_documents' => 'department_id',
+            'master_documents' => 'department_id',
 
         ];
 

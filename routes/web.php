@@ -16,6 +16,8 @@ use App\Http\Controllers\MasterDocumentController;
 use App\Http\Controllers\MasterQuestionController;
 use App\Http\Controllers\ModuleLinkController;
 use App\Http\Controllers\AuditLogController; // auditlog ADDED
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HelpController;
 use Illuminate\Support\Facades\Artisan;
 
 
@@ -44,13 +46,10 @@ Route::any('logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::group(['middleware' => ['auth']], function () {
 
-    Route::get('/', function () {
-        return view('home');
-    })->name('dashboard');
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index']);
 
-    Route::get('/dashboard', function () {
-        return view('home');
-    })->name('dashboard');
+    Route::get('/help', [HelpController::class, 'index'])->name('help.index');
 
     Route::resource('users', UserController::class);
     Route::resource('roles', RoleController::class);

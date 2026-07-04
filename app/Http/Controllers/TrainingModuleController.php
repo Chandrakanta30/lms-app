@@ -27,7 +27,11 @@ class TrainingModuleController extends Controller
             'trainers.designation',
             'trainees.designation',
             'documents'
-        ])->whereNull('parent_id');
+        ])->whereNull('parent_id')
+            ->where(function ($query) {
+                $query->whereNull('is_anuual')
+                    ->orWhere('is_anuual', '0');
+            });
 
         if (request()->route()->getName() === 'created-training-setup') {
             $query = $query->where('is_active', 1);

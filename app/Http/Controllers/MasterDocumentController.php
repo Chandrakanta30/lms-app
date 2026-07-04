@@ -58,12 +58,16 @@ class MasterDocumentController extends Controller
             'doc_number' => 'required|unique:master_documents',
             'file' => 'required|mimes:pdf,doc,docx,ppt,pptx|max:10000',
             'department_id' => 'required',
-            'subdepartment_id' => 'required',
-            'section_id' => 'required',
+            'subdepartment_id' => 'required|array|min:1',
+            'subdepartment_id.*' => 'integer|exists:sub_departments,id',
+            'section_id' => 'required|array|min:1',
+            'section_id.*' => 'integer|exists:sections,sec_id',
             'read_time' => 'nullable|string|max:50',
         ]);
 
         $path = $request->file('file')->store('master_docs', 'public');
+        $subdepartmentId = $this->normalizeSelection($request->input('subdepartment_id'));
+        $sectionId = $this->normalizeSelection($request->input('section_id'));
 
         MasterDocument::create([
             'doc_name' => $request->doc_name,
@@ -74,8 +78,8 @@ class MasterDocumentController extends Controller
             //  added this line to track who uploaded the document
             'uploaded_by' => auth()->id(),
             'department_id' => $request->department_id,
-            'subdepartment_id' => $request->subdepartment_id,
-            'section_id' => $request->section_id,
+            'subdepartment_id' => $subdepartmentId,
+            'section_id' => $sectionId,
             'read_time' => $request->filled('read_time') ? trim($request->read_time) : null,
         ]);
 
@@ -125,5 +129,16 @@ class MasterDocumentController extends Controller
         }
 
         return response()->file($path, $headers);
+    }
+
+    private function normalizeSelection($value)
+    {
+        if (is_array($value)) {
+            $value = array_values(array_filter($value, fn ($item) => filled($item)));
+
+            return $value[0] ?? null;
+        }
+
+        return filled($value) ? $value : null;
     }
 }

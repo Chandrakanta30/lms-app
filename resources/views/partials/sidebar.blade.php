@@ -55,6 +55,13 @@
       </a>
     </li>
 
+    <li class="menu-item {{ request()->routeIs('help.index') ? 'active' : '' }}" data-nav-item="true" data-nav-text="Help User Guide How To">
+      <a href="{{ route('help.index') }}" class="menu-link">
+        <i class="menu-icon icon-base ti tabler-help-circle"></i>
+        <div>Help / User Guide</div>
+      </a>
+    </li>
+
     {{-- PEOPLE SECTION --}}
     @canany(['user-create', 'user-list', 'trainer-list'])
       <li class="menu-header small text-uppercase" data-nav-item="true" data-nav-text="People Users Trainers">

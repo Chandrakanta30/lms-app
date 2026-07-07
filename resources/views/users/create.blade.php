@@ -15,6 +15,17 @@
                     <a href="{{ route('users.index') }}" class="btn btn-light">Back to users</a>
                 </div>
 
+                @if ($errors->any())
+                    <div class="alert alert-danger">
+                        <strong>Please fix the following issues:</strong>
+                        <ul class="mb-0 mt-2">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 <form action="{{ isset($user) ? route('users.update', $user->id) : route('users.store') }}" method="POST">
                     @csrf
                     @if (isset($user))
@@ -27,6 +38,9 @@
                                 <label>Full Name</label>
                                 <input type="text" name="name" class="form-control"
                                     value="{{ old('name', $user->name ?? '') }}" required>
+                                @error('name')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                         </div>
 
@@ -35,6 +49,9 @@
                                 <label>Employee ID</label>
                                 <input type="text" name="corporate_id" class="form-control"
                                     value="{{ old('corporate_id', $user->corporate_id ?? '') }}" required>
+                                @error('corporate_id')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                         </div>
 
@@ -44,6 +61,9 @@
                                 <label>Internal ID</label>
                                 <input type="text" name="internal_id" class="form-control"
                                     value="{{ old('internal_id', $user->internal_id ?? '') }}">
+                                @error('internal_id')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                         </div>
 
@@ -55,7 +75,7 @@
 
 
 
-                   <div class="col-md-12">
+                        <div class="col-md-12">
                         <div class="form-group">
                             <label>Job Role</label>
                             <select name="roles[]" class="form-control js-example-basic-multiple" multiple>
@@ -66,6 +86,12 @@
                                 </option>
                             @endforeach
                             </select>
+                            @error('roles')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                            @error('roles.*')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
                         </div>
                     </div>
 
@@ -73,12 +99,18 @@
                         <div class="form-group">
                             <label>Password {{ isset($user) ? '(Leave blank to keep current)' : '' }}</label>
                             <input type="password" name="password" class="form-control" {{ isset($user) ? '' : 'required' }}>
+                            @error('password')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
                         </div>
 
                         @if(!isset($user))
                             <div class="form-group">
                                 <label>Confirm Password</label>
                                 <input type="password" name="password_confirmation" class="form-control" required>
+                                @error('password_confirmation')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                         @endif
                     </div>
@@ -95,6 +127,9 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                @error('department_id')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                         </div>
 
@@ -110,6 +145,9 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                @error('subdepartment_id')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                         </div>
 
@@ -125,6 +163,9 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                @error('designation_id')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                         </div>
 
@@ -133,6 +174,9 @@
                                 <label>Years of Experience</label>
                                 <input type="number" name="experience_years" class="form-control"
                                     value="{{ old('experience_years', $user->experience_years ?? 0) }}">
+                                @error('experience_years')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                         </div>
 
@@ -146,6 +190,9 @@
                                 value="{{ old('qualification', $user->qualification ?? '') }}"
                                 placeholder="e.g. M.Sc. Chemistry"
                             >
+                            @error('qualification')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
                         </div>
                     </div>
 

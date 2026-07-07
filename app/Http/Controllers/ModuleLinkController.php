@@ -25,13 +25,17 @@ class ModuleLinkController extends Controller
             if ($hasDeptAndSubdept) {
                 $allDocsQuery = MasterDocument::withCount('questions')
                     ->where('department_id', $module->department_id)
-                    ->whereIn('subdepartment_id', $subdepartmentIds);
+                    ->whereIn('subdepartment_id', $subdepartmentIds)
+                    ->whereNotNull('reviewed_at');
             }
         }
 
 
         if ($isAnnual && $hasDeptAndSubdept) {
-            $matchingDocs = (clone $allDocsQuery)->get();
+            $matchingDocs = (clone $allDocsQuery)
+                ->whereNotNull('reviewed_at')
+                ->whereHas('questions')
+                ->get();
 
             $syncData = [];
             foreach ($matchingDocs as $doc) {

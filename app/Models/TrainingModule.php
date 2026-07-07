@@ -42,11 +42,26 @@ class TrainingModule extends Model
             ->withTimestamps();
     }
 
+    public function examDocuments()
+    {
+        return $this->documents()
+            ->whereNotNull('master_documents.reviewed_at');
+    }
+
     public function requiredReadingSeconds(): int
     {
         $this->loadMissing('documents');
 
         return max(60, $this->documents->sum(function ($document) {
+            return (int) ($document->read_time_seconds ?? 60);
+        }));
+    }
+
+    public function examRequiredReadingSeconds(): int
+    {
+        $this->loadMissing('examDocuments');
+
+        return max(60, $this->examDocuments->sum(function ($document) {
             return (int) ($document->read_time_seconds ?? 60);
         }));
     }

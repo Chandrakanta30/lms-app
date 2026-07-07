@@ -14,7 +14,7 @@ class UserExamController extends Controller
         // Get only "Self Training" modules and include the user's latest attempt
         $today = now()->format('Y-m-d');
 
-        $modules = TrainingModule::with(['documents', 'latestResult' => function($q) {
+        $modules = TrainingModule::with(['examDocuments', 'latestResult' => function($q) {
             // Specify the table name here to avoid ambiguity
             $q->where('exam_results.user_id', auth()->id()); 
         }])
@@ -32,7 +32,7 @@ class UserExamController extends Controller
             ->keyBy('training_module_id');
 
         $modules->each(function ($module) use ($trackerMap) {
-            $requiredSeconds = $module->requiredReadingSeconds();
+            $requiredSeconds = $module->examRequiredReadingSeconds();
             $tracker = $trackerMap->get($module->id);
 
             if (!$tracker) {

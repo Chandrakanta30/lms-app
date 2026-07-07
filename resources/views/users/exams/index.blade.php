@@ -57,7 +57,7 @@
 
             @foreach ($modules as $module)
                 @php
-                    $totalQuestions = $module->documents->sum(
+                    $totalQuestions = $module->examDocuments->sum(
                         fn($document) => (int) ($document->pivot->question_quota ?? 0),
                     );
 
@@ -127,7 +127,7 @@
 
                             <ul class="list-unstyled mb-4">
 
-                                @foreach ($module->documents as $doc)
+                                @forelse ($module->examDocuments as $doc)
                                     @php
                                         $extension = strtolower(pathinfo($doc->file_path, PATHINFO_EXTENSION));
                                     @endphp
@@ -160,7 +160,9 @@
                                         </a>
 
                                     </li>
-                                @endforeach
+                                @empty
+                                    <li class="text-muted small">No reviewed documents are currently enabled.</li>
+                                @endforelse
 
                             </ul>
 

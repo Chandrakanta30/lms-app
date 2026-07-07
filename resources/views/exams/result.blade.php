@@ -25,12 +25,10 @@
                     <hr>
 
                     <div class="mt-4">
-                        @if($result->is_passed)
-                            <a href="{{ route('exams.details', $result->id) }}" class="btn btn-outline-primary px-4 mr-2">View Details</a>
-                            <a href="{{ route('trainings.index') }}" class="btn btn-primary px-5">Back to Dashboard</a>
-                        @else
-                            <!-- <a href="{{ route('exams.take', $result->training_module_id) }}" class="btn btn-warning px-5">Retry Exam</a> -->
-                            <a href="{{ route('exams.details', $result->id) }}" class="btn btn-outline-primary px-4">View Details</a>
+                        <a href="{{ route('exams.details', $result->id) }}" class="btn btn-outline-primary px-4 mr-2">View Details</a>
+                        <a href="{{ route('dashboard') }}" class="btn btn-primary px-5">Back to Dashboard</a>
+
+                        @if(!$result->is_passed)
                             <p class="mt-3 text-muted small">Tip: Re-read the SOP before retrying.</p>
                         @endif
                     </div>

@@ -31,7 +31,7 @@
                         </div>
 
                         <div class="row">
-                            @foreach ($module->documents as $document)
+                        @forelse ($module->examDocuments as $document)
                                 <div class="col-md-6 mb-4">
                                     <div class="border rounded p-3 h-100 bg-light">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
@@ -63,7 +63,13 @@
                                         </div>
                                     </div>
                                 </div>
-                            @endforeach
+                            @empty
+                                <div class="col-12">
+                                    <div class="alert alert-warning mb-0">
+                                        No reviewed documents are enabled for this assessment yet.
+                                    </div>
+                                </div>
+                            @endforelse
                         </div>
 
                         <form action="{{ route('exams.read.complete', $module->id) }}" method="POST" class="mt-3">

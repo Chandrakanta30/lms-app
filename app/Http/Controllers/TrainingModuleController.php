@@ -1088,6 +1088,7 @@ class TrainingModuleController extends Controller
                     'training_date' => $payload['training_date'],
                     'trainee_id' => $payload['trainee_id'],
                     'trainer_id' => $payload['trainer_id'],
+                    'topic' => $payload['topic'],
                 ],
                 $payload
             );

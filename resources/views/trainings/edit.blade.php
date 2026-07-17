@@ -43,18 +43,6 @@
                                 </select>
                             </div>
 
-                            @if (!$training->annual_parent_id)
-                                <div class="form-group mt-3">
-                                    <div class="form-check">
-                                        <input type="checkbox" name="is_annual" value="1" id="is_annual"
-                                            {{ $training->is_anuual ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="is_annual">
-                                            Annual Training Program
-                                        </label>
-                                    </div>
-                                </div>
-                            @endif
-
                             <div id="annual_fields_section"
                                 class="row {{ $training->annual_parent_id ? '' : ($training->is_anuual ? '' : 'd-none') }}">
 

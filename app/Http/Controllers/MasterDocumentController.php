@@ -53,35 +53,49 @@ class MasterDocumentController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'doc_name' => 'required',
-            'doc_number' => 'required|unique:master_documents',
-            'file' => 'required|mimes:pdf,doc,docx,ppt,pptx|max:10000',
-            'department_id' => 'required',
-            'subdepartment_id' => 'required|array|min:1',
-            'subdepartment_id.*' => 'integer|exists:sub_departments,id',
-            'section_id' => 'required|array|min:1',
-            'section_id.*' => 'integer|exists:sections,sec_id',
-            'read_time' => 'nullable|string|max:50',
-        ]);
+        try {
+            $request->validate([
+                'doc_name' => 'required',
+                'doc_number' => 'required|unique:master_documents',
+                'file' => 'required|mimes:pdf,doc,docx,ppt,pptx|max:10000',
+                'department_id' => 'required',
+                'subdepartment_id' => 'required|array|min:1',
+                'subdepartment_id.*' => 'integer|exists:sub_departments,id',
+                'section_id' => 'required|array|min:1',
+                'section_id.*' => 'integer|exists:sections,sec_id',
+                'read_time' => 'nullable|string|max:50',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withInput()->with('error', implode(' ', $e->validator->errors()->all()));
+        }
 
-        $path = $request->file('file')->store('master_docs', 'public');
+        try {
+            $path = $request->file('file')->store('master_docs', 'public');
+        } catch (\Throwable $e) {
+            return back()->withInput()->with('error', 'Failed to upload the file: ' . $e->getMessage());
+        }
+
         $subdepartmentId = $this->normalizeSelection($request->input('subdepartment_id'));
         $sectionId = $this->normalizeSelection($request->input('section_id'));
 
-        MasterDocument::create([
-            'doc_name' => $request->doc_name,
-            'doc_number' => $request->doc_number,
-            'version' => $request->version ?? '1.0',
-            'doc_type' => $request->doc_type,
-            'file_path' => $path,
-            //  added this line to track who uploaded the document
-            'uploaded_by' => auth()->id(),
-            'department_id' => $request->department_id,
-            'subdepartment_id' => $subdepartmentId,
-            'section_id' => $sectionId,
-            'read_time' => $request->filled('read_time') ? trim($request->read_time) : null,
-        ]);
+        try {
+            MasterDocument::create([
+                'doc_name' => $request->doc_name,
+                'doc_number' => $request->doc_number,
+                'version' => $request->version ?? '1.0',
+                'doc_type' => $request->doc_type,
+                'file_path' => $path,
+                //  added this line to track who uploaded the document
+                'uploaded_by' => auth()->id(),
+                'department_id' => $request->department_id,
+                'subdepartment_id' => $subdepartmentId,
+                'section_id' => $sectionId,
+                'read_time' => $request->filled('read_time') ? trim($request->read_time) : null,
+            ]);
+        } catch (\Throwable $e) {
+            Storage::disk('public')->delete($path);
+            return back()->withInput()->with('error', 'Failed to save the document: ' . $e->getMessage());
+        }
 
         return back()->with('success', 'Master Document added to Global Pool.');
     }

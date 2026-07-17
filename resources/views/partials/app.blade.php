@@ -467,7 +467,7 @@
             @if (session('error'))
                 Swal.fire({
                     icon: 'error',
-                    title: 'Cannot Delete',
+                    title: 'Error',
                     text: '{!! addslashes(session('error')) !!}'
                 });
             @endif

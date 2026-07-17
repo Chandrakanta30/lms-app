@@ -469,19 +469,28 @@ class TrainingModuleController extends Controller
     public function edit(TrainingModule $training)
     {
         $training->load(['steps', 'documents']);
-        $statusOptions = TrainingModule::STATUSES;
-        $statusOptions = array_diff($statusOptions, ['approved', 'reviewed']);
         $departments = Department::all();
         $subdepartments = SubDepartment::all();
         $user = auth()->user();
+        $isAdmin = $user->hasRole(['Admin', 'Super Admin', 'admin', 'super admin', 'super-admin']);
 
-        // Add back based on role
-        if ($user->hasRole('Reviewer')) {
-            $statusOptions[] = 'reviewed';
-        }
+        if ($isAdmin) {
+            $statusOptions = TrainingModule::STATUSES;
+        } else {
+            $statusOptions = array_diff(TrainingModule::STATUSES, ['approved', 'reviewed']);
 
-        if ($user->hasRole('Approver')) {
-            $statusOptions[] = 'approved';
+            // Add back based on role
+            if ($user->hasRole('Reviewer')) {
+                $statusOptions[] = 'reviewed';
+            }
+
+            if ($user->hasRole('Approver')) {
+                $statusOptions[] = 'approved';
+            }
+
+            if (!in_array($training->status, $statusOptions, true)) {
+                $statusOptions[] = $training->status;
+            }
         }
 
         return view('trainings.edit', compact('training', 'statusOptions', 'departments', 'subdepartments'));
@@ -533,7 +542,6 @@ class TrainingModuleController extends Controller
         ];
 
         if (!$training->annual_parent_id) {
-            $updateData['is_anuual'] = $request->input('is_annual') == '1' ? '1' : '0';
             $updateData['frequency'] = $request->frequency;
             $updateData['department_id'] = $request->department_id;
             $updateData['subdepartment_id'] = $this->normalizeSubdepartmentIds($request->input('subdepartment_id')) ?: null;

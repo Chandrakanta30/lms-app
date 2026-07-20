@@ -8,6 +8,7 @@
                         <h4 class="card-title">Define Training Program</h4>
                         <form action="{{ route('trainings.store') }}" method="POST" enctype="multipart/form-data">
                             @csrf
+                            <input type="hidden" name="form_token" value="{{ $formToken }}">
                             <div class="row">
                                 <div class="col-md-8">
                                     <div class="form-group">

@@ -10,8 +10,10 @@ use App\Models\ExamResult;
 use App\Models\TrainingModule;
 use App\Models\Notification;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules;
 
 class UserController extends Controller
@@ -197,8 +199,18 @@ class UserController extends Controller
     // 6. DELETE USER
     public function destroy(User $user)
     {
-        $user->delete();
-        return redirect()->route('users.index')->with('success', 'User deleted.');
+        try {
+            DB::transaction(function () use ($user) {
+                $user->delete();
+            });
+
+            return redirect()->route('users.index')->with('success', 'User deleted.');
+        } catch (QueryException $e) {
+            return redirect()->route('users.index')->with(
+                'error',
+                'This user cannot be deleted because other training records still reference them. Please remove or reassign those records first.'
+            );
+        }
     }
 
     private function autoEnrollUserInMatchingTrainings(User $user): void

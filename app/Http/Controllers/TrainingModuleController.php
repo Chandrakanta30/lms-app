@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Spatie\Activitylog\Models\Activity;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class TrainingModuleController extends Controller
 {
@@ -130,8 +131,10 @@ class TrainingModuleController extends Controller
         $statusOptions = TrainingModule::STATUSES;
         $departments = Department::all();
         $subdepartments = SubDepartment::all();
+        $formTokenKey = 'training_form_token_classic';
+        $formToken = $this->getTrainingFormToken($formTokenKey);
 
-        return view('trainings.create', compact('statusOptions', 'departments', 'subdepartments'));
+        return view('trainings.create', compact('statusOptions', 'departments', 'subdepartments', 'formToken', 'formTokenKey'));
     }
 
     public function createAnnual()
@@ -139,8 +142,10 @@ class TrainingModuleController extends Controller
         $statusOptions = TrainingModule::STATUSES;
         $departments = Department::all();
         $subdepartments = SubDepartment::all();
+        $formTokenKey = 'training_form_token_annual';
+        $formToken = $this->getTrainingFormToken($formTokenKey);
 
-        return view('trainings.annual_Program_create', compact('statusOptions', 'departments', 'subdepartments'));
+        return view('trainings.annual_Program_create', compact('statusOptions', 'departments', 'subdepartments', 'formToken', 'formTokenKey'));
     }
 
     // public function store(Request $request)
@@ -226,6 +231,18 @@ class TrainingModuleController extends Controller
 
     public function store(Request $request)
     {
+        $formTokenKey = $request->input('is_annual') == '1'
+            ? 'training_form_token_annual'
+            : 'training_form_token_classic';
+        $sessionToken = session($formTokenKey);
+        $submittedToken = $request->input('form_token');
+
+        if (empty($submittedToken) || empty($sessionToken) || !hash_equals((string) $sessionToken, (string) $submittedToken)) {
+            return redirect()->back()->with('error', 'This training form was already submitted. Please open the page again and try once more.');
+        }
+
+        session()->forget($formTokenKey);
+
         $request->validate([
             'name' => 'required|string|max:255',
             'training_type' => 'required|in:classroom,self_training',
@@ -414,6 +431,15 @@ class TrainingModuleController extends Controller
 
         return redirect()->route('trainings.index')
             ->with('success', 'Training program created successfully.');
+    }
+
+    private function getTrainingFormToken(string $formTokenKey): string
+    {
+        if (!session()->has($formTokenKey)) {
+            session([$formTokenKey => (string) Str::uuid()]);
+        }
+
+        return (string) session($formTokenKey);
     }
 
     private function autoEnrollMatchingUsersToTraining(TrainingModule $training): void
@@ -676,7 +702,13 @@ class TrainingModuleController extends Controller
 
         $allVenues = Venue::orderBy('name', 'asc')->get();
 
-        return view('trainings.assign_trainers', compact('module', 'allUsers', 'allVenues'));
+        $backUrl = $this->resolveTrainingBackUrl(
+            'trainings.manage_trainers_back_url',
+            route('manage-trainers', $id),
+            route('trainings.index')
+        );
+
+        return view('trainings.assign_trainers', compact('module', 'allUsers', 'allVenues', 'backUrl'));
     }
 
     public function manageUsers($id)
@@ -684,7 +716,13 @@ class TrainingModuleController extends Controller
         $module = TrainingModule::with('trainees')->findOrFail($id);
         $allUsers = User::orderBy('name', 'asc')->get();
 
-        return view('trainings.assign_users', compact('module', 'allUsers'));
+        $backUrl = $this->resolveTrainingBackUrl(
+            'trainings.manage_users_back_url',
+            route('manage-users', $id),
+            route('trainings.index')
+        );
+
+        return view('trainings.assign_users', compact('module', 'allUsers', 'backUrl'));
     }
 
     public function saveTrainers(Request $request, $id)
@@ -794,6 +832,24 @@ class TrainingModuleController extends Controller
             ->update(['is_read' => true]);
 
         return response()->json(['success' => true, 'message' => 'Training accepted successfully.']);
+    }
+
+    private function resolveTrainingBackUrl(string $sessionKey, string $currentUrl, string $fallbackUrl): string
+    {
+        $previousUrl = url()->previous();
+        $storedBackUrl = session($sessionKey);
+
+        if (!empty($storedBackUrl) && $storedBackUrl !== $currentUrl) {
+            return $storedBackUrl;
+        }
+
+        if (!empty($previousUrl) && $previousUrl !== $currentUrl) {
+            session([$sessionKey => $previousUrl]);
+
+            return $previousUrl;
+        }
+
+        return $fallbackUrl;
     }
 
     public function saveUsers(Request $request, $id)

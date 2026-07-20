@@ -6,7 +6,6 @@
             <div class="card shadow">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">Manage Trainers: {{ $module->name }}</h4>
-                    <a href="{{ $backUrl ?? route('trainings.index') }}" class="btn btn-sm btn-light">Back to List</a>
                 </div>
                 <div class="card-body">
                     @php

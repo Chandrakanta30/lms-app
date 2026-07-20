@@ -86,16 +86,17 @@ class ModuleLinkController extends Controller
     private function resolveModuleBackUrl(string $sessionKey, string $currentUrl, string $fallbackUrl): string
     {
         $previousUrl = url()->previous();
-        $storedBackUrl = session($sessionKey);
-
-        if (!empty($storedBackUrl) && $storedBackUrl !== $currentUrl) {
-            return $storedBackUrl;
-        }
 
         if (!empty($previousUrl) && $previousUrl !== $currentUrl) {
             session([$sessionKey => $previousUrl]);
 
             return $previousUrl;
+        }
+
+        $storedBackUrl = session($sessionKey);
+
+        if (!empty($storedBackUrl) && $storedBackUrl !== $currentUrl) {
+            return $storedBackUrl;
         }
 
         return $fallbackUrl;

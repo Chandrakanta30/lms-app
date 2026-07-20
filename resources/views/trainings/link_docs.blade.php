@@ -4,7 +4,6 @@
 <div class="content-wrapper">
     <div class="page-header">
         <h3 class="page-title">Configure Exam: {{ $module->name }}</h3>
-        <a href="{{ $backUrl ?? route('trainings.index') }}" class="btn btn-light btn-sm">Back to List</a>
     </div>
 
     <div class="row">

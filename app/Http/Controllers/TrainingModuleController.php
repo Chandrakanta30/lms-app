@@ -18,6 +18,8 @@ use Illuminate\Http\UploadedFile;
 use Spatie\Activitylog\Models\Activity;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class TrainingModuleController extends Controller
 {
@@ -42,7 +44,7 @@ class TrainingModuleController extends Controller
         return $allowed;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $query = TrainingModule::with([
             'steps',
@@ -66,14 +68,18 @@ class TrainingModuleController extends Controller
             $query->whereIn('status', $statusFilter);
         }
 
-        $trainings = $query->latest('id')->get();
+        if ($request->filled('search')) {
+            $query->where('name', 'LIKE', '%' . $request->search . '%');
+        }
+
+        $trainings = $query->latest('id')->paginate(10)->withQueryString();
 
         $statusOptions = TrainingModule::STATUSES;
 
         return view('trainings.index', compact('trainings', 'statusOptions'));
     }
 
-    public function annualTrainingIndex()
+    public function annualTrainingIndex(Request $request)
     {
         $query = TrainingModule::withCount('steps')
             ->where('is_anuual', '1')
@@ -87,12 +93,16 @@ class TrainingModuleController extends Controller
             $query->whereIn('status', $statusFilter);
         }
 
-        $trainings = $query->latest('id')->get();
+        if ($request->filled('search')) {
+            $query->where('name', 'LIKE', '%' . $request->search . '%');
+        }
+
+        $trainings = $query->latest('id')->paginate(10)->withQueryString();
 
         return view('trainings.annual_training', compact('trainings'));
     }
 
-    public function createdAnnualTrainingIndex()
+    public function createdAnnualTrainingIndex(Request $request)
     {
         $query = TrainingModule::with([
             'steps',
@@ -109,7 +119,11 @@ class TrainingModuleController extends Controller
             $query->whereIn('status', $statusFilter);
         }
 
-        $trainings = $query->latest('id')->get();
+        if ($request->filled('search')) {
+            $query->where('name', 'LIKE', '%' . $request->search . '%');
+        }
+
+        $trainings = $query->latest('id')->paginate(10)->withQueryString();
 
         $statusOptions = TrainingModule::STATUSES;
 
@@ -140,8 +154,9 @@ class TrainingModuleController extends Controller
         $trainings = $query->latest('id')->get();
 
         $statusOptions = TrainingModule::STATUSES;
+        $backUrl = route('annual-training');
 
-        return view('trainings.annual_training', compact('trainings', 'statusOptions', 'parentPlan'));
+        return view('trainings.annual_training', compact('trainings', 'statusOptions', 'parentPlan', 'backUrl'));
     }
 
     public function createdAnnualTrainingPrograms($parentId)
@@ -168,8 +183,9 @@ class TrainingModuleController extends Controller
         $trainings = $query->latest('id')->get();
 
         $statusOptions = TrainingModule::STATUSES;
+        $backUrl = route('created-annual-training');
 
-        return view('trainings.annual_training', compact('trainings', 'statusOptions', 'parentPlan'));
+        return view('trainings.annual_training', compact('trainings', 'statusOptions', 'parentPlan', 'backUrl'));
     }
 
     public function create()
@@ -289,33 +305,63 @@ class TrainingModuleController extends Controller
 
         session()->forget($formTokenKey);
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'training_type' => 'required|in:classroom,self_training',
-            'status' => 'required|in:' . implode(',', TrainingModule::STATUSES),
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'start_time' => 'nullable',
-            'end_time' => 'nullable',
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'training_type' => 'required|in:classroom,self_training',
+                'status' => 'required|in:' . implode(',', TrainingModule::STATUSES),
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date',
+                'start_time' => 'nullable',
+                'end_time' => 'nullable',
 
-            'is_annual' => 'nullable',
-            'frequency' => 'nullable|in:monthly,quarterly,half_yearly,yearly',
+                'is_annual' => 'nullable',
+                'frequency' => 'nullable|in:monthly,quarterly,half_yearly,yearly',
 
-            'department_id' => 'nullable|integer',
-            'subdepartment_id' => 'nullable',
-            'subdepartment_id.*' => 'integer|exists:sub_departments,id',
+                'department_id' => 'nullable|integer',
+                'subdepartment_id' => 'nullable',
+                'subdepartment_id.*' => 'integer|exists:sub_departments,id',
 
-            'step_names' => 'nullable|array',
-            'step_names.*' => 'nullable|string|max:255',
+                'step_names' => 'nullable|array',
+                'step_names.*' => 'nullable|string|max:255',
 
-            'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
-            'docs.*.name' => 'required_if:training_type,self_training',
-            'docs.*.file' => 'nullable|file|mimes:pdf,ppt,pptx,doc,docx|max:10240',
-        ]);
+                'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
+                'docs.*.name' => 'required_if:training_type,self_training',
+                'docs.*.file' => 'nullable|file|mimes:pdf,ppt,pptx,doc,docx|max:10240',
+            ]);
+        } catch (ValidationException $e) {
+            return back()->withInput()->with('error', implode(' ', $e->validator->errors()->all()));
+        }
 
+        if ($request->status !== 'created') {
+            return back()->withInput()->with('error', 'A new training program must be created with status "Created". It can only move to In Review, Reviewed, or Approved after documents, trainers, and trainees have been added.');
+        }
 
         $subdepartmentIds = $this->normalizeSubdepartmentIds($request->input('subdepartment_id'));
 
+        try {
+            $parent = DB::transaction(function () use ($request, $subdepartmentIds) {
+                return $this->createTrainingProgram($request, $subdepartmentIds);
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            $label = $request->input('is_annual') == '1' ? 'annual training program' : 'training program';
+
+            return back()->withInput()->with('error', "Failed to create the {$label}: " . $e->getMessage());
+        }
+
+        if ($request->input('is_annual') == '1') {
+            return redirect()->route('annual-training')
+                ->with('success', 'Annual training program created successfully.');
+        }
+
+        return redirect()->route('trainings.index')
+            ->with('success', 'Training program created successfully.');
+    }
+
+    private function createTrainingProgram(Request $request, array $subdepartmentIds): TrainingModule
+    {
         $parent = TrainingModule::create([
             'name' => $request->name,
             'training_type' => $request->training_type,
@@ -467,16 +513,7 @@ class TrainingModuleController extends Controller
             ])
             ->log('created');
 
-        // return redirect()
-        //     ->route('trainings.index')
-        //     ->with('success', 'Training program created successfully.');
-        if ($request->input('is_annual') == '1') {
-            return redirect()->route('annual-training')
-                ->with('success', 'Annual training program created successfully.');
-        }
-
-        return redirect()->route('trainings.index')
-            ->with('success', 'Training program created successfully.');
+        return $parent;
     }
 
     private function getTrainingFormToken(string $formTokenKey): string
@@ -909,16 +946,17 @@ class TrainingModuleController extends Controller
     private function resolveTrainingBackUrl(string $sessionKey, string $currentUrl, string $fallbackUrl): string
     {
         $previousUrl = url()->previous();
-        $storedBackUrl = session($sessionKey);
-
-        if (!empty($storedBackUrl) && $storedBackUrl !== $currentUrl) {
-            return $storedBackUrl;
-        }
 
         if (!empty($previousUrl) && $previousUrl !== $currentUrl) {
             session([$sessionKey => $previousUrl]);
 
             return $previousUrl;
+        }
+
+        $storedBackUrl = session($sessionKey);
+
+        if (!empty($storedBackUrl) && $storedBackUrl !== $currentUrl) {
+            return $storedBackUrl;
         }
 
         return $fallbackUrl;
@@ -1139,7 +1177,13 @@ class TrainingModuleController extends Controller
             $attendanceSignedAt = $latestSignedAttendance->pivot->attendance_marked_at;
         }
 
-        return view('trainings.attendace_sheet', compact('users', 'module', 'attendanceSignerName', 'attendanceSignedAt'));
+        $backUrl = $this->resolveTrainingBackUrl(
+            'trainings.attendance_sheet_back_url',
+            route('attendance', $id),
+            route('training-list')
+        );
+
+        return view('trainings.attendace_sheet', compact('users', 'module', 'attendanceSignerName', 'attendanceSignedAt', 'backUrl'));
     }
 
 

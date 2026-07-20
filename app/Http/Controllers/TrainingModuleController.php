@@ -21,6 +21,27 @@ use Illuminate\Support\Str;
 
 class TrainingModuleController extends Controller
 {
+    private function statusFilterForRole($user): array
+    {
+        $isAdmin = $user->hasRole(['Admin', 'Super Admin', 'admin', 'super admin', 'super-admin']);
+
+        if ($isAdmin) {
+            return [];
+        }
+
+        $allowed = [];
+
+        if ($user->hasRole('Reviewer')) {
+            $allowed[] = 'inreview';
+        }
+
+        if ($user->hasRole('Approver')) {
+            $allowed[] = 'reviewed';
+        }
+
+        return $allowed;
+    }
+
     public function index()
     {
         $query = TrainingModule::with([
@@ -40,6 +61,11 @@ class TrainingModuleController extends Controller
             $query = $query->where('is_active', 0);
         }
 
+        $statusFilter = $this->statusFilterForRole(auth()->user());
+        if (!empty($statusFilter)) {
+            $query->whereIn('status', $statusFilter);
+        }
+
         $trainings = $query->latest('id')->get();
 
         $statusOptions = TrainingModule::STATUSES;
@@ -49,21 +75,26 @@ class TrainingModuleController extends Controller
 
     public function annualTrainingIndex()
     {
-        $trainings = TrainingModule::withCount('steps')
+        $query = TrainingModule::withCount('steps')
             ->where('is_anuual', '1')
             ->where('is_active', 0)
             ->where(function ($q) {
                 $q->whereNull('annual_parent_id')->orWhere('annual_parent_id', 0);
-            })
-            ->latest('id')
-            ->get();
+            });
+
+        $statusFilter = $this->statusFilterForRole(auth()->user());
+        if (!empty($statusFilter)) {
+            $query->whereIn('status', $statusFilter);
+        }
+
+        $trainings = $query->latest('id')->get();
 
         return view('trainings.annual_training', compact('trainings'));
     }
 
     public function createdAnnualTrainingIndex()
     {
-        $trainings = TrainingModule::with([
+        $query = TrainingModule::with([
             'steps',
             'trainers.designation',
             'trainees.designation',
@@ -71,9 +102,14 @@ class TrainingModuleController extends Controller
         ])
             ->where('is_anuual', '1')
             ->where('is_active', 1)
-            ->whereNotNull('annual_parent_id')
-            ->latest('id')
-            ->get();
+            ->whereNotNull('annual_parent_id');
+
+        $statusFilter = $this->statusFilterForRole(auth()->user());
+        if (!empty($statusFilter)) {
+            $query->whereIn('status', $statusFilter);
+        }
+
+        $trainings = $query->latest('id')->get();
 
         $statusOptions = TrainingModule::STATUSES;
 
@@ -87,16 +123,21 @@ class TrainingModuleController extends Controller
             ->where('is_active', 0)
             ->firstOrFail();
 
-        $trainings = TrainingModule::with([
+        $query = TrainingModule::with([
             'steps',
             'trainers.designation',
             'trainees.designation',
             'documents'
         ])->where('annual_parent_id', $parentPlan->id)
             ->where('is_anuual', '1')
-            ->where('is_active', 0)
-            ->latest('id')
-            ->get();
+            ->where('is_active', 0);
+
+        $statusFilter = $this->statusFilterForRole(auth()->user());
+        if (!empty($statusFilter)) {
+            $query->whereIn('status', $statusFilter);
+        }
+
+        $trainings = $query->latest('id')->get();
 
         $statusOptions = TrainingModule::STATUSES;
 
@@ -110,16 +151,21 @@ class TrainingModuleController extends Controller
             ->where('is_active', 1)
             ->firstOrFail();
 
-        $trainings = TrainingModule::with([
+        $query = TrainingModule::with([
             'steps',
             'trainers.designation',
             'trainees.designation',
             'documents'
         ])->where('annual_parent_id', $parentPlan->id)
             ->where('is_anuual', '1')
-            ->where('is_active', 1)
-            ->latest('id')
-            ->get();
+            ->where('is_active', 1);
+
+        $statusFilter = $this->statusFilterForRole(auth()->user());
+        if (!empty($statusFilter)) {
+            $query->whereIn('status', $statusFilter);
+        }
+
+        $trainings = $query->latest('id')->get();
 
         $statusOptions = TrainingModule::STATUSES;
 
@@ -541,6 +587,32 @@ class TrainingModuleController extends Controller
             'step_names.*' => 'nullable|string|max:255',
             'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
         ]);
+
+        if ($training->status === 'created' && $request->status !== 'created') {
+            $missing = [];
+
+            $hasDocuments = $training->training_type === 'self_training'
+                ? TrainingDocument::where('training_id', $training->id)->exists()
+                : $training->documents()->exists();
+
+            if (!$hasDocuments) {
+                $missing[] = 'at least one document must be added';
+            }
+
+            if ($training->training_type !== 'self_training' && !$training->trainers()->exists()) {
+                $missing[] = 'at least one trainer must be added';
+            }
+
+            if (!$training->trainees()->exists()) {
+                $missing[] = 'at least one trainee must be added';
+            }
+
+            if (!empty($missing)) {
+                return back()
+                    ->withInput()
+                    ->with('error', 'Cannot change status from Created: ' . ucfirst(implode(', ', $missing)) . '.');
+            }
+        }
 
         $oldData = $training->only([
             'name',
@@ -1049,7 +1121,6 @@ class TrainingModuleController extends Controller
         }
 
         $users = $module->trainees()
-            ->where('users.is_trainer', 0)
             ->with(['department', 'designation'])
             ->orderBy('users.name')
             ->paginate(20)
@@ -1093,13 +1164,6 @@ class TrainingModuleController extends Controller
         ) {
             abort(403, 'Unauthorized access to this module attendance sheet.');
         }
-
-        $users = $module->trainees()
-            ->where('users.is_trainer', 0)
-            ->with(['department', 'designation'])
-            ->orderBy('users.name')
-            ->paginate(20)
-            ->withQueryString();
 
         $validated = $request->validate([
             'listed_user_ids' => 'required|array|min:1',

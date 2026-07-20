@@ -65,7 +65,7 @@
                         <tbody>
                             @forelse($sessions as $index => $session)
                                 <tr>
-                                    <td>{{ $index + 1 }}</td>
+                                    <td>{{ $sessions->firstItem() + $index }}</td>
                                     <td>{{ \Carbon\Carbon::parse($session->training_date)->format('d-m-Y') }}</td>
                                     <td class="text-left">{{ $session->trainee->name }}</td>
                                     <td class="text-left">{{ $session->topic }}</td>
@@ -106,7 +106,7 @@
                                                 </small>
                                             </div>
                                         @else
-                                            @if (auth()->id() == $session->trainer_id || auth()->user()->is_admin)
+                                            @if (auth()->id() == $session->trainer_id || auth()->user()->hasRole(['Admin', 'Super Admin', 'admin', 'super admin', 'super-admin']))
                                                 <form action="{{ route('sessions.approve', $session->id) }}"
                                                     method="POST">
                                                     @csrf

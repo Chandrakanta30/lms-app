@@ -74,7 +74,6 @@
                                 <th>Department</th>
                                 <th>Designation</th>
                                 <th>Job Description</th>
-                                <th>Created</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -92,22 +91,19 @@
                                     <td>{{ $user->department->name ?? 'N/A' }}</td>
                                     <td>{{ $user->designation->name ?? 'N/A' }}</td>
                                     <td>{{ $user->job_description ?? 'N/A' }}</td>
+                                    <td class="text-nowrap">
+                                        <a href="{{ route('users.show', $user->id) }}" class="btn btn-sm btn-info mr-1" title="View" aria-label="View">
+                                            <i class="mdi mdi-eye"></i>
+                                        </a>
 
-                            <td>{{ $user->created_at->format('M d, Y') }}</td>
-                            <td class="text-nowrap">
-                                <a href="{{ route('users.show', $user->id) }}" class="btn btn-sm btn-info mr-1" title="View" aria-label="View">
-                                    <i class="mdi mdi-eye"></i>
-                                </a>
-
-                                <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-dark mr-1" title="Edit" aria-label="Edit">
-                                    <i class="mdi mdi-pencil"></i>
-                                </a>
+                                        <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-dark mr-1" title="Edit" aria-label="Edit">
+                                            <i class="mdi mdi-pencil"></i>
+                                        </a>
 
                                         <a href="{{ route('user.training.card', $user->id) }}"
                                             class="btn btn-sm btn-dark mr-1" title="Show Report" aria-label="Show Report">
                                             <i class="mdi mdi-file-document-outline"></i>
                                         </a>
-
 
                                         <form action="{{ route('users.destroy', $user->id) }}" method="POST"
                                             class="d-inline">

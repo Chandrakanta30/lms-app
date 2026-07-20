@@ -36,6 +36,19 @@
                     </a>
                 </div>
 
+                <form method="GET" action="{{ url()->current() }}" class="row mb-4">
+                    <div class="col-md-4">
+                        <input type="text" name="search" class="form-control" value="{{ request('search') }}"
+                            placeholder="Search by training name...">
+                    </div>
+                    <div class="col-md-auto d-flex" style="gap: 8px;">
+                        <button type="submit" class="btn btn-primary">Search</button>
+                        @if (request()->filled('search'))
+                            <a href="{{ url()->current() }}" class="btn btn-light">Reset</a>
+                        @endif
+                    </div>
+                </form>
+
                 <div class="accordion custom-accordion" id="trainingAccordion">
 
 
@@ -365,6 +378,14 @@
                         <!-- CARD END -->
                     @endforeach
 
+                    @if ($trainings->isEmpty())
+                        <div class="text-muted text-center py-4">No trainings found.</div>
+                    @endif
+
+                </div>
+
+                <div class="mt-3">
+                    {{ $trainings->links('pagination::bootstrap-4') }}
                 </div>
 
             </div>

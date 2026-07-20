@@ -36,17 +36,26 @@
                     </div>
 
                     <div class="d-flex" style="gap: 8px;">
-                        @if ($isChildView)
-                            <a href="{{ $isCreatedRoute ? route('created-annual-training') : route('annual-training') }}"
-                                class="btn btn-light">
-                                <i class="mdi mdi-arrow-left"></i> Back to Annual Plans
-                            </a>
-                        @endif
                         <a href="{{ route('annual-training.create') }}" class="btn btn-primary shadow-sm">
                             <i class="mdi mdi-plus"></i> Add New Annual Program
                         </a>
                     </div>
                 </div>
+
+                @if (!$isChildView)
+                    <form method="GET" action="{{ url()->current() }}" class="row mb-4">
+                        <div class="col-md-4">
+                            <input type="text" name="search" class="form-control" value="{{ request('search') }}"
+                                placeholder="Search by plan name...">
+                        </div>
+                        <div class="col-md-auto d-flex" style="gap: 8px;">
+                            <button type="submit" class="btn btn-primary">Search</button>
+                            @if (request()->filled('search'))
+                                <a href="{{ url()->current() }}" class="btn btn-light">Reset</a>
+                            @endif
+                        </div>
+                    </form>
+                @endif
 
                 @if (!$isChildView && !$isCreatedRoute)
                     <div class="row">
@@ -70,6 +79,9 @@
                                 <div class="text-muted">No annual plans found.</div>
                             </div>
                         @endforelse
+                    </div>
+                    <div class="mt-3">
+                        {{ $trainings->links('pagination::bootstrap-4') }}
                     </div>
                 @else
                     <div class="accordion custom-accordion" id="trainingAccordion">
@@ -253,7 +265,17 @@
                                 </div>
                             </div>
                         @endforeach
+
+                        @if ($trainings->isEmpty())
+                            <div class="text-muted text-center py-4">No trainings found.</div>
+                        @endif
                     </div>
+
+                    @unless ($isChildView)
+                        <div class="mt-3">
+                            {{ $trainings->links('pagination::bootstrap-4') }}
+                        </div>
+                    @endunless
                 @endif
             </div>
         </div>

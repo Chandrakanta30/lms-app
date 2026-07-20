@@ -118,6 +118,17 @@
             text-decoration: none;
         }
 
+        .back-button-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .back-button {
+            gap: 8px;
+        }
+
         /* Map legacy Bootstrap badge classes to Vuexy modern label style badges */
         .badge {
             margin: 2px !important;
@@ -411,6 +422,21 @@
                                 @endif
                             @endforeach
                         @endif
+
+                        <div class="back-button-row">
+                            @if (!empty($backUrl))
+                                <a href="{{ $backUrl }}" class="app-chip back-button">
+                                    <i class="icon-base ti tabler-arrow-left"></i>
+                                    Back
+                                </a>
+                            @else
+                                <a href="javascript:void(0);" onclick="history.back(); return false;"
+                                    class="app-chip back-button">
+                                    <i class="icon-base ti tabler-arrow-left"></i>
+                                    Back
+                                </a>
+                            @endif
+                        </div>
 
                         @yield('content')
                     </div>

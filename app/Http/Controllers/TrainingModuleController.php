@@ -17,10 +17,34 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Spatie\Activitylog\Models\Activity;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class TrainingModuleController extends Controller
 {
-    public function index()
+    private function statusFilterForRole($user): array
+    {
+        $isAdmin = $user->hasRole(['Admin', 'Super Admin', 'admin', 'super admin', 'super-admin']);
+
+        if ($isAdmin) {
+            return [];
+        }
+
+        $allowed = [];
+
+        if ($user->hasRole('Reviewer')) {
+            $allowed[] = 'inreview';
+        }
+
+        if ($user->hasRole('Approver')) {
+            $allowed[] = 'reviewed';
+        }
+
+        return $allowed;
+    }
+
+    public function index(Request $request)
     {
         $query = TrainingModule::with([
             'steps',
@@ -39,30 +63,48 @@ class TrainingModuleController extends Controller
             $query = $query->where('is_active', 0);
         }
 
-        $trainings = $query->latest('id')->get();
+        $statusFilter = $this->statusFilterForRole(auth()->user());
+        if (!empty($statusFilter)) {
+            $query->whereIn('status', $statusFilter);
+        }
+
+        if ($request->filled('search')) {
+            $query->where('name', 'LIKE', '%' . $request->search . '%');
+        }
+
+        $trainings = $query->latest('id')->paginate(10)->withQueryString();
 
         $statusOptions = TrainingModule::STATUSES;
 
         return view('trainings.index', compact('trainings', 'statusOptions'));
     }
 
-    public function annualTrainingIndex()
+    public function annualTrainingIndex(Request $request)
     {
-        $trainings = TrainingModule::withCount('steps')
+        $query = TrainingModule::withCount('steps')
             ->where('is_anuual', '1')
             ->where('is_active', 0)
             ->where(function ($q) {
                 $q->whereNull('annual_parent_id')->orWhere('annual_parent_id', 0);
-            })
-            ->latest('id')
-            ->get();
+            });
+
+        $statusFilter = $this->statusFilterForRole(auth()->user());
+        if (!empty($statusFilter)) {
+            $query->whereIn('status', $statusFilter);
+        }
+
+        if ($request->filled('search')) {
+            $query->where('name', 'LIKE', '%' . $request->search . '%');
+        }
+
+        $trainings = $query->latest('id')->paginate(10)->withQueryString();
 
         return view('trainings.annual_training', compact('trainings'));
     }
 
-    public function createdAnnualTrainingIndex()
+    public function createdAnnualTrainingIndex(Request $request)
     {
-        $trainings = TrainingModule::with([
+        $query = TrainingModule::with([
             'steps',
             'trainers.designation',
             'trainees.designation',
@@ -70,9 +112,18 @@ class TrainingModuleController extends Controller
         ])
             ->where('is_anuual', '1')
             ->where('is_active', 1)
-            ->whereNotNull('annual_parent_id')
-            ->latest('id')
-            ->get();
+            ->whereNotNull('annual_parent_id');
+
+        $statusFilter = $this->statusFilterForRole(auth()->user());
+        if (!empty($statusFilter)) {
+            $query->whereIn('status', $statusFilter);
+        }
+
+        if ($request->filled('search')) {
+            $query->where('name', 'LIKE', '%' . $request->search . '%');
+        }
+
+        $trainings = $query->latest('id')->paginate(10)->withQueryString();
 
         $statusOptions = TrainingModule::STATUSES;
 
@@ -86,20 +137,26 @@ class TrainingModuleController extends Controller
             ->where('is_active', 0)
             ->firstOrFail();
 
-        $trainings = TrainingModule::with([
+        $query = TrainingModule::with([
             'steps',
             'trainers.designation',
             'trainees.designation',
             'documents'
         ])->where('annual_parent_id', $parentPlan->id)
             ->where('is_anuual', '1')
-            ->where('is_active', 0)
-            ->latest('id')
-            ->get();
+            ->where('is_active', 0);
+
+        $statusFilter = $this->statusFilterForRole(auth()->user());
+        if (!empty($statusFilter)) {
+            $query->whereIn('status', $statusFilter);
+        }
+
+        $trainings = $query->latest('id')->get();
 
         $statusOptions = TrainingModule::STATUSES;
+        $backUrl = route('annual-training');
 
-        return view('trainings.annual_training', compact('trainings', 'statusOptions', 'parentPlan'));
+        return view('trainings.annual_training', compact('trainings', 'statusOptions', 'parentPlan', 'backUrl'));
     }
 
     public function createdAnnualTrainingPrograms($parentId)
@@ -109,20 +166,26 @@ class TrainingModuleController extends Controller
             ->where('is_active', 1)
             ->firstOrFail();
 
-        $trainings = TrainingModule::with([
+        $query = TrainingModule::with([
             'steps',
             'trainers.designation',
             'trainees.designation',
             'documents'
         ])->where('annual_parent_id', $parentPlan->id)
             ->where('is_anuual', '1')
-            ->where('is_active', 1)
-            ->latest('id')
-            ->get();
+            ->where('is_active', 1);
+
+        $statusFilter = $this->statusFilterForRole(auth()->user());
+        if (!empty($statusFilter)) {
+            $query->whereIn('status', $statusFilter);
+        }
+
+        $trainings = $query->latest('id')->get();
 
         $statusOptions = TrainingModule::STATUSES;
+        $backUrl = route('created-annual-training');
 
-        return view('trainings.annual_training', compact('trainings', 'statusOptions', 'parentPlan'));
+        return view('trainings.annual_training', compact('trainings', 'statusOptions', 'parentPlan', 'backUrl'));
     }
 
     public function create()
@@ -130,8 +193,10 @@ class TrainingModuleController extends Controller
         $statusOptions = TrainingModule::STATUSES;
         $departments = Department::all();
         $subdepartments = SubDepartment::all();
+        $formTokenKey = 'training_form_token_classic';
+        $formToken = $this->getTrainingFormToken($formTokenKey);
 
-        return view('trainings.create', compact('statusOptions', 'departments', 'subdepartments'));
+        return view('trainings.create', compact('statusOptions', 'departments', 'subdepartments', 'formToken', 'formTokenKey'));
     }
 
     public function createAnnual()
@@ -139,8 +204,10 @@ class TrainingModuleController extends Controller
         $statusOptions = TrainingModule::STATUSES;
         $departments = Department::all();
         $subdepartments = SubDepartment::all();
+        $formTokenKey = 'training_form_token_annual';
+        $formToken = $this->getTrainingFormToken($formTokenKey);
 
-        return view('trainings.annual_Program_create', compact('statusOptions', 'departments', 'subdepartments'));
+        return view('trainings.annual_Program_create', compact('statusOptions', 'departments', 'subdepartments', 'formToken', 'formTokenKey'));
     }
 
     // public function store(Request $request)
@@ -226,33 +293,75 @@ class TrainingModuleController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'training_type' => 'required|in:classroom,self_training',
-            'status' => 'required|in:' . implode(',', TrainingModule::STATUSES),
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'start_time' => 'nullable',
-            'end_time' => 'nullable',
+        $formTokenKey = $request->input('is_annual') == '1'
+            ? 'training_form_token_annual'
+            : 'training_form_token_classic';
+        $sessionToken = session($formTokenKey);
+        $submittedToken = $request->input('form_token');
 
-            'is_annual' => 'nullable',
-            'frequency' => 'nullable|in:monthly,quarterly,half_yearly,yearly',
+        if (empty($submittedToken) || empty($sessionToken) || !hash_equals((string) $sessionToken, (string) $submittedToken)) {
+            return redirect()->back()->with('error', 'This training form was already submitted. Please open the page again and try once more.');
+        }
 
-            'department_id' => 'nullable|integer',
-            'subdepartment_id' => 'nullable',
-            'subdepartment_id.*' => 'integer|exists:sub_departments,id',
+        session()->forget($formTokenKey);
 
-            'step_names' => 'nullable|array',
-            'step_names.*' => 'nullable|string|max:255',
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'training_type' => 'required|in:classroom,self_training',
+                'status' => 'required|in:' . implode(',', TrainingModule::STATUSES),
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date',
+                'start_time' => 'nullable',
+                'end_time' => 'nullable',
 
-            'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
-            'docs.*.name' => 'required_if:training_type,self_training',
-            'docs.*.file' => 'nullable|file|mimes:pdf,ppt,pptx,doc,docx|max:10240',
-        ]);
+                'is_annual' => 'nullable',
+                'frequency' => 'nullable|in:monthly,quarterly,half_yearly,yearly',
 
+                'department_id' => 'nullable|integer',
+                'subdepartment_id' => 'nullable',
+                'subdepartment_id.*' => 'integer|exists:sub_departments,id',
+
+                'step_names' => 'nullable|array',
+                'step_names.*' => 'nullable|string|max:255',
+
+                'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
+                'docs.*.name' => 'required_if:training_type,self_training',
+                'docs.*.file' => 'nullable|file|mimes:pdf,ppt,pptx,doc,docx|max:10240',
+            ]);
+        } catch (ValidationException $e) {
+            return back()->withInput()->with('error', implode(' ', $e->validator->errors()->all()));
+        }
+
+        if ($request->status !== 'created') {
+            return back()->withInput()->with('error', 'A new training program must be created with status "Created". It can only move to In Review, Reviewed, or Approved after documents, trainers, and trainees have been added.');
+        }
 
         $subdepartmentIds = $this->normalizeSubdepartmentIds($request->input('subdepartment_id'));
 
+        try {
+            $parent = DB::transaction(function () use ($request, $subdepartmentIds) {
+                return $this->createTrainingProgram($request, $subdepartmentIds);
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            $label = $request->input('is_annual') == '1' ? 'annual training program' : 'training program';
+
+            return back()->withInput()->with('error', "Failed to create the {$label}: " . $e->getMessage());
+        }
+
+        if ($request->input('is_annual') == '1') {
+            return redirect()->route('annual-training')
+                ->with('success', 'Annual training program created successfully.');
+        }
+
+        return redirect()->route('trainings.index')
+            ->with('success', 'Training program created successfully.');
+    }
+
+    private function createTrainingProgram(Request $request, array $subdepartmentIds): TrainingModule
+    {
         $parent = TrainingModule::create([
             'name' => $request->name,
             'training_type' => $request->training_type,
@@ -404,16 +513,16 @@ class TrainingModuleController extends Controller
             ])
             ->log('created');
 
-        // return redirect()
-        //     ->route('trainings.index')
-        //     ->with('success', 'Training program created successfully.');
-        if ($request->input('is_annual') == '1') {
-            return redirect()->route('annual-training')
-                ->with('success', 'Annual training program created successfully.');
+        return $parent;
+    }
+
+    private function getTrainingFormToken(string $formTokenKey): string
+    {
+        if (!session()->has($formTokenKey)) {
+            session([$formTokenKey => (string) Str::uuid()]);
         }
 
-        return redirect()->route('trainings.index')
-            ->with('success', 'Training program created successfully.');
+        return (string) session($formTokenKey);
     }
 
     private function autoEnrollMatchingUsersToTraining(TrainingModule $training): void
@@ -515,6 +624,32 @@ class TrainingModuleController extends Controller
             'step_names.*' => 'nullable|string|max:255',
             'docs.*.type' => 'required_if:training_type,self_training|in:SOP,Protocol,PPT,Others',
         ]);
+
+        if ($training->status === 'created' && $request->status !== 'created') {
+            $missing = [];
+
+            $hasDocuments = $training->training_type === 'self_training'
+                ? TrainingDocument::where('training_id', $training->id)->exists()
+                : $training->documents()->exists();
+
+            if (!$hasDocuments) {
+                $missing[] = 'at least one document must be added';
+            }
+
+            if ($training->training_type !== 'self_training' && !$training->trainers()->exists()) {
+                $missing[] = 'at least one trainer must be added';
+            }
+
+            if (!$training->trainees()->exists()) {
+                $missing[] = 'at least one trainee must be added';
+            }
+
+            if (!empty($missing)) {
+                return back()
+                    ->withInput()
+                    ->with('error', 'Cannot change status from Created: ' . ucfirst(implode(', ', $missing)) . '.');
+            }
+        }
 
         $oldData = $training->only([
             'name',
@@ -676,7 +811,13 @@ class TrainingModuleController extends Controller
 
         $allVenues = Venue::orderBy('name', 'asc')->get();
 
-        return view('trainings.assign_trainers', compact('module', 'allUsers', 'allVenues'));
+        $backUrl = $this->resolveTrainingBackUrl(
+            'trainings.manage_trainers_back_url',
+            route('manage-trainers', $id),
+            route('trainings.index')
+        );
+
+        return view('trainings.assign_trainers', compact('module', 'allUsers', 'allVenues', 'backUrl'));
     }
 
     public function manageUsers($id)
@@ -684,7 +825,13 @@ class TrainingModuleController extends Controller
         $module = TrainingModule::with('trainees')->findOrFail($id);
         $allUsers = User::orderBy('name', 'asc')->get();
 
-        return view('trainings.assign_users', compact('module', 'allUsers'));
+        $backUrl = $this->resolveTrainingBackUrl(
+            'trainings.manage_users_back_url',
+            route('manage-users', $id),
+            route('trainings.index')
+        );
+
+        return view('trainings.assign_users', compact('module', 'allUsers', 'backUrl'));
     }
 
     public function saveTrainers(Request $request, $id)
@@ -794,6 +941,25 @@ class TrainingModuleController extends Controller
             ->update(['is_read' => true]);
 
         return response()->json(['success' => true, 'message' => 'Training accepted successfully.']);
+    }
+
+    private function resolveTrainingBackUrl(string $sessionKey, string $currentUrl, string $fallbackUrl): string
+    {
+        $previousUrl = url()->previous();
+
+        if (!empty($previousUrl) && $previousUrl !== $currentUrl) {
+            session([$sessionKey => $previousUrl]);
+
+            return $previousUrl;
+        }
+
+        $storedBackUrl = session($sessionKey);
+
+        if (!empty($storedBackUrl) && $storedBackUrl !== $currentUrl) {
+            return $storedBackUrl;
+        }
+
+        return $fallbackUrl;
     }
 
     public function saveUsers(Request $request, $id)
@@ -993,7 +1159,6 @@ class TrainingModuleController extends Controller
         }
 
         $users = $module->trainees()
-            ->where('users.is_trainer', 0)
             ->with(['department', 'designation'])
             ->orderBy('users.name')
             ->paginate(20)
@@ -1012,7 +1177,13 @@ class TrainingModuleController extends Controller
             $attendanceSignedAt = $latestSignedAttendance->pivot->attendance_marked_at;
         }
 
-        return view('trainings.attendace_sheet', compact('users', 'module', 'attendanceSignerName', 'attendanceSignedAt'));
+        $backUrl = $this->resolveTrainingBackUrl(
+            'trainings.attendance_sheet_back_url',
+            route('attendance', $id),
+            route('training-list')
+        );
+
+        return view('trainings.attendace_sheet', compact('users', 'module', 'attendanceSignerName', 'attendanceSignedAt', 'backUrl'));
     }
 
 
@@ -1037,13 +1208,6 @@ class TrainingModuleController extends Controller
         ) {
             abort(403, 'Unauthorized access to this module attendance sheet.');
         }
-
-        $users = $module->trainees()
-            ->where('users.is_trainer', 0)
-            ->with(['department', 'designation'])
-            ->orderBy('users.name')
-            ->paginate(20)
-            ->withQueryString();
 
         $validated = $request->validate([
             'listed_user_ids' => 'required|array|min:1',

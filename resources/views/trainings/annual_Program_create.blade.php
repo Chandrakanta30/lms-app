@@ -9,6 +9,7 @@
                         <form action="{{ route('trainings.store') }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <input type="hidden" name="is_annual" value="1">
+                            <input type="hidden" name="form_token" value="{{ $formToken }}">
 
                             <div class="row">
                                 <div class="col-md-8">

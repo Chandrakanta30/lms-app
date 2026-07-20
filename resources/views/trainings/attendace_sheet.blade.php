@@ -42,7 +42,6 @@
                         <h4 class="card-title mb-1">Attendance Sheet</h4>
                         <p class="text-muted mb-0">Module: {{ $module->name }}</p>
                     </div>
-                    <a href="{{ route('training-list') }}" class="btn btn-light btn-sm">Back</a>
                 </div>
 
                 @if (session('success'))

@@ -50,8 +50,13 @@ class ModuleLinkController extends Controller
         }
 
         $allDocs = $allDocsQuery->get();
+        $backUrl = $this->resolveModuleBackUrl(
+            'modules.link_docs_back_url',
+            route('admin.modules.linkDocs', $moduleId),
+            route('trainings.index')
+        );
 
-        return view('trainings.link_docs', compact('module', 'allDocs'));
+        return view('trainings.link_docs', compact('module', 'allDocs', 'backUrl'));
     }
 
 
@@ -76,6 +81,25 @@ class ModuleLinkController extends Controller
         $module->documents()->sync($syncData);
 
         return redirect()->route('trainings.index')->with('success', 'Exam configuration saved successfully!');
+    }
+
+    private function resolveModuleBackUrl(string $sessionKey, string $currentUrl, string $fallbackUrl): string
+    {
+        $previousUrl = url()->previous();
+
+        if (!empty($previousUrl) && $previousUrl !== $currentUrl) {
+            session([$sessionKey => $previousUrl]);
+
+            return $previousUrl;
+        }
+
+        $storedBackUrl = session($sessionKey);
+
+        if (!empty($storedBackUrl) && $storedBackUrl !== $currentUrl) {
+            return $storedBackUrl;
+        }
+
+        return $fallbackUrl;
     }
 
     /**

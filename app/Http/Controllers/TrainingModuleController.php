@@ -1023,6 +1023,11 @@ class TrainingModuleController extends Controller
 
         $oldStatus = $training->is_active;
 
+        // Only allow activating a training once it has been approved
+        if (!$oldStatus && $training->status !== 'approved') {
+            return back()->with('error', 'This training cannot be activated until it is Approved.');
+        }
+
         // Toggle the status
         $training->is_active = !$training->is_active;
         $training->updated_by = auth()->id();

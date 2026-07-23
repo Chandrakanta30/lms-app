@@ -247,11 +247,12 @@ class QuestionController extends Controller
             TrainingSessions::updateOrCreate(
                 [
                     'trainee_id' => auth()->id(),
-                    'trainer_id' => $trainerId,
                     'topic' => $module->name,
                 ],
                 [
                     'training_date' => now()->toDateString(),
+                    'trainer_id' => $trainerId,
+                    'topic' => $module->name,
                     'register_no' => 'N/A',
                     'page_no' => 'N/A',
                     'session_brief_type' => 'Self Training',

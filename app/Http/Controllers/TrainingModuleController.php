@@ -1256,7 +1256,6 @@ class TrainingModuleController extends Controller
             $payload = [
                 'training_date' => Carbon::now()->format('Y-m-d'),
                 'trainee_id' => $userId,
-                'training_module_id' => $module->id,
                 'trainer_id' => $trainerId,
                 'topic' => $sessionTopic,
                 'register_no' => 'N/A',
@@ -1270,7 +1269,7 @@ class TrainingModuleController extends Controller
             TrainingSessions::updateOrCreate(
                 [
                     'trainee_id' => $payload['trainee_id'],
-                    'training_module_id' => $payload['training_module_id'],
+                    'topic' => $payload['topic'],
                 ],
                 $payload
             );

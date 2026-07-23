@@ -10,11 +10,16 @@ use Spatie\Permission\Models\Role;
 
 class TrainingSessionController extends Controller
 {
-
     public function index(Request $request)
     {
         $sessionsQuery = TrainingSessions::with(['trainee.department', 'trainer.designation', 'approver'])
             ->latest('training_date');
+
+        $sessionsQuery->whereHas('trainee', function ($query) {
+            $query->whereHas('examResults', function ($examQuery) {
+                $examQuery->where('is_passed', true);
+            });
+        });
 
         if ($request->filled('trainee_id')) {
             $sessionsQuery->where('trainee_id', $request->trainee_id);
@@ -39,9 +44,10 @@ class TrainingSessionController extends Controller
             ->with('designation')
             ->get();
 
-        // 3. Fetch all Trainees for the 'Add New' modal dropdown
-        // Note: You can filter by role('trainee') if using Spatie
-        $trainees = User::role('Trainee')
+        // 3. Fetch only passed/eligible trainees for the 'Add New' modal dropdown
+        $trainees = User::whereHas('examResults', function ($examQuery) {
+                $examQuery->where('is_passed', true);
+            })
             ->with('department')
             ->get();
 

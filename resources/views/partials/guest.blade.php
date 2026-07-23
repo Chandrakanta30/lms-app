@@ -83,7 +83,7 @@
 
 <body>
     <div class="guest-shell">
-        @unless(View::hasSection('hideBackButton'))
+        @unless (View::hasSection('hideBackButton'))
             <div class="guest-back-row">
                 <a href="javascript:void(0);" onclick="history.back(); return false;" class="guest-back-button">
                     <i class="mdi mdi-arrow-left"></i>

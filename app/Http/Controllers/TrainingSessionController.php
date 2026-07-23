@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Auth;
+use App\Models\ExamResult;
 use App\Models\User;
 use App\Models\TrainingSessions;
 use Illuminate\Http\Request;
@@ -104,28 +105,65 @@ class TrainingSessionController extends Controller
 
     public function userReport(User $user)
     {
-        $sessionsQuery = TrainingSessions::query()
+        $sessions = TrainingSessions::query()
             ->with(['trainer', 'approver'])
             ->where('training_sessions.trainee_id', $user->id)
-            ->whereHas('trainee', function ($query) {
-                $query->whereHas('examResults', function ($examQuery) {
-                    $examQuery->where('is_passed', true);
-                });
-            });
-
-        $firstSessionIds = (clone $sessionsQuery)
-            ->selectRaw('MIN(training_sessions.id) as id')
-            ->groupBy('training_sessions.trainee_id', 'training_sessions.topic');
-
-        $sessions = TrainingSessions::with(['trainer', 'approver'])
-            ->joinSub($firstSessionIds, 'first_sessions', function ($join) {
-                $join->on('training_sessions.id', '=', 'first_sessions.id');
-            })
-            ->select('training_sessions.*')
             ->orderBy('training_sessions.training_date', 'asc')
-            ->get();
+            ->get()
+            ->filter(function (TrainingSessions $session) {
+                return $this->sessionHasPassedTraining($session);
+            })
+            ->unique('topic')
+            ->values();
 
         return view('training_sessions.user_report', compact('user', 'sessions'));
+    }
+
+    private function sessionHasPassedTraining(TrainingSessions $session): bool
+    {
+        $topic = trim((string) $session->topic);
+
+        if ($topic === '') {
+            return false;
+        }
+
+        $candidateLabels = [$topic];
+        $topicPrefix = trim(explode(' - ', $topic, 2)[0]);
+
+        if ($topicPrefix !== '' && $topicPrefix !== $topic) {
+            $candidateLabels[] = $topicPrefix;
+        }
+
+        $passedModuleNames = ExamResult::where('user_id', $session->trainee_id)
+            ->where('is_passed', true)
+            ->with('module:id,name')
+            ->get()
+            ->pluck('module.name')
+            ->filter()
+            ->map(fn ($name) => $this->normalizeTrainingLabel($name))
+            ->unique()
+            ->values();
+
+        foreach ($candidateLabels as $candidateLabel) {
+            $normalizedCandidate = $this->normalizeTrainingLabel($candidateLabel);
+
+            foreach ($passedModuleNames as $passedModuleName) {
+                if (
+                    $normalizedCandidate === $passedModuleName
+                    || str_contains($passedModuleName, $normalizedCandidate)
+                    || str_contains($normalizedCandidate, $passedModuleName)
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeTrainingLabel(string $value): string
+    {
+        return preg_replace('/\s+/', ' ', trim(mb_strtolower($value)));
     }
 
     // public function approve($id)

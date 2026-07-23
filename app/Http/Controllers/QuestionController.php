@@ -73,11 +73,13 @@ class QuestionController extends Controller
             ]
         );
 
-        if (!$tracker->started_at) {
+        $tracker->required_seconds = max((int) $tracker->required_seconds, $requiredSeconds);
+
+        if (!$tracker->completed_at) {
             $tracker->started_at = now();
+            $tracker->completed_at = null;
         }
 
-        $tracker->required_seconds = max((int) $tracker->required_seconds, $requiredSeconds);
         $tracker->save();
 
         $elapsedSeconds = $tracker->started_at ? $tracker->started_at->diffInSeconds(now()) : 0;

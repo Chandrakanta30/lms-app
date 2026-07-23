@@ -876,21 +876,18 @@ class TrainingModuleController extends Controller
 
         $module->trainers()->sync($syncData);
 
-        // Get NEW trainer IDs (ones that were added in this update)
-        $newTrainerIds = array_diff(array_keys($syncData), $existingTrainerIds);
-
-        // ONLY send notifications if training is ACTIVE
+        // ONLY send notifications if training is ACTIVE and the assignment is newer than the last notification.
         if ($module->is_active == 1) {
-
-            foreach ($newTrainerIds as $trainerId) {
-
-                Notification::create([
-                    'user_id' => $trainerId,
-                    'title' => 'Training Session Assigned',
-                    'message' => 'You have been assigned as trainer for: ' . $module->name,
-                    'type' => 'trainer_assignment',
-                    'training_id' => $module->id,
-                ]);
+            foreach (array_keys($syncData) as $trainerId) {
+                if ($this->shouldNotifyTrainerAssignment($module, (int) $trainerId)) {
+                    Notification::create([
+                        'user_id' => $trainerId,
+                        'title' => 'Training Session Assigned',
+                        'message' => 'You have been assigned as trainer for: ' . $module->name,
+                        'type' => 'trainer_assignment',
+                        'training_id' => $module->id,
+                    ]);
+                }
             }
         }
 
@@ -1045,9 +1042,7 @@ class TrainingModuleController extends Controller
 
             // ===== SEND NOTIFICATIONS TO TRAINERS =====
             foreach ($training->trainers as $trainer) {
-                // Check if trainer hasn't already accepted
-                $pivotData = $training->trainers()->where('user_id', $trainer->id)->first();
-                if ($pivotData && $pivotData->pivot->acceptance_status !== 'accepted') {
+                if ($this->shouldNotifyTrainerAssignment($training, (int) $trainer->id)) {
                     \App\Models\Notification::create([
                         'user_id' => $trainer->id,
                         'title' => 'Training Session Assigned',
@@ -1094,6 +1089,34 @@ class TrainingModuleController extends Controller
             ->get();
 
         return view('trainings.audit_logs', compact('logs'));
+    }
+
+    private function shouldNotifyTrainerAssignment(TrainingModule $training, int $trainerId): bool
+    {
+        $trainer = $training->trainers()
+            ->where('users.id', $trainerId)
+            ->first();
+
+        if (!$trainer || ($trainer->pivot->acceptance_status ?? null) === 'accepted') {
+            return false;
+        }
+
+        $latestNotificationAt = Notification::where('user_id', $trainerId)
+            ->where('training_id', $training->id)
+            ->where('type', 'trainer_assignment')
+            ->max('created_at');
+
+        if (!$latestNotificationAt) {
+            return true;
+        }
+
+        $pivotUpdatedAt = $trainer->pivot->updated_at ?? null;
+
+        if (!$pivotUpdatedAt) {
+            return false;
+        }
+
+        return Carbon::parse($pivotUpdatedAt)->gt(Carbon::parse($latestNotificationAt));
     }
     public function traininglist(Request $request)
     {

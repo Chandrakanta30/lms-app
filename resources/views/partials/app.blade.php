@@ -507,6 +507,16 @@
             markRead: "{{ route('notifications.read', ':id') }}"
         };
 
+        function markTrainerNotificationRead(id) {
+            return fetch(routes.markRead.replace(':id', id), {
+                method: 'PATCH',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.trainer-notification').forEach(function(el) {
                 const id = el.dataset.id;
@@ -536,31 +546,26 @@
                                 })
                                 .then(response => {
                                     if (response.ok) {
-                                        fetch(routes.markRead.replace(':id', id), {
-                                                method: 'PATCH',
-                                                headers: {
-                                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                                    'Accept': 'application/json'
-                                                }
-                                            })
-                                            .then(() => {
-                                                Swal.fire({
-                                                    title: 'Accepted!',
-                                                    text: 'Training has been accepted successfully.',
-                                                    icon: 'success',
-                                                    timer: 1500,
-                                                    showConfirmButton: false
-                                                }).then(() => {
-                                                    location.reload();
-                                                });
+                                        return markTrainerNotificationRead(id).then(() => {
+                                            Swal.fire({
+                                                title: 'Accepted!',
+                                                text: 'Training has been accepted successfully.',
+                                                icon: 'success',
+                                                timer: 1500,
+                                                showConfirmButton: false
+                                            }).then(() => {
+                                                location.reload();
                                             });
-                                    } else {
-                                        Swal.fire('Error', 'Failed to accept training.', 'error');
+                                        });
                                     }
+
+                                    Swal.fire('Error', 'Failed to accept training.', 'error');
                                 })
                                 .catch(() => {
                                     Swal.fire('Error', 'Something went wrong.', 'error');
                                 });
+                        } else if (result.isDismissed) {
+                            markTrainerNotificationRead(id);
                         }
                     });
                 }, 500);

@@ -12,7 +12,11 @@
 
             <div class="card p-4 border-dark shadow-none" style="min-height: 29.7cm;"> {{-- A4 Height approximation --}}
                 <div class="card-body">
-                    <h3 class="text-center mb-4">STAFF TRAINING CARD</h3>
+                    <div class="d-flex align-items-center mb-4">
+                        <img src="{{ asset('assets/images/sms-logo.jpg') }}" alt="SMS Logo"
+                            style="width: 52px; height: 52px; object-fit: contain; margin-right: 14px;">
+                        <h3 class="mb-0">STAFF TRAINING CARD</h3>
+                    </div>
 
                     {{-- Employee Information Header --}}
                     <div class="row mb-4 border-bottom pb-3">
@@ -43,7 +47,19 @@
                             </thead>
                             <tbody>
                                 @php $totalRows = 20; @endphp {{-- Pre-defined rows for a full page look --}}
+                                @php
+                                    $classroomSignatureName = optional(
+                                        $sessions
+                                            ->first(fn ($session) => ($session->session_brief_type ?? '') !== 'Self Training' && $session->is_approved)
+                                            ?->approver
+                                    )->name;
+                                @endphp
                                 @foreach ($sessions as $index => $session)
+                                    @php
+                                        $signatureName = ($session->session_brief_type ?? '') === 'Self Training'
+                                            ? $user->name
+                                            : ($classroomSignatureName ?? ($session->approver->name ?? null));
+                                    @endphp
                                     <tr>
                                         <td>{{ $index + 1 }}</td>
                                         <td>{{ \Carbon\Carbon::parse($session->training_date)->format('d-m-Y') }}</td>
@@ -52,8 +68,8 @@
 
                                         <td>{{ $session->trainer->name ?? 'N/A' }}</td>
                                         <td class="text-center">
-                                            @if ($session->is_approved)
-                                                <small><i>{{ $session->approver->name ?? 'Trainer acknowledged' }}</i></small>
+                                            @if (($session->session_brief_type ?? '') === 'Self Training' ? $session->is_approved : !empty($classroomSignatureName))
+                                                <small><i>{{ $signatureName }}</i></small>
                                             @else
                                                 <small><i>Pending</i></small>
                                             @endif

@@ -8,9 +8,9 @@
 
     <div class="app-brand demo">
         <a class="app-brand" href="{{ route('dashboard') }}">
-            <img src="{{ asset('assets/images/logo.png') }}" alt="Vincatis LMS logo" />
+            <img src="{{ asset('assets/images/sms-logo.jpg') }}" alt="Vincatis LMS logo" />
             <span class="brand-copy ms-2">
-                <strong class="fw-bold">Vincatis LMS</strong>
+                <strong class="fw-bold">Pharmaceuticals ltd.</strong>
                 <span class="text-uppercase text-muted" style="font-size: 0.68rem; letter-spacing: 0.14em;">Training
                     Hub</span>
             </span>

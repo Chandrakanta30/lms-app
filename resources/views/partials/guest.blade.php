@@ -83,12 +83,14 @@
 
 <body>
     <div class="guest-shell">
-        <div class="guest-back-row">
-            <a href="javascript:void(0);" onclick="history.back(); return false;" class="guest-back-button">
-                <i class="mdi mdi-arrow-left"></i>
-                Back
-            </a>
-        </div>
+        @unless (View::hasSection('hideBackButton'))
+            <div class="guest-back-row">
+                <a href="javascript:void(0);" onclick="history.back(); return false;" class="guest-back-button">
+                    <i class="mdi mdi-arrow-left"></i>
+                    Back
+                </a>
+            </div>
+        @endunless
         <main class="guest-main">
             @yield('content')
         </main>

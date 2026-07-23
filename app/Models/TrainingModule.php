@@ -45,7 +45,9 @@ class TrainingModule extends Model
     public function examDocuments()
     {
         return $this->documents()
-            ->whereNotNull('master_documents.reviewed_at');
+            ->wherePivot('question_quota', '>', 0)
+            ->whereNotNull('master_documents.reviewed_at')
+            ->whereHas('questions');
     }
 
     public function requiredReadingSeconds(): int
@@ -74,6 +76,11 @@ class TrainingModule extends Model
     public function latestResult()
     {
         return $this->hasOne(ExamResult::class)->latestOfMany();
+    }
+
+    public function examResults()
+    {
+        return $this->hasMany(ExamResult::class, 'training_module_id');
     }
 
     public function trainers()

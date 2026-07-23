@@ -22,6 +22,18 @@
                                     <option value="{{ $t->id }}"
                                         {{ (string) request('trainee_id') === (string) $t->id ? 'selected' : '' }}>
                                         {{ $t->name }}
+                                </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Training Module</label>
+                            <select name="training_module_id" class="form-control">
+                                <option value="">All Modules</option>
+                                @foreach ($modules as $module)
+                                    <option value="{{ $module->id }}"
+                                        {{ (string) request('training_module_id') === (string) $module->id ? 'selected' : '' }}>
+                                        {{ $module->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -55,6 +67,7 @@
                                 <th>S.No.</th>
                                 <th>Date</th>
                                 <th>Name of the Trainee</th>
+                                <th>Training Module</th>
                                 <th>Topic</th>
                                 <th>Type of Training </th>
                                 <th>Duration</th>
@@ -68,6 +81,7 @@
                                     <td>{{ $sessions->firstItem() + $index }}</td>
                                     <td>{{ \Carbon\Carbon::parse($session->training_date)->format('d-m-Y') }}</td>
                                     <td class="text-left">{{ $session->trainee->name }}</td>
+                                    <td class="text-left">{{ $session->module->name ?? 'N/A' }}</td>
                                     <td class="text-left">{{ $session->topic }}</td>
                                     <td>
                                         <div>{{ $session->session_brief_type ?? 'N/A' }}</div>
@@ -125,7 +139,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8">No register entries found.</td>
+                                    <td colspan="9">No register entries found.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -158,6 +172,15 @@
                                 @foreach ($trainees as $t)
                                     <option value="{{ $t->id }}">{{ $t->name }}
                                         ({{ $t->department->name ?? '' }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Training Module</label>
+                            <select name="training_module_id" class="form-control select2" required>
+                                <option value="">Select module</option>
+                                @foreach ($modules as $module)
+                                    <option value="{{ $module->id }}">{{ $module->name }}</option>
                                 @endforeach
                             </select>
                         </div>

@@ -629,7 +629,7 @@ class TrainingModuleController extends Controller
             $missing = [];
 
             $hasDocuments = $training->training_type === 'self_training'
-                ? TrainingDocument::where('training_id', $training->id)->exists()
+                ? $this->hasSelfTrainingDocuments($training)
                 : $training->documents()->exists();
 
             if (!$hasDocuments) {
@@ -780,6 +780,12 @@ class TrainingModuleController extends Controller
         }
 
         return filled($value) ? [(int) $value] : [];
+    }
+
+    private function hasSelfTrainingDocuments(TrainingModule $training): bool
+    {
+        return TrainingDocument::where('training_id', $training->id)->exists()
+            || $training->documents()->exists();
     }
 
     public function destroy(TrainingModule $training)
@@ -1250,6 +1256,7 @@ class TrainingModuleController extends Controller
             $payload = [
                 'training_date' => Carbon::now()->format('Y-m-d'),
                 'trainee_id' => $userId,
+                'training_module_id' => $module->id,
                 'trainer_id' => $trainerId,
                 'topic' => $sessionTopic,
                 'register_no' => 'N/A',
@@ -1262,10 +1269,8 @@ class TrainingModuleController extends Controller
 
             TrainingSessions::updateOrCreate(
                 [
-                    'training_date' => $payload['training_date'],
                     'trainee_id' => $payload['trainee_id'],
-                    'trainer_id' => $payload['trainer_id'],
-                    'topic' => $payload['topic'],
+                    'training_module_id' => $payload['training_module_id'],
                 ],
                 $payload
             );

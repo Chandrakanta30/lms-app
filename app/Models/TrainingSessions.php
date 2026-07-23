@@ -10,6 +10,7 @@ class TrainingSessions extends Model
     protected $fillable = [
         'training_date',
         'trainee_id',
+        'training_module_id',
         'trainer_id',
         'register_no',
         'page_no',
@@ -36,6 +37,11 @@ class TrainingSessions extends Model
     public function trainer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'trainer_id');
+    }
+
+    public function module(): BelongsTo
+    {
+        return $this->belongsTo(TrainingModule::class, 'training_module_id');
     }
 
     public function approver()

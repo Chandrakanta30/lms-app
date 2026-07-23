@@ -76,6 +76,11 @@ class TrainingModule extends Model
         return $this->hasOne(ExamResult::class)->latestOfMany();
     }
 
+    public function examResults()
+    {
+        return $this->hasMany(ExamResult::class, 'training_module_id');
+    }
+
     public function trainers()
     {
         return $this->belongsToMany(User::class, 'trainer_training', 'training_module_id', 'user_id')

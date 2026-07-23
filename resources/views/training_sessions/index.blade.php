@@ -5,7 +5,11 @@
         <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="card-title">Staff training Log</h4>
+                    <div class="d-flex align-items-center">
+                        <img src="{{ asset('assets/images/sms-logo.jpg') }}" alt="SMS Logo"
+                            style="width: 44px; height: 44px; object-fit: contain; margin-right: 12px;">
+                        <h4 class="card-title mb-0">Staff training Log</h4>
+                    </div>
                     <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#logSessionModal"
                         data-bs-toggle="modal" data-bs-target="#logSessionModal">
                         + Add New Entry

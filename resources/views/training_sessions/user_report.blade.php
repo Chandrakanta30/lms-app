@@ -12,7 +12,11 @@
 
             <div class="card p-4 border-dark shadow-none" style="min-height: 29.7cm;"> {{-- A4 Height approximation --}}
                 <div class="card-body">
-                    <h3 class="text-center mb-4">STAFF TRAINING CARD</h3>
+                    <div class="d-flex align-items-center mb-4">
+                        <img src="{{ asset('assets/images/sms-logo.jpg') }}" alt="SMS Logo"
+                            style="width: 52px; height: 52px; object-fit: contain; margin-right: 14px;">
+                        <h3 class="mb-0">STAFF TRAINING CARD</h3>
+                    </div>
 
                     {{-- Employee Information Header --}}
                     <div class="row mb-4 border-bottom pb-3">

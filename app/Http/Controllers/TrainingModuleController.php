@@ -1027,9 +1027,9 @@ class TrainingModuleController extends Controller
         $oldStatus = $training->is_active;
 
         // Only allow activating a training once it has been approved
-        if (!$oldStatus && $training->status !== 'approved') {
-            return back()->with('error', 'This training cannot be activated until it is Approved.');
-        }
+        // if (!$oldStatus && $training->status !== 'approved') {
+        //     return back()->with('error', 'This training cannot be activated until it is Approved.');
+        // }
 
         // Toggle the status
         $training->is_active = !$training->is_active;
@@ -1043,7 +1043,7 @@ class TrainingModuleController extends Controller
             // ===== SEND NOTIFICATIONS TO TRAINERS =====
             foreach ($training->trainers as $trainer) {
                 if ($this->shouldNotifyTrainerAssignment($training, (int) $trainer->id)) {
-                    \App\Models\Notification::create([
+                    Notification::create([
                         'user_id' => $trainer->id,
                         'title' => 'Training Session Assigned',
                         'message' => 'You have been assigned as trainer for: ' . $training->name,
@@ -1055,7 +1055,7 @@ class TrainingModuleController extends Controller
 
             // ===== SEND NOTIFICATIONS TO TRAINEES =====
             foreach ($training->trainees as $trainee) {
-                \App\Models\Notification::create([
+                Notification::create([
                     'user_id' => $trainee->id,
                     'title' => 'New Training Assigned',
                     'message' => 'You have been assigned to training: ' . $training->name,

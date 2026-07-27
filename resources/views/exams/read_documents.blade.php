@@ -162,6 +162,13 @@
 
                 tick();
             })();
+
+            window.addEventListener('pageshow', function(event) {
+                if (event.persisted) {
+                    window.location.reload();
+                }
+            });
+
             const securePreviewSelectors = ['#documentFrame', '#imagePreview', '#docxPreview'];
 
             function blockSecurePreviewActions(event) {

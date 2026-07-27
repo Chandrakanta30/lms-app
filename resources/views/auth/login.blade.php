@@ -2,6 +2,9 @@
 
 @section('title', 'Sign in')
 
+@section('hideBackButton')
+@endsection
+
 @section('content')
     <style>
         :root {
@@ -415,10 +418,6 @@
                             </div>
                         </div>
 
-                        <p class="mt-4 mb-0 text-center login-helper">
-                            Need a new account?
-                            <a href="{{ route('register') }}" class="text-white">Register as trainee</a>
-                        </p>
                     </div>
                 </div>
             </div>

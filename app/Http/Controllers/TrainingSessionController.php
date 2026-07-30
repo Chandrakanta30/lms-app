@@ -85,7 +85,7 @@ class TrainingSessionController extends Controller
             'page_no',
             'topic',
         ]);
-        $payload['trainer_id'] = $request->trainer_id ?: auth()->id();
+        $payload['trainer_id'] = $request->trainer_id ?: null;
 
         TrainingSessions::updateOrCreate(
             [

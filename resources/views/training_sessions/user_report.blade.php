@@ -66,7 +66,7 @@
                                         <td>{{ $session->topic }}</td>
                                         <td>{{ $session->session_brief_type ?? 'N/A' }}</td>
 
-                                        <td>{{ $session->trainer->name ?? 'N/A' }}</td>
+                                        <td>{{ ($session->session_brief_type ?? '') === 'Self Training' ? 'N/A' : ($session->trainer->name ?? 'N/A') }}</td>
                                         <td class="text-center">
                                             @if (($session->session_brief_type ?? '') === 'Self Training' ? $session->is_approved : !empty($classroomSignatureName))
                                                 <small><i>{{ $signatureName }}</i></small>

@@ -504,6 +504,7 @@
     <script>
         const routes = {
             acceptTraining: "{{ route('trainer-training.accept', ':id') }}",
+            rejectTraining: "{{ route('trainer-training.reject', ':id') }}",
             markRead: "{{ route('notifications.read', ':id') }}"
         };
 
@@ -531,8 +532,11 @@
                         icon: 'question',
                         showCancelButton: true,
                         confirmButtonText: 'Accept Training',
+                        showDenyButton: true,
+                        denyButtonText: 'Reject Training',
                         cancelButtonText: 'Cancel',
                         confirmButtonColor: '#7367f0',
+                        denyButtonColor: '#ea5455',
                         cancelButtonColor: '#808390'
                     }).then((result) => {
                         if (result.isConfirmed) {
@@ -560,6 +564,35 @@
                                     }
 
                                     Swal.fire('Error', 'Failed to accept training.', 'error');
+                                })
+                                .catch(() => {
+                                    Swal.fire('Error', 'Something went wrong.', 'error');
+                                });
+                        } else if (result.isDenied) {
+                            fetch(routes.rejectTraining.replace(':id', trainingId), {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json'
+                                    }
+                                })
+                                .then(response => {
+                                    if (response.ok) {
+                                        return markTrainerNotificationRead(id).then(() => {
+                                            Swal.fire({
+                                                title: 'Rejected',
+                                                text: 'Training invitation has been rejected.',
+                                                icon: 'info',
+                                                timer: 1500,
+                                                showConfirmButton: false
+                                            }).then(() => {
+                                                location.reload();
+                                            });
+                                        });
+                                    }
+
+                                    Swal.fire('Error', 'Failed to reject training.', 'error');
                                 })
                                 .catch(() => {
                                     Swal.fire('Error', 'Something went wrong.', 'error');

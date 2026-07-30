@@ -88,6 +88,7 @@
                         @foreach ($trainings as $training)
                             @php
                                 $statusMeta = $statusMap[$training->status ?? 'created'] ?? $statusMap['created'];
+                                $trainerAcceptance = $training->trainerAcceptanceSummary();
                             @endphp
                             <div class="card border mb-3">
                                 <div class="card-header bg-white py-3">
@@ -105,6 +106,9 @@
                                                     Steps</span>
                                                 <span
                                                     class="badge {{ $statusMeta['class'] }}">{{ $statusMeta['label'] }}</span>
+                                                <span class="badge {{ $trainerAcceptance['class'] }}">
+                                                    {{ $trainerAcceptance['display'] }}
+                                                </span>
                                             </div>
                                         </div>
                                         <div class="action-buttons">

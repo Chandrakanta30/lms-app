@@ -169,6 +169,11 @@ Route::group(['middleware' => ['auth']], function () {
         [TrainingModuleController::class, 'acceptTrainerTraining']
     )->name('trainer-training.accept');
 
+    Route::post(
+        '/trainer-training/{training}/reject',
+        [TrainingModuleController::class, 'rejectTrainerTraining']
+    )->name('trainer-training.reject');
+
 
 
 

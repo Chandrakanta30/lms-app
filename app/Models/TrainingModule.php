@@ -96,6 +96,57 @@ class TrainingModule extends Model
             ->wherePivot('acceptance_status', 'accepted')
             ->withTimestamps();
     }
+
+    public function trainerAcceptanceSummary(): array
+    {
+        $this->loadMissing('trainers');
+
+        $total = $this->trainers->count();
+        $accepted = $this->trainers->filter(function ($trainer) {
+            return ($trainer->pivot->acceptance_status ?? 'pending') === 'accepted';
+        })->count();
+        $rejected = $this->trainers->filter(function ($trainer) {
+            return ($trainer->pivot->acceptance_status ?? 'pending') === 'rejected';
+        })->count();
+        $pending = max(0, $total - $accepted - $rejected);
+
+        if ($total === 0) {
+            return [
+                'label' => 'No Trainers',
+                'class' => 'badge-secondary',
+                'total' => 0,
+                'accepted' => 0,
+                'pending' => 0,
+                'rejected' => 0,
+                'display' => 'No Trainers Assigned',
+            ];
+        }
+
+        if ($accepted === $total) {
+            $label = 'Accepted';
+            $class = 'badge-success';
+        } elseif ($accepted === 0 && $rejected === $total) {
+            $label = 'Rejected';
+            $class = 'badge-danger';
+        } elseif ($accepted === 0) {
+            $label = 'Pending';
+            $class = 'badge-warning';
+        } else {
+            $label = 'Partially Pending';
+            $class = 'badge-info';
+        }
+
+        return [
+            'label' => $label,
+            'class' => $class,
+            'total' => $total,
+            'accepted' => $accepted,
+            'pending' => $pending,
+            'rejected' => $rejected,
+            'display' => $total > 0 ? "{$label} ({$accepted}/{$total})" : $label,
+        ];
+    }
+
     public function venues()
     {
         return $this->belongsToMany(

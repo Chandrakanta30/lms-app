@@ -55,6 +55,7 @@
                     @foreach ($trainings as $training)
                         @php
                             $statusMeta = $statusMap[$training->status ?? 'created'] ?? $statusMap['created'];
+                            $trainerAcceptance = $training->trainerAcceptanceSummary();
                         @endphp
 
                         <!-- CARD START -->
@@ -86,6 +87,10 @@
 
                                             <span class="badge {{ $statusMeta['class'] }}">
                                                 {{ $statusMeta['label'] }}
+                                            </span>
+
+                                            <span class="badge {{ $trainerAcceptance['class'] }}">
+                                                {{ $trainerAcceptance['display'] }}
                                             </span>
 
                                         </div>

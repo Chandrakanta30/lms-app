@@ -17,6 +17,7 @@
     <section class="page-intro mb-4">
       <span class="eyebrow">
         @if($isAdmin) Admin Workspace
+        @elseif($isCoordinator) Coordinator Workspace
         @elseif($isTrainer) Trainer Workspace
         @elseif($isReviewer) Reviewer Workspace
         @elseif($isApprover) Approver Workspace
@@ -27,7 +28,7 @@
         <div>
           <h1 class="mb-1">{{ $greeting }}, {{ $firstName }}.</h1>
           <p class="mb-0">
-            @if($isAdmin)
+            @if($isAdmin || $isCoordinator)
               Here's the live picture of your training operations — users, active programmes, and items waiting on action.
             @elseif($isTrainer)
               Your assigned trainings, pending acceptance requests, and upcoming sessions are below.
@@ -52,7 +53,7 @@
     {{-- ═══════════════════════════════════════════════════════════
          ADMIN DASHBOARD
     ═══════════════════════════════════════════════════════════════ --}}
-    @if($isAdmin)
+    @if($isAdmin || $isCoordinator)
 
       {{-- Stats row --}}
       <section class="row mb-4">
@@ -262,6 +263,41 @@
         </div>
 
       </section>
+
+      {{-- Rejected trainer assignments --}}
+      @if(isset($rejectedTrainerAssignments) && $rejectedTrainerAssignments->count() > 0)
+        <h5 class="mb-3 fw-semibold" style="color:#2f2b3d;">Rejected Trainer Assignments</h5>
+        <section class="row mb-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-body p-0">
+                @foreach($rejectedTrainerAssignments as $module)
+                  <div class="px-4 py-3" style="border-bottom:1px solid rgba(15,23,42,0.06);">
+                    <div class="d-flex align-items-center justify-content-between gap-3 mb-2">
+                      <div>
+                        <div class="fw-medium" style="font-size:0.9rem;">{{ $module->name }}</div>
+                        <div class="text-muted" style="font-size:0.78rem;">Rejected trainer assignments are highlighted below.</div>
+                      </div>
+                      <a href="{{ route('manage-trainers', $module->id) }}" class="btn btn-sm btn-outline-danger" style="font-size:0.78rem;">Open training</a>
+                    </div>
+                    <div class="d-flex flex-wrap" style="gap:6px;">
+                      @foreach($module->trainers as $trainer)
+                        <a
+                          href="{{ route('manage-trainers', $module->id) }}#trainer-row-{{ $trainer->id }}"
+                          class="badge bg-danger text-white text-decoration-none"
+                          style="padding:6px 10px;"
+                        >
+                          {{ $trainer->name }}
+                        </a>
+                      @endforeach
+                    </div>
+                  </div>
+                @endforeach
+              </div>
+            </div>
+          </div>
+        </section>
+      @endif
 
       {{-- Recent active trainings --}}
       <h5 class="mb-3 fw-semibold" style="color:#2f2b3d;">Active Training Programmes</h5>

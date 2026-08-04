@@ -37,7 +37,7 @@
                             </thead>
                             <tbody>
                                 @forelse($module->trainers as $index => $trainer)
-                                    <tr>
+                                    <tr id="trainer-row-{{ $trainer->id }}">
                                         <td>
                                             <select name="trainers[{{ $index }}][user_id]" class="form-control"
                                                 {{ $trainerRequired ? 'required' : '' }}>

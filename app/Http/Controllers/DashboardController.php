@@ -15,13 +15,14 @@ class DashboardController extends Controller
         $user = auth()->user();
 
         $isAdmin    = $user->hasRole(['Admin', 'Super Admin', 'admin', 'super admin', 'super-admin']);
+        $isCoordinator = !$isAdmin && $user->hasRole(['Coordinator', 'coordinator', 'Co-ordinator', 'co-ordinator']);
         $isReviewer = !$isAdmin && $user->hasRole('Reviewer');
         $isApprover = !$isAdmin && $user->hasRole('Approver');
         $isTrainer  = (int) $user->is_trainer === 1;
         $isTrainee  = $user->hasRole('Trainee');
 
         $data = match (true) {
-            $isAdmin    => $this->adminData(),
+            $isAdmin || $isCoordinator => $this->adminData(),
             $isTrainer  => $this->trainerData($user),
             $isReviewer => $this->reviewerData(),
             $isApprover => $this->approverData(),
@@ -29,7 +30,7 @@ class DashboardController extends Controller
         };
 
         return view('home', array_merge($data, compact(
-            'isAdmin', 'isTrainer', 'isReviewer', 'isApprover', 'isTrainee'
+            'isAdmin', 'isCoordinator', 'isTrainer', 'isReviewer', 'isApprover', 'isTrainee'
         )));
     }
 
@@ -64,6 +65,14 @@ class DashboardController extends Controller
             ->take(5)
             ->get(['id', 'name']);
 
+        // Rejected trainer assignments for admin/coordinator visibility
+        $rejectedTrainerAssignments = TrainingModule::whereNull('parent_id')
+            ->whereHas('trainers', fn($q) => $q->where('trainer_training.acceptance_status', 'rejected'))
+            ->with(['trainers' => fn($q) => $q->wherePivot('acceptance_status', 'rejected')])
+            ->latest()
+            ->take(5)
+            ->get(['id', 'name', 'training_type', 'is_active']);
+
         // Training sessions not yet approved
         $pendingSessions = TrainingSessions::where('is_approved', false)
             ->with(['trainee:id,name', 'trainer:id,name'])
@@ -89,7 +98,7 @@ class DashboardController extends Controller
         return compact(
             'totalUsers', 'totalTrainers', 'activeTrainings', 'setupTrainings',
             'inreviewTrainings', 'reviewedTrainings', 'pendingAcceptanceModules',
-            'pendingSessions', 'examStats', 'recentTrainings'
+            'rejectedTrainerAssignments', 'pendingSessions', 'examStats', 'recentTrainings'
         );
     }
 

@@ -75,11 +75,34 @@ class TrainingSessionController extends Controller
 
     public function userReport(User $user)
     {
-        // Fetch all sessions where this user is the trainee
+        // A training-card entry must only surface once the trainee has PASSED
+        // the exam for that training — not merely had attendance marked.
+        // Attendance creates the TrainingSessions row (with its metadata), but
+        // it stays hidden here until a passing ExamResult exists for the module.
+        $passedModuleNames = \App\Models\ExamResult::where('user_id', $user->id)
+            ->where('is_passed', true)
+            ->with('module:id,name')
+            ->get()
+            ->pluck('module.name')
+            ->filter()
+            ->unique()
+            ->values();
+
+        // Topic is built as "{module name} - {type}" (classroom) or "{module name}" (self-training).
         $sessions = TrainingSessions::where('trainee_id', $user->id)
             ->with(['trainer', 'approver'])
             ->orderBy('training_date', 'asc')
-            ->get();
+            ->get()
+            ->filter(function ($session) use ($passedModuleNames) {
+                foreach ($passedModuleNames as $name) {
+                    if ($session->topic === $name
+                        || \Illuminate\Support\Str::startsWith($session->topic, $name . ' - ')) {
+                        return true;
+                    }
+                }
+                return false;
+            })
+            ->values();
 
         return view('training_sessions.user_report', compact('user', 'sessions'));
     }

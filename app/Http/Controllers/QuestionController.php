@@ -73,11 +73,13 @@ class QuestionController extends Controller
             ]
         );
 
-        if (!$tracker->started_at) {
+        $tracker->required_seconds = max((int) $tracker->required_seconds, $requiredSeconds);
+
+        if (!$tracker->completed_at) {
             $tracker->started_at = now();
+            $tracker->completed_at = null;
         }
 
-        $tracker->required_seconds = max((int) $tracker->required_seconds, $requiredSeconds);
         $tracker->save();
 
         $elapsedSeconds = $tracker->started_at ? $tracker->started_at->diffInSeconds(now()) : 0;
@@ -247,11 +249,12 @@ class QuestionController extends Controller
             TrainingSessions::updateOrCreate(
                 [
                     'trainee_id' => auth()->id(),
-                    'trainer_id' => $trainerId,
                     'topic' => $module->name,
                 ],
                 [
                     'training_date' => now()->toDateString(),
+                    'trainer_id' => $trainerId,
+                    'topic' => $module->name,
                     'register_no' => 'N/A',
                     'page_no' => 'N/A',
                     'session_brief_type' => 'Self Training',

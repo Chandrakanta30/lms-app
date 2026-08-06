@@ -249,15 +249,26 @@
             </li>
         @endcan
 
-        {{-- INDUCTION --}}
+        {{-- TRAINING PROGRESS (Induction -> GLP -> Functional) --}}
         @can('induction-training')
-            <li class="menu-item {{ request()->routeIs('user.training.index') ? 'active' : '' }}" data-nav-item="true"
-                data-nav-text="Induction Training Progress Trainee Setup">
-                <a href="{{ route('user.training.index') }}" class="menu-link">
-                    <i class="menu-icon icon-base ti tabler-school"></i>
-                    <div>Induction Progress</div>
-                </a>
-            </li>
+            @php
+                $currentProgram = request()->route('program') ?: 'induction';
+                $programMenu = [
+                    ['slug' => 'induction', 'title' => 'Induction Progress', 'icon' => 'tabler-school', 'keywords' => 'Induction Training Progress Trainee Setup'],
+                    ['slug' => 'glp', 'title' => 'GLP Progress', 'icon' => 'tabler-flask', 'keywords' => 'GLP Good Laboratory Practice Training Progress'],
+                    ['slug' => 'functional', 'title' => 'Functional Progress', 'icon' => 'tabler-settings-cog', 'keywords' => 'Functional Training Progress Job Role'],
+                ];
+            @endphp
+
+            @foreach ($programMenu as $program)
+                <li class="menu-item {{ request()->routeIs('user.training.index') && $currentProgram === $program['slug'] ? 'active' : '' }}"
+                    data-nav-item="true" data-nav-text="{{ $program['keywords'] }}">
+                    <a href="{{ route('user.training.index', ['program' => $program['slug']]) }}" class="menu-link">
+                        <i class="menu-icon icon-base ti {{ $program['icon'] }}"></i>
+                        <div>{{ $program['title'] }}</div>
+                    </a>
+                </li>
+            @endforeach
         @endcan
 
     </ul>

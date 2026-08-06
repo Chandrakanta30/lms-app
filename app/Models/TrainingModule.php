@@ -18,13 +18,13 @@ class TrainingModule extends Model
     protected $casts = [
         'subdepartment_id' => 'array',
     ];
-    // Get the Main Training (Parent)
+    // Get the Parent Training
     public function parent()
     {
         return $this->belongsTo(TrainingModule::class, 'parent_id');
     }
 
-    // Get all Steps (Children)
+    // Get all Childrens steps
     public function steps()
     {
         return $this->hasMany(TrainingModule::class, 'parent_id')->orderBy('step_number');

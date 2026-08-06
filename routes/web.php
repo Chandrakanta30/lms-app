@@ -73,12 +73,18 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('attendace/{id}', [TrainingModuleController::class, 'traineeAttendace'])->name('attendance');
     Route::post('attendace/{id}', [TrainingModuleController::class, 'submitAttendace'])->name('attendance.submit');
 
-    Route::get('trainee-progress', [UserTrainingController::class, 'index'])->name('user.training.index');
+
+    Route::get('trainee-progress/{program?}', [UserTrainingController::class, 'index'])
+        ->where('program', 'induction|glp|functional')
+        ->name('user.training.index');
 
     Route::get('trainee-progress/{user}/{training}', [UserTrainingController::class, 'show'])->name('user.training.show');
     Route::post('trainee-progress/{user}/{training}', [UserTrainingController::class, 'store'])->name('user.training.store');
 
     Route::get('report/user/{user}/training/{training_id}', [UserTrainingController::class, 'report'])->name('user.training.report');
+
+    Route::get('report/training-certificate/{user}', [UserTrainingController::class, 'certificate'])
+        ->name('user.training.certificate');
 
     Route::get('masters', [MasterController::class, 'index'])->name('masters.index');
     Route::post('masters/dept', [MasterController::class, 'storeDepartment'])->name('masters.dept.store');

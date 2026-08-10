@@ -26,7 +26,7 @@
                                     <option value="{{ $t->id }}"
                                         {{ (string) request('trainee_id') === (string) $t->id ? 'selected' : '' }}>
                                         {{ $t->name }}
-                                </option>
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -63,6 +63,7 @@
                                 <th>Type of Training </th>
                                 <th>Duration</th>
                                 <th>Name of the Trainer</th>
+                                <th>Status</th>
                                 <th>Signature of the Trainer</th>
                             </tr>
                         </thead>
@@ -90,7 +91,7 @@
                                     <td>{{ $session->trainer->name ?? 'N/A' }}</td>
 
 
-
+                                    <td></td>
 
                                     <td class="align-middle">
                                         @if ($session->is_approved)
@@ -110,7 +111,8 @@
                                                 </small>
                                             </div>
                                         @else
-                                            @if (auth()->id() == $session->trainer_id || auth()->user()->hasRole(['Admin', 'Super Admin', 'admin', 'super admin', 'super-admin']))
+                                            @if (auth()->id() == $session->trainer_id ||
+                                                    auth()->user()->hasRole(['Admin', 'Super Admin', 'admin', 'super admin', 'super-admin']))
                                                 <form action="{{ route('sessions.approve', $session->id) }}"
                                                     method="POST">
                                                     @csrf
@@ -161,7 +163,8 @@
                             <select name="trainee_id" class="form-control select2" required>
                                 @foreach ($trainees as $t)
                                     <option value="{{ $t->id }}">{{ $t->name }}
-                                        ({{ $t->department->name ?? '' }})</option>
+                                        ({{ $t->department->name ?? '' }})
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -182,7 +185,8 @@
                             </div>
                             <div class="col-6">
                                 <label>Page No.</label>
-                                <input type="text" name="page_no" class="form-control" placeholder="e.g. 45" required>
+                                <input type="text" name="page_no" class="form-control" placeholder="e.g. 45"
+                                    required>
                             </div>
                         </div>
                         <div class="form-group mt-3">

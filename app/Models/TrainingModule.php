@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity; // v4 uses this, but let's check the implementation
@@ -145,6 +146,28 @@ class TrainingModule extends Model
             'rejected' => $rejected,
             'display' => $total > 0 ? "{$label} ({$accepted}/{$total})" : $label,
         ];
+    }
+
+    public function expiryDateTime(): ?Carbon
+    {
+        if (!$this->end_date) {
+            return null;
+        }
+
+        $endDate = Carbon::parse($this->end_date);
+
+        if ($this->end_time) {
+            return Carbon::parse($this->end_date . ' ' . $this->end_time);
+        }
+
+        return $endDate->endOfDay();
+    }
+
+    public function isExpired(): bool
+    {
+        $expiryDateTime = $this->expiryDateTime();
+
+        return $expiryDateTime ? now()->greaterThan($expiryDateTime) : false;
     }
 
     public function venues()

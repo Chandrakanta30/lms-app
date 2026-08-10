@@ -89,11 +89,20 @@
                             @php
                                 $statusMeta = $statusMap[$training->status ?? 'created'] ?? $statusMap['created'];
                                 $trainerAcceptance = $training->trainerAcceptanceSummary();
+                                $isExpired = $training->isExpired();
                             @endphp
                             <div class="card border mb-3">
                                 <div class="card-header bg-white py-3">
                                     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
                                         <div class="training-left">
+                                            @if ($isExpired)
+                                                <div class="mb-2">
+                                                    <span class="badge badge-danger">
+                                                        Expired
+                                                    </span>
+                                                </div>
+                                            @endif
+
                                             <button
                                                 class="btn btn-link text-decoration-none text-dark font-weight-bold p-0 training-title"
                                                 data-toggle="collapse" data-target="#collapse{{ $training->id }}"

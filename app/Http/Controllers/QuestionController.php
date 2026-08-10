@@ -50,6 +50,11 @@ class QuestionController extends Controller
     {
         $module = TrainingModule::with('examDocuments')->findOrFail($moduleId);
 
+        if ($module->isExpired()) {
+            return redirect()->route('exam.list')
+                ->with('error', 'This assessment has already ended.');
+        }
+
         if ($module->examDocuments->isEmpty()) {
             return redirect()->route('exam.list')
                 ->with('error', 'No reviewed documents are enabled for this assessment yet.');
@@ -92,6 +97,11 @@ class QuestionController extends Controller
     {
         $module = TrainingModule::with('examDocuments')->findOrFail($moduleId);
 
+        if ($module->isExpired()) {
+            return redirect()->route('exam.list')
+                ->with('error', 'This assessment has already ended.');
+        }
+
         if ($module->examDocuments->isEmpty()) {
             return redirect()->route('exam.list')
                 ->with('error', 'No reviewed documents are enabled for this assessment yet.');
@@ -127,6 +137,11 @@ class QuestionController extends Controller
     public function takeExam($moduleId)
     {
         $module = TrainingModule::with('examDocuments')->findOrFail($moduleId);
+
+        if ($module->isExpired()) {
+            return redirect()->route('exam.list')
+                ->with('error', 'This assessment has already ended.');
+        }
 
         $tracker = DocumentReadTracker::where('user_id', auth()->id())
             ->where('training_module_id', $module->id)
@@ -181,6 +196,12 @@ class QuestionController extends Controller
 
 
         $module = TrainingModule::with('examDocuments')->findOrFail($moduleId);
+
+        if ($module->isExpired()) {
+            return redirect()->route('exam.list')
+                ->with('error', 'This assessment has already ended.');
+        }
+
         $tracker = DocumentReadTracker::where('user_id', auth()->id())
             ->where('training_module_id', $module->id)
             ->first();

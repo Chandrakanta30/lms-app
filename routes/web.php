@@ -48,6 +48,8 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/dashboard/training-summary', [DashboardController::class, 'trainingSummary'])
+        ->name('dashboard.training-summary');
 
     Route::get('/help', [HelpController::class, 'index'])->name('help.index');
 

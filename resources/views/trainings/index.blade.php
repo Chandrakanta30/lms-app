@@ -56,6 +56,7 @@
                         @php
                             $statusMeta = $statusMap[$training->status ?? 'created'] ?? $statusMap['created'];
                             $trainerAcceptance = $training->trainerAcceptanceSummary();
+                            $isExpired = $training->isExpired();
                         @endphp
 
                         <!-- CARD START -->
@@ -68,6 +69,14 @@
 
                                     <!-- LEFT -->
                                     <div class="training-left">
+
+                                        @if ($isExpired)
+                                            <div class="mb-2">
+                                                <span class="badge badge-danger">
+                                                    Expired
+                                                </span>
+                                            </div>
+                                        @endif
 
                                         <button
                                             class="btn btn-link text-decoration-none text-dark font-weight-bold p-0 training-title"

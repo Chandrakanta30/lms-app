@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity; // v4 uses this, but let's check the implementation
 use Illuminate\Database\Eloquent\SoftDeletes;  //soft delete 
@@ -183,7 +184,7 @@ class TrainingModule extends Model
     public function trainees()
     {
         return $this->belongsToMany(User::class, 'training_user', 'training_module_id', 'user_id')
-            ->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by')
+            ->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by', 'reassigned_at', 'reassignment_mode', 'reassignment_note', 'reassigned_from_training_id')
             ->withTimestamps();
     }
 
@@ -213,6 +214,117 @@ class TrainingModule extends Model
     public function users()
     {
         return $this->belongsToMany(User::class, 'training_user', 'training_module_id', 'user_id')
-            ->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by');
+            ->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by', 'reassigned_at', 'reassignment_mode', 'reassignment_note', 'reassigned_from_training_id');
+    }
+
+    public function resolveTrainingStatusForUser(User|int $user): string
+    {
+        $userId = $user instanceof User ? $user->id : (int) $user;
+
+        $assignment = $this->currentAssignmentForUser($userId);
+
+        if (!$assignment) {
+            return 'pending';
+        }
+
+        $latestResult = $this->latestResultForUser($userId);
+
+        if (($assignment->reassignment_mode ?? null) === 'same' && $assignment->reassigned_at) {
+            $reassignedAt = Carbon::parse($assignment->reassigned_at);
+
+            if ($latestResult && $latestResult->created_at && Carbon::parse($latestResult->created_at)->gt($reassignedAt)) {
+                return $latestResult->is_passed ? 'passed' : 'failed';
+            }
+
+            return 'pending';
+        }
+
+        if (in_array($assignment->status ?? null, ['passed', 'failed'], true)) {
+            return $assignment->status;
+        }
+
+        if ($latestResult?->is_passed) {
+            return 'passed';
+        }
+
+        if ($latestResult && !$latestResult->is_passed) {
+            return 'failed';
+        }
+
+        $deadline = $this->trainingDeadlineForAssignment($assignment);
+
+        return $deadline && now()->greaterThan($deadline)
+            ? 'failed'
+            : 'pending';
+    }
+
+    public function syncTrainingStatusForUser(User|int $user): string
+    {
+        $userId = $user instanceof User ? $user->id : (int) $user;
+        $status = $this->resolveTrainingStatusForUser($userId);
+
+        DB::table('training_user')
+            ->where('training_module_id', $this->id)
+            ->where('user_id', $userId)
+            ->update([
+                'status' => $status,
+                'updated_at' => now(),
+            ]);
+
+        return $status;
+    }
+
+    public function currentAssignmentForUser(User|int $user): ?object
+    {
+        $userId = $user instanceof User ? $user->id : (int) $user;
+
+        return DB::table('training_user')
+            ->where('training_module_id', $this->id)
+            ->where('user_id', $userId)
+            ->first();
+    }
+
+    public function latestResultForUser(User|int $user): ?ExamResult
+    {
+        $userId = $user instanceof User ? $user->id : (int) $user;
+
+        return $this->examResults()
+            ->where('user_id', $userId)
+            ->latest('created_at')
+            ->first();
+    }
+
+    public function hasUnlockedReassignmentForUser(User|int $user): bool
+    {
+        $assignment = $this->currentAssignmentForUser($user);
+        $latestResult = $this->latestResultForUser($user);
+
+        if (!$assignment || ($assignment->reassignment_mode ?? null) !== 'same' || !$assignment->reassigned_at) {
+            return false;
+        }
+
+        if (!$latestResult || !$latestResult->created_at) {
+            return true;
+        }
+
+        return Carbon::parse($latestResult->created_at)->lte(Carbon::parse($assignment->reassigned_at));
+    }
+
+    private function trainingDeadlineForAssignment(object $assignment): ?Carbon
+    {
+        $deadline = $assignment->end_date ?? $this->end_date ?? null;
+
+        if (!$deadline) {
+            return null;
+        }
+
+        return Carbon::parse($deadline)->endOfDay();
+    }
+
+    public function hasAssignmentDeadlinePassed(object $assignment): bool
+    {
+        $deadline = $this->trainingDeadlineForAssignment($assignment);
+
+        return $deadline ? now()->greaterThan($deadline) : false;
     }
 }

@@ -14,22 +14,17 @@ class UserTrainingController extends Controller
     {
         $currentUser = auth()->user();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Base Trainee Query
-        |--------------------------------------------------------------------------
-        */
+     
         $traineesQuery = User::
             with([
                 'department',
                 'trainings' => function ($query) {
-                    $query->whereIn('training_user.status', ['enrolled', 'pending'])
-                    ->where('name', 'Induction Training')
+                    $query->where('name', 'Induction Training')
                         ->with('steps');
                 }
             ]);
 
-        // If logged-in user is a trainee, only show their data
+      
         if ($currentUser && $currentUser->hasRole('Trainee')) {
             $traineesQuery->whereKey($currentUser->id);
         }
@@ -47,18 +42,15 @@ class UserTrainingController extends Controller
             ->get()
             ->groupBy('user_id');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Process User Progress
-        |--------------------------------------------------------------------------
-        */
+     
         $trainees = $trainees->map(function ($user) use ($completedTrainings) {
 
             $completedModuleIds = collect($completedTrainings[$user->id] ?? [])
                 ->pluck('training_module_id')
                 ->toArray();
 
-            $user->assigned_progress = $user->trainings->map(function ($training) use ($completedModuleIds) {
+            $user->assigned_progress = $user->trainings->map(function (TrainingModule $training) use ($completedModuleIds, $user) {
+                $trainingStatus = $training->syncTrainingStatusForUser($user);
 
                 // Parent Module
                 if (is_null($training->parent_id)) {
@@ -91,13 +83,20 @@ class UserTrainingController extends Controller
                     'completed' => $completedCount,
                     'total'     => $totalSteps,
                     'percent'   => $percent,
-                    'status'    => $percent == 100
+                    'progress_status' => $percent == 100
                         ? 'Completed'
                         : ($percent > 0 ? 'In Progress' : 'Enrolled'),
-
-                    'color'     => $percent == 100
-                        ? 'success'
-                        : ($percent > 0 ? 'warning' : 'info'),
+                    'status'    => $trainingStatus,
+                    'status_label' => match ($trainingStatus) {
+                        'passed' => 'Passed',
+                        'failed' => 'Failed',
+                        default => 'Pending',
+                    },
+                    'color'     => match ($trainingStatus) {
+                        'passed' => 'success',
+                        'failed' => 'danger',
+                        default => 'warning',
+                    },
 
                     'steps' => $training->steps->map(function ($step) use ($completedModuleIds) {
 

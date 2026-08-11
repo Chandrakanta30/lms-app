@@ -57,44 +57,78 @@
                         <thead class="bg-light">
                             <tr>
                                 <th>S.No.</th>
-                                <th>Date</th>
                                 <th>Name of the Trainee</th>
-                                <th>Topic</th>
-                                <th>Type of Training </th>
-                                <th>Duration</th>
+                                <th>Training Module</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
                                 <th>Name of the Trainer</th>
                                 <th>Status</th>
                                 <th>Signature of the Trainer</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($sessions as $index => $session)
+                            @forelse($assignments as $index => $assignment)
                                 <tr>
-                                    <td>{{ $sessions->firstItem() + $index }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($session->training_date)->format('d-m-Y') }}</td>
-                                    <td class="text-left">{{ $session->trainee->name }}</td>
-                                    <td class="text-left">{{ $session->topic }}</td>
+                                    <td>{{ $assignments->firstItem() + $index }}</td>
+                                    <td class="text-left">{{ $assignment->user->name ?? 'N/A' }}</td>
+                                    <td class="text-left">{{ $assignment->module->name ?? 'N/A' }}</td>
                                     <td>
-                                        <div>{{ $session->session_brief_type ?? 'N/A' }}</div>
-                                        @if ($session->session_comments)
-                                            <small class="text-muted">{{ $session->session_comments }}</small>
-                                        @endif
+                                        {{ $assignment->start_date ? \Carbon\Carbon::parse($assignment->start_date)->format('d-m-Y') : 'N/A' }}
                                     </td>
                                     <td>
-                                        @if ($session->start_time && $session->end_time)
-                                            {{ \Carbon\Carbon::parse($session->start_time)->format('h:i A') }} -
-                                            {{ \Carbon\Carbon::parse($session->end_time)->format('h:i A') }}
+                                        {{ $assignment->end_date ? \Carbon\Carbon::parse($assignment->end_date)->format('d-m-Y') : 'N/A' }}
+                                    </td>
+                                    <td>{{ $assignment->trainer_name ?? 'N/A' }}</td>
+
+                                    <td>
+                                        @php
+                                            $reassignmentNote = $assignment->reassignment_note ?? null;
+                                            $isExpiredTraining = (bool) ($assignment->module?->isExpired() ?? false);
+                                        @endphp
+
+                                        @if (($assignment->status ?? 'pending') === 'failed')
+                                            @php
+                                                $deadlineOpen = $assignment->can_reassign ?? false;
+                                            @endphp
+
+                                            @if ($deadlineOpen)
+                                                <button
+                                                    type="button"
+                                                    class="training-status-action js-open-reassign-modal"
+                                                    data-toggle="modal"
+                                                    data-target="#reassignTrainingModal"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#reassignTrainingModal"
+                                                    data-assignment-id="{{ $assignment->id }}"
+                                                    data-training-id="{{ $assignment->module->id ?? '' }}"
+                                                    data-training-name="{{ $assignment->module->name ?? 'N/A' }}"
+                                                    data-training-expired="{{ $isExpiredTraining ? '1' : '0' }}"
+                                                    data-reassignment-note="{{ $reassignmentNote }}"
+                                                >
+                                                    <span class="default-label">Failed</span>
+                                                    <span class="hover-label">Click to Re-Assign</span>
+                                                </button>
+                                            @else
+                                                <span class="training-status-action disabled">
+                                                    <span class="default-label">Failed</span>
+                                                    <span class="hover-label">Re-assign unavailable</span>
+                                                </span>
+                                            @endif
                                         @else
-                                            N/A
+                                            <span class="badge {{ $assignment->status_class ?? 'badge-warning' }} p-2 text-uppercase">
+                                                {{ $assignment->status_label ?? 'Pending' }}
+                                            </span>
+                                        @endif
+
+                                        @if ($reassignmentNote)
+                                            <small class="d-block mt-1 text-muted">
+                                                {{ $reassignmentNote }}
+                                            </small>
                                         @endif
                                     </td>
-                                    <td>{{ $session->trainer->name ?? 'N/A' }}</td>
-
-
-                                    <td></td>
 
                                     <td class="align-middle">
-                                        @if ($session->is_approved)
+                                        @if (($assignment->signature_session ?? null)?->is_approved)
                                             <div class="d-flex flex-column align-items-center">
                                                 <div class="signature-box p-1"
                                                     style="border: 1px dashed #28a745; background: #f0fff4; border-radius: 4px; min-width: 120px;">
@@ -102,29 +136,62 @@
                                                         title="Verified Signature"></i>
                                                     <div class="signature-text"
                                                         style="font-family: 'Dancing Script', cursive; font-size: 1.2rem; color: #003366;">
-                                                        {{ $session->approver->name }}
+                                                        {{ $assignment->signature_session?->approver?->name ?? 'N/A' }}
                                                     </div>
                                                 </div>
                                                 <small class="text-muted mt-1" style="font-size: 0.7rem;">
                                                     Digitally Approved<br>
-                                                    {{ $session->approved_at }}
+                                                    {{ $assignment->signature_session?->approved_at }}
                                                 </small>
                                             </div>
                                         @else
-                                            @if (auth()->id() == $session->trainer_id ||
-                                                    auth()->user()->hasRole(['Admin', 'Super Admin', 'admin', 'super admin', 'super-admin']))
-                                                <form action="{{ route('sessions.approve', $session->id) }}"
+                                            @php
+                                                $canSignAndApprove = $assignment->can_sign_and_approve ?? false;
+                                                $currentUser = auth()->user();
+                                                $isPrivilegedApprover = $currentUser && $currentUser->hasRole([
+                                                    'Admin',
+                                                    'Super Admin',
+                                                    'admin',
+                                                    'super admin',
+                                                    'super-admin',
+                                                    'Coordinator',
+                                                    'coordinator',
+                                                    'Co-ordinator',
+                                                    'co-ordinator',
+                                                ]);
+                                                $canShowApproval = $assignment->signature_session
+                                                    && (
+                                                        auth()->id() == $assignment->signature_session->trainer_id
+                                                        || $isPrivilegedApprover
+                                                    );
+                                            @endphp
+
+                                            @if ($canShowApproval)
+                                                <form action="{{ route('sessions.approve', $assignment->signature_session->id) }}"
                                                     method="POST">
                                                     @csrf
                                                     @method('PATCH')
-                                                    <button type="submit" class="btn btn-sm btn-success px-3 shadow-sm">
+                                                    <button type="submit"
+                                                        class="btn btn-sm btn-success px-3 shadow-sm"
+                                                        {{ !$canSignAndApprove ? 'disabled' : '' }}>
                                                         <i class="fas fa-signature mr-1"></i> Sign & Approve
                                                     </button>
                                                 </form>
+                                                @if (!$canSignAndApprove)
+                                                    <small class="text-danger d-block mt-2">
+                                                        Disabled until the trainee passes the exam.
+                                                    </small>
+                                                @endif
                                             @else
-                                                <span class="badge badge-warning p-2">
-                                                    <i class="fas fa-clock mr-1"></i> Awaiting Trainer
-                                                </span>
+                                                @if ($isPrivilegedApprover && $canSignAndApprove)
+                                                    <span class="badge badge-warning p-2">
+                                                        <i class="fas fa-clock mr-1"></i> Session not found
+                                                    </span>
+                                                @else
+                                                    <span class="badge badge-warning p-2">
+                                                        <i class="fas fa-clock mr-1"></i> Awaiting Trainer
+                                                    </span>
+                                                @endif
                                             @endif
                                         @endif
                                     </td>
@@ -139,7 +206,7 @@
                 </div>
 
                 <div class="d-flex justify-content-center mt-4">
-                    {{ $sessions->links('pagination::bootstrap-4') }}
+                    {{ $assignments->links('pagination::bootstrap-4') }}
                 </div>
             </div>
         </div>
@@ -201,5 +268,358 @@
             </div>
         </div>
 
+        <div class="modal fade" id="reassignTrainingModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <form method="POST" class="modal-content" id="reassignTrainingForm">
+                    @csrf
+                    @method('PATCH')
+                    <input type="hidden" name="reassignment_scope" id="reassignmentScope" value="same">
+                    <input type="hidden" name="reassignment_target" id="reassignmentTarget" value="">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">Re-assign Training</h5>
+                        <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="alert alert-light border">
+                            <div class="small text-muted text-uppercase mb-1">Failed training</div>
+                            <div class="font-weight-bold" id="reassignCurrentTrainingName">N/A</div>
+                            <div class="small text-muted" id="reassignCurrentTrainingStatus"></div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="reassign-choice-card w-100 mb-0">
+                                    <input type="radio" name="reassign_choice" value="same" id="reassignSameChoice">
+                                    <div class="choice-title">Same failed training</div>
+                                    <div class="choice-subtitle" id="reassignSameSubtitle"></div>
+                                </label>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="reassign-choice-card w-100 mb-0">
+                                    <input type="radio" name="reassign_choice" value="other" id="reassignOtherChoice">
+                                    <div class="choice-title">Another active training</div>
+                                    <div class="choice-subtitle">Choose a regular or annual active training.</div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="reassignOtherSection">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h6 class="mb-0">Available trainings</h6>
+                                <small class="text-muted">Expired trainings stay visible but disabled.</small>
+                            </div>
+
+                            <div class="reassign-training-list">
+                                @forelse($reassignmentTrainings as $training)
+                                    @php
+                                        $trainingExpired = (bool) $training->isExpired();
+                                        $trainingTypeLabel = (int) ($training->is_anuual ?? 0) === 1 ? 'Annual' : 'Regular';
+                                    @endphp
+                                    <button
+                                        type="button"
+                                        class="reassign-training-option {{ $trainingExpired ? 'is-disabled' : '' }}"
+                                        data-training-id="{{ $training->id }}"
+                                        data-training-name="{{ $training->name }}"
+                                        data-training-expired="{{ $trainingExpired ? '1' : '0' }}"
+                                        {{ $trainingExpired ? 'disabled' : '' }}
+                                    >
+                                        <div class="d-flex align-items-start justify-content-between gap-2">
+                                            <div>
+                                                <div class="font-weight-bold">{{ $training->name }}</div>
+                                                <small class="text-muted">{{ $trainingTypeLabel }} training</small>
+                                            </div>
+                                            <span class="badge {{ $trainingExpired ? 'badge-secondary' : 'badge-success' }}">
+                                                {{ $trainingExpired ? 'Expired' : 'Available' }}
+                                            </span>
+                                        </div>
+                                        @if ($trainingExpired)
+                                            <small class="text-danger d-block mt-2">
+                                                This training is expired and cannot be selected.
+                                            </small>
+                                        @endif
+                                    </button>
+                                @empty
+                                    <div class="text-muted small border rounded p-3">
+                                        No active trainings are available for reassignment.
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="reassignSubmitButton" disabled>Re-assign</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </div>
+
+<style>
+    .training-status-action {
+        min-width: 150px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.25rem;
+        border: 1px solid #dc3545;
+        background: #dc3545;
+        color: #ffffff;
+        padding: 0.35rem 0.75rem;
+        transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        line-height: 1;
+        text-decoration: none;
+    }
+
+    .training-status-action .hover-label {
+        display: none;
+    }
+
+    .training-status-action .default-label,
+    .training-status-action .hover-label {
+        pointer-events: none;
+        white-space: nowrap;
+    }
+
+    .training-status-action:hover {
+        background-color: #16a34a !important;
+        border-color: #16a34a !important;
+        color: #ffffff !important;
+        transform: translateY(-1px);
+    }
+
+    .training-status-action:hover,
+    .training-status-action:focus {
+        text-decoration: none;
+    }
+
+    .training-status-action:hover .default-label {
+        display: none;
+    }
+
+    .training-status-action:hover .hover-label {
+        display: inline;
+    }
+
+    .training-status-action.disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+
+    .reassign-choice-card {
+        border: 1px solid #d8dee9;
+        border-radius: 10px;
+        padding: 14px 16px;
+        background: #ffffff;
+        cursor: pointer;
+        display: block;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .reassign-choice-card:hover {
+        border-color: #6b7280;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        transform: translateY(-1px);
+    }
+
+    .reassign-choice-card input {
+        margin-right: 8px;
+    }
+
+    .choice-title {
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .choice-subtitle {
+        font-size: 0.82rem;
+        color: #6c757d;
+    }
+
+    .reassign-training-list {
+        display: grid;
+        gap: 10px;
+        max-height: 320px;
+        overflow-y: auto;
+        padding-right: 2px;
+    }
+
+    .reassign-training-option {
+        width: 100%;
+        text-align: left;
+        border: 1px solid #d8dee9;
+        border-radius: 10px;
+        background: #ffffff;
+        padding: 12px 14px;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .reassign-training-option:hover:not(.is-disabled) {
+        border-color: #2563eb;
+        box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
+        transform: translateY(-1px);
+    }
+
+    .reassign-training-option.is-selected {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .reassign-training-option.is-disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background: #f8fafc;
+    }
+</style>
+
+@push('scripts')
+    <script>
+        (function () {
+            const modal = document.getElementById('reassignTrainingModal');
+            if (!modal) {
+                return;
+            }
+
+            const form = document.getElementById('reassignTrainingForm');
+            const assignmentRouteTemplate = @json(route('sessions.reassign', ['assignment' => '__ASSIGNMENT__']));
+            const currentTrainingName = document.getElementById('reassignCurrentTrainingName');
+            const currentTrainingStatus = document.getElementById('reassignCurrentTrainingStatus');
+            const sameSubtitle = document.getElementById('reassignSameSubtitle');
+            const sameChoice = document.getElementById('reassignSameChoice');
+            const otherChoice = document.getElementById('reassignOtherChoice');
+            const scopeInput = document.getElementById('reassignmentScope');
+            const targetInput = document.getElementById('reassignmentTarget');
+            const submitButton = document.getElementById('reassignSubmitButton');
+            const otherSection = document.getElementById('reassignOtherSection');
+            const optionButtons = Array.from(modal.querySelectorAll('.reassign-training-option'));
+
+            const state = {
+                assignmentId: null,
+                currentTrainingId: null,
+                currentTrainingName: '',
+                currentTrainingExpired: false,
+            };
+
+            function setFormAction(assignmentId) {
+                form.action = assignmentRouteTemplate.replace('__ASSIGNMENT__', assignmentId);
+            }
+
+            function clearOptionSelection() {
+                optionButtons.forEach((button) => button.classList.remove('is-selected'));
+            }
+
+            function refreshVisibleOptions() {
+                optionButtons.forEach((button) => {
+                    const isCurrentTraining = button.dataset.trainingId === state.currentTrainingId;
+                    button.style.display = isCurrentTraining ? 'none' : '';
+                });
+            }
+
+            function updateSubmitState() {
+                const scope = scopeInput.value;
+                const hasTarget = targetInput.value.trim() !== '';
+                submitButton.disabled = scope === 'same'
+                    ? state.currentTrainingExpired
+                    : !hasTarget;
+            }
+
+            function setScope(scope) {
+                scopeInput.value = scope;
+                sameChoice.checked = scope === 'same';
+                otherChoice.checked = scope === 'other';
+
+                if (scope === 'same') {
+                    targetInput.value = state.currentTrainingId || '';
+                }
+
+                otherSection.style.display = scope === 'other' ? 'block' : 'none';
+                updateSubmitState();
+            }
+
+            sameChoice?.addEventListener('change', function () {
+                setScope('same');
+                clearOptionSelection();
+            });
+
+            otherChoice?.addEventListener('change', function () {
+                setScope('other');
+                clearOptionSelection();
+            });
+
+            optionButtons.forEach((button) => {
+                button.addEventListener('click', function () {
+                    if (button.disabled) {
+                        return;
+                    }
+
+                    optionButtons.forEach((item) => item.classList.remove('is-selected'));
+                    button.classList.add('is-selected');
+                    targetInput.value = button.dataset.trainingId || '';
+                    setScope('other');
+                    otherChoice.checked = true;
+                    updateSubmitState();
+                });
+            });
+
+            document.querySelectorAll('.js-open-reassign-modal').forEach((button) => {
+                button.addEventListener('click', function () {
+                    state.assignmentId = button.dataset.assignmentId || '';
+                    state.currentTrainingId = button.dataset.trainingId || '';
+                    state.currentTrainingName = button.dataset.trainingName || 'N/A';
+                    state.currentTrainingExpired = button.dataset.trainingExpired === '1';
+
+                    setFormAction(state.assignmentId);
+                    refreshVisibleOptions();
+                    currentTrainingName.textContent = state.currentTrainingName;
+                    currentTrainingStatus.textContent = button.dataset.reassignmentNote || '';
+                    sameSubtitle.textContent = state.currentTrainingExpired
+                        ? 'This training is expired, so you must choose another active training.'
+                        : 'Re-assign the trainee back to the same failed training.';
+
+                    sameChoice.disabled = state.currentTrainingExpired;
+                    if (state.currentTrainingExpired) {
+                        sameChoice.checked = false;
+                        otherChoice.checked = true;
+                        setScope('other');
+                        targetInput.value = '';
+                    } else {
+                        sameChoice.checked = true;
+                        otherChoice.checked = false;
+                        targetInput.value = state.currentTrainingId;
+                        setScope('same');
+                    }
+
+                    clearOptionSelection();
+                    updateSubmitState();
+                });
+            });
+
+            modal.addEventListener('hidden.bs.modal', function () {
+                state.assignmentId = null;
+                state.currentTrainingId = null;
+                state.currentTrainingName = '';
+                state.currentTrainingExpired = false;
+                form.reset();
+                scopeInput.value = 'same';
+                targetInput.value = '';
+                otherSection.style.display = 'none';
+                sameChoice.disabled = false;
+                submitButton.disabled = true;
+                optionButtons.forEach((button) => {
+                    button.style.display = '';
+                });
+                clearOptionSelection();
+            });
+        })();
+    </script>
+@endpush
 @endsection

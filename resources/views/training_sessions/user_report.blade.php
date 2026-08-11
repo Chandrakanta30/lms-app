@@ -37,39 +37,34 @@
                             <thead class="bg-light">
                                 <tr>
                                     <th width="5%">S.No.</th>
-                                    <th width="12%">Date</th>
-                                    <th width="33%">Topic</th>
-                                    <th width="15%">Type of training </th>
-
-                                    <th width="15%">Name of the Trainer</th>
-                                    <th width="15%">signature of the trainer</th>
+                                    <th width="30%">Training Module</th>
+                                    <th width="12%">Start Date</th>
+                                    <th width="12%">End Date</th>
+                                    <th width="15%">Trainer</th>
+                                    <th width="12%">Status</th>
+                                    <th width="14%">Signature</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @php $totalRows = 20; @endphp {{-- Pre-defined rows for a full page look --}}
-                                @php
-                                    $classroomSignatureName = optional(
-                                        $sessions
-                                            ->first(fn ($session) => ($session->session_brief_type ?? '') !== 'Self Training' && $session->is_approved)
-                                            ?->approver
-                                    )->name;
-                                @endphp
                                 @foreach ($sessions as $index => $session)
-                                    @php
-                                        $signatureName = ($session->session_brief_type ?? '') === 'Self Training'
-                                            ? $user->name
-                                            : ($classroomSignatureName ?? ($session->approver->name ?? null));
-                                    @endphp
                                     <tr>
                                         <td>{{ $index + 1 }}</td>
-                                        <td>{{ \Carbon\Carbon::parse($session->training_date)->format('d-m-Y') }}</td>
-                                        <td>{{ $session->topic }}</td>
-                                        <td>{{ $session->session_brief_type ?? 'N/A' }}</td>
-
-                                        <td>{{ ($session->session_brief_type ?? '') === 'Self Training' ? 'N/A' : ($session->trainer->name ?? 'N/A') }}</td>
+                                        <td>{{ $session->module->name ?? 'N/A' }}</td>
+                                        <td>{{ $session->start_date ? \Carbon\Carbon::parse($session->start_date)->format('d-m-Y') : 'N/A' }}</td>
+                                        <td>{{ $session->end_date ? \Carbon\Carbon::parse($session->end_date)->format('d-m-Y') : 'N/A' }}</td>
+                                        <td>{{ $session->trainer_name ?? 'N/A' }}</td>
+                                        <td>
+                                            <span class="badge {{ $session->status_class ?? 'badge-warning' }} p-2 text-uppercase">
+                                                {{ $session->status_label ?? 'Pending' }}
+                                            </span>
+                                            @if (!empty($session->reassignment_note))
+                                                <small class="d-block mt-1 text-muted">{{ $session->reassignment_note }}</small>
+                                            @endif
+                                        </td>
                                         <td class="text-center">
-                                            @if (($session->session_brief_type ?? '') === 'Self Training' ? $session->is_approved : !empty($classroomSignatureName))
-                                                <small><i>{{ $signatureName }}</i></small>
+                                            @if (($session->signature_session ?? null)?->is_approved)
+                                                <small><i>{{ $session->signature_session?->approver?->name ?? 'N/A' }}</i></small>
                                             @else
                                                 <small><i>Pending</i></small>
                                             @endif

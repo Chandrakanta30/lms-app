@@ -288,13 +288,16 @@ class DashboardController extends Controller
             $readingDone = $tracker && $tracker->completed_at;
             $examPassed = $latestResult && $latestResult->is_passed;
             $examAttempted = (bool) $latestResult;
+            $reassignmentUnlocked = $training->hasUnlockedReassignmentForUser($user);
 
             $nextStep = match (true) {
                 $examPassed => 'completed',
+                $training->isExpired() => 'expired',
                 !$hasDocuments => 'no_documents',
                 !$readingDone => 'read_documents',
                 !$examAttempted => 'take_exam',
-                default => 'retake_exam',
+                $reassignmentUnlocked => 'retake_exam',
+                default => 'waiting_reassign',
             };
 
             return [
@@ -303,6 +306,7 @@ class DashboardController extends Controller
                 'reading_done' => $readingDone,
                 'exam_passed' => $examPassed,
                 'latest_result' => $latestResult,
+                'reassignment_unlocked' => $reassignmentUnlocked,
             ];
         });
 

@@ -45,7 +45,7 @@
                 @if ($failedAssessmentCount > 0)
                     <div class="alert alert-info mt-3">
                         {{ $failedAssessmentCount }}
-                        assessment(s) need re-attempt after document review.
+                        assessment(s) are awaiting reassignment or re-attempt.
                     </div>
                 @endif
 
@@ -84,11 +84,11 @@
                                 </h4>
 
                                 <div class="d-flex flex-wrap align-items-center" style="gap: 6px;">
-                                    @if ($isExpired)
-                                        <span class="badge badge-danger">
-                                            Expired
-                                        </span>
-                                    @endif
+                                @if ($isExpired)
+                                    <span class="badge badge-danger">
+                                        Expired
+                                    </span>
+                                @endif
 
                                     @if ($status && $status->is_passed)
                                         <span class="badge badge-success">
@@ -195,12 +195,18 @@
                                         Completed
 
                                     </button>
-                                @elseif($status && !$status->is_passed)
+                                @elseif(($module->assessment_state ?? null) === 'retake_exam')
                                     <a href="{{ route('exams.take', $module->id) }}" class="btn btn-danger btn-block">
 
                                         Re-Attempt
 
                                     </a>
+                                @elseif(($module->assessment_state ?? null) === 'waiting_reassign')
+                                    <button class="btn btn-outline-danger btn-block" disabled>
+
+                                        Awaiting Re-Assignment
+
+                                    </button>
                                 @else
                                     <a href="{{ route('exams.take', $module->id) }}" class="btn btn-primary btn-block">
 

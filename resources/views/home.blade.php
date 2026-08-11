@@ -782,30 +782,39 @@
                 'read_documents' => 'Read documents first',
                 'take_exam'      => 'Exam ready — take it now',
                 'retake_exam'    => 'Exam failed — retake available',
+                'expired'        => 'Training expired',
+                'waiting_reassign' => 'Exam failed — awaiting reassignment',
                 default          => 'In progress',
               };
               $stepColor = match($item['next_step']) {
                 'read_documents' => '#d97706',
                 'take_exam'      => '#2563eb',
                 'retake_exam'    => '#dc2626',
+                'expired'        => '#6b7280',
+                'waiting_reassign' => '#b45309',
                 default          => '#64748b',
               };
               $stepIcon = match($item['next_step']) {
                 'read_documents' => 'mdi-book-open-page-variant-outline',
                 'take_exam'      => 'mdi-clipboard-text-outline',
                 'retake_exam'    => 'mdi-reload-alert',
+                'expired'        => 'mdi-calendar-remove',
+                'waiting_reassign' => 'mdi-alert-circle-outline',
                 default          => 'mdi-dots-horizontal-circle-outline',
               };
               $actionRoute = match($item['next_step']) {
                 'read_documents' => route('exams.read', $item['training']->id),
                 'take_exam'      => route('exams.take', $item['training']->id),
                 'retake_exam'    => route('exams.take', $item['training']->id),
+                'expired'        => '#',
                 default          => '#',
               };
               $actionLabel = match($item['next_step']) {
                 'read_documents' => 'Start Reading',
                 'take_exam'      => 'Take Exam',
                 'retake_exam'    => 'Retake Exam',
+                'expired'        => 'Expired',
+                'waiting_reassign' => 'Awaiting Reassignment',
                 default          => 'Continue',
               };
             @endphp
@@ -835,9 +844,15 @@
                       <i class="mdi {{ $item['exam_passed'] ? 'mdi-check-circle' : 'mdi-circle-outline' }}"></i> Assessment
                     </span>
                   </div>
-                  <a href="{{ $actionRoute }}" class="btn btn-sm w-100" style="background:{{ $stepColor }};color:#fff;font-size:0.82rem;">
-                    {{ $actionLabel }}
-                  </a>
+                  @if(in_array($item['next_step'], ['waiting_reassign', 'expired'], true))
+                    <button type="button" class="btn btn-sm w-100" disabled style="background:{{ $stepColor }};color:#fff;font-size:0.82rem;opacity:0.7;">
+                      {{ $actionLabel }}
+                    </button>
+                  @else
+                    <a href="{{ $actionRoute }}" class="btn btn-sm w-100" style="background:{{ $stepColor }};color:#fff;font-size:0.82rem;">
+                      {{ $actionLabel }}
+                    </a>
+                  @endif
                 </div>
               </div>
             </div>

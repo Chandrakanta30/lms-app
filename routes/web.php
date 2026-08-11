@@ -101,6 +101,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('training-register', [TrainingSessionController::class, 'store'])->name('sessions.store');
     Route::get('report/training-card/{user}', [TrainingSessionController::class, 'userReport'])->name('user.training.card');
     Route::patch('training-register/{id}/approve', [TrainingSessionController::class, 'approve'])->name('sessions.approve');
+    Route::patch('training-register/{assignment}/reassign', [TrainingSessionController::class, 'reassign'])->name('sessions.reassign');
 
     Route::get('/trainings/{moduleId}/questions', [QuestionController::class, 'index'])->name('questions.manage');
     Route::post('/trainings/{moduleId}/questions', [QuestionController::class, 'sync'])->name('questions.sync');

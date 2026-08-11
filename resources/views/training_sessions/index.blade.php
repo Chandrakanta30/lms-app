@@ -18,7 +18,7 @@
 
                 <form method="GET" action="{{ route('sessions.index') }}" class="border rounded p-3 mb-4 bg-light">
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label>Trainee</label>
                             <select name="trainee_id" class="form-control">
                                 <option value="">All Users</option>
@@ -32,8 +32,18 @@
                         </div>
                         <div class="col-md-3">
                             <label>Training / Topic</label>
-                            <input type="text" name="topic" class="form-control" value="{{ request('topic') }}"
+                            <input type="text" name="topic" class="form-control"
+                                value="{{ request('topic') ?: ($selectedTraining->name ?? '') }}"
                                 placeholder="Search SOP or topic">
+                        </div>
+                        <div class="col-md-2">
+                            <label>Status</label>
+                            <select name="status" class="form-control">
+                                <option value="">All Status</option>
+                                <option value="pending" {{ $selectedStatus === 'pending' ? 'selected' : '' }}>Pending</option>
+                                <option value="passed" {{ $selectedStatus === 'passed' ? 'selected' : '' }}>Passed</option>
+                                <option value="failed" {{ $selectedStatus === 'failed' ? 'selected' : '' }}>Failed</option>
+                            </select>
                         </div>
                         <div class="col-md-2">
                             <label>Date From</label>
@@ -43,7 +53,7 @@
                             <label>Date To</label>
                             <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
+                        <div class="col-md-1 d-flex align-items-end">
                             <div class="w-100">
                                 <button type="submit" class="btn btn-primary btn-block">Search</button>
                                 <a href="{{ route('sessions.index') }}" class="btn btn-light btn-block">Reset</a>
@@ -100,6 +110,7 @@
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#reassignTrainingModal"
                                                     data-assignment-id="{{ $assignment->id }}"
+                                                    data-trainee-id="{{ $assignment->user_id }}"
                                                     data-training-id="{{ $assignment->module->id ?? '' }}"
                                                     data-training-name="{{ $assignment->module->name ?? 'N/A' }}"
                                                     data-training-expired="{{ $isExpiredTraining ? '1' : '0' }}"
@@ -301,52 +312,22 @@
                             <div class="col-md-6 mb-3">
                                 <label class="reassign-choice-card w-100 mb-0">
                                     <input type="radio" name="reassign_choice" value="other" id="reassignOtherChoice">
-                                    <div class="choice-title">Another active training</div>
-                                    <div class="choice-subtitle">Choose a regular or annual active training.</div>
+                                    <div class="choice-title">Another regular training</div>
+                                    <div class="choice-subtitle">Choose an active regular training you are not already enrolled in.</div>
                                 </label>
                             </div>
                         </div>
 
                         <div id="reassignOtherSection">
                             <div class="d-flex align-items-center justify-content-between mb-2">
-                                <h6 class="mb-0">Available trainings</h6>
-                                <small class="text-muted">Expired trainings stay visible but disabled.</small>
+                                <h6 class="mb-0">Available regular trainings</h6>
+                                <small class="text-muted">Only active regular trainings you have not taken yet are shown.</small>
                             </div>
 
-                            <div class="reassign-training-list">
-                                @forelse($reassignmentTrainings as $training)
-                                    @php
-                                        $trainingExpired = (bool) $training->isExpired();
-                                        $trainingTypeLabel = (int) ($training->is_anuual ?? 0) === 1 ? 'Annual' : 'Regular';
-                                    @endphp
-                                    <button
-                                        type="button"
-                                        class="reassign-training-option {{ $trainingExpired ? 'is-disabled' : '' }}"
-                                        data-training-id="{{ $training->id }}"
-                                        data-training-name="{{ $training->name }}"
-                                        data-training-expired="{{ $trainingExpired ? '1' : '0' }}"
-                                        {{ $trainingExpired ? 'disabled' : '' }}
-                                    >
-                                        <div class="d-flex align-items-start justify-content-between gap-2">
-                                            <div>
-                                                <div class="font-weight-bold">{{ $training->name }}</div>
-                                                <small class="text-muted">{{ $trainingTypeLabel }} training</small>
-                                            </div>
-                                            <span class="badge {{ $trainingExpired ? 'badge-secondary' : 'badge-success' }}">
-                                                {{ $trainingExpired ? 'Expired' : 'Available' }}
-                                            </span>
-                                        </div>
-                                        @if ($trainingExpired)
-                                            <small class="text-danger d-block mt-2">
-                                                This training is expired and cannot be selected.
-                                            </small>
-                                        @endif
-                                    </button>
-                                @empty
-                                    <div class="text-muted small border rounded p-3">
-                                        No active trainings are available for reassignment.
-                                    </div>
-                                @endforelse
+                            <div class="reassign-training-list" id="reassignTrainingList">
+                                <div class="text-muted small border rounded p-3">
+                                    Choose a failed row to load eligible trainings.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -500,10 +481,12 @@
             const targetInput = document.getElementById('reassignmentTarget');
             const submitButton = document.getElementById('reassignSubmitButton');
             const otherSection = document.getElementById('reassignOtherSection');
-            const optionButtons = Array.from(modal.querySelectorAll('.reassign-training-option'));
+            const trainingList = document.getElementById('reassignTrainingList');
+            const trainingMap = @json($reassignmentTrainingMap ?? []);
 
             const state = {
                 assignmentId: null,
+                traineeId: null,
                 currentTrainingId: null,
                 currentTrainingName: '',
                 currentTrainingExpired: false,
@@ -514,13 +497,61 @@
             }
 
             function clearOptionSelection() {
-                optionButtons.forEach((button) => button.classList.remove('is-selected'));
+                Array.from(modal.querySelectorAll('.reassign-training-option')).forEach((button) => {
+                    button.classList.remove('is-selected');
+                });
             }
 
-            function refreshVisibleOptions() {
-                optionButtons.forEach((button) => {
-                    const isCurrentTraining = button.dataset.trainingId === state.currentTrainingId;
-                    button.style.display = isCurrentTraining ? 'none' : '';
+            function renderTrainingOptions() {
+                const options = trainingMap[state.traineeId] || [];
+                const eligibleOptions = options.filter((item) => String(item.id) !== String(state.currentTrainingId));
+
+                if (!eligibleOptions.length) {
+                    trainingList.innerHTML = '<div class="text-muted small border rounded p-3">No eligible regular trainings are available for reassignment.</div>';
+                    return;
+                }
+
+                trainingList.innerHTML = eligibleOptions.map((item) => {
+                    const isDisabled = item.expired ? 'disabled' : '';
+                    const disabledClass = item.expired ? 'is-disabled' : '';
+                    const badgeClass = item.expired ? 'badge-secondary' : 'badge-success';
+                    const badgeLabel = item.expired ? 'Expired' : 'Available';
+                    const extraNote = item.expired ? '<small class="text-danger d-block mt-2">This training is expired and cannot be selected.</small>' : '';
+
+                    return `
+                        <button
+                            type="button"
+                            class="reassign-training-option ${disabledClass}"
+                            data-training-id="${item.id}"
+                            data-training-name="${item.name}"
+                            data-training-expired="${item.expired ? '1' : '0'}"
+                            ${isDisabled}
+                        >
+                            <div class="d-flex align-items-start justify-content-between gap-2">
+                                <div>
+                                    <div class="font-weight-bold">${item.name}</div>
+                                    <small class="text-muted">${item.type_label} training</small>
+                                </div>
+                                <span class="badge ${badgeClass}">${badgeLabel}</span>
+                            </div>
+                            ${extraNote}
+                        </button>
+                    `;
+                });
+
+                Array.from(modal.querySelectorAll('.reassign-training-option')).forEach((button) => {
+                    button.addEventListener('click', function () {
+                        if (button.disabled) {
+                            return;
+                        }
+
+                        Array.from(modal.querySelectorAll('.reassign-training-option')).forEach((item) => item.classList.remove('is-selected'));
+                        button.classList.add('is-selected');
+                        targetInput.value = button.dataset.trainingId || '';
+                        setScope('other');
+                        otherChoice.checked = true;
+                        updateSubmitState();
+                    });
                 });
             }
 
@@ -555,30 +586,16 @@
                 clearOptionSelection();
             });
 
-            optionButtons.forEach((button) => {
-                button.addEventListener('click', function () {
-                    if (button.disabled) {
-                        return;
-                    }
-
-                    optionButtons.forEach((item) => item.classList.remove('is-selected'));
-                    button.classList.add('is-selected');
-                    targetInput.value = button.dataset.trainingId || '';
-                    setScope('other');
-                    otherChoice.checked = true;
-                    updateSubmitState();
-                });
-            });
-
             document.querySelectorAll('.js-open-reassign-modal').forEach((button) => {
                 button.addEventListener('click', function () {
                     state.assignmentId = button.dataset.assignmentId || '';
+                    state.traineeId = button.dataset.traineeId || '';
                     state.currentTrainingId = button.dataset.trainingId || '';
                     state.currentTrainingName = button.dataset.trainingName || 'N/A';
                     state.currentTrainingExpired = button.dataset.trainingExpired === '1';
 
                     setFormAction(state.assignmentId);
-                    refreshVisibleOptions();
+                    renderTrainingOptions();
                     currentTrainingName.textContent = state.currentTrainingName;
                     currentTrainingStatus.textContent = button.dataset.reassignmentNote || '';
                     sameSubtitle.textContent = state.currentTrainingExpired
@@ -605,6 +622,7 @@
 
             modal.addEventListener('hidden.bs.modal', function () {
                 state.assignmentId = null;
+                state.traineeId = null;
                 state.currentTrainingId = null;
                 state.currentTrainingName = '';
                 state.currentTrainingExpired = false;
@@ -614,9 +632,7 @@
                 otherSection.style.display = 'none';
                 sameChoice.disabled = false;
                 submitButton.disabled = true;
-                optionButtons.forEach((button) => {
-                    button.style.display = '';
-                });
+                trainingList.innerHTML = '<div class="text-muted small border rounded p-3">Choose a failed row to load eligible trainings.</div>';
                 clearOptionSelection();
             });
         })();

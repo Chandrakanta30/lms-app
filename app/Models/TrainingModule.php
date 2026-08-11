@@ -229,7 +229,7 @@ class TrainingModule extends Model
 
         $latestResult = $this->latestResultForUser($userId);
 
-        if (($assignment->reassignment_mode ?? null) === 'same' && $assignment->reassigned_at) {
+        if ($assignment->reassigned_at) {
             $reassignedAt = Carbon::parse($assignment->reassigned_at);
 
             if ($latestResult && $latestResult->created_at && Carbon::parse($latestResult->created_at)->gt($reassignedAt)) {

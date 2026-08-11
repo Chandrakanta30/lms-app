@@ -10,6 +10,7 @@ use App\Models\TrainingUser;
 use App\Models\TrainingSessions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
@@ -48,119 +49,177 @@ class TrainingSessionController extends Controller
             $assignmentsQuery->whereDate('end_date', '<=', $request->date_to);
         }
 
-        $assignments = $assignmentsQuery
-            ->orderByDesc('training_user.id')
-            ->paginate(15)
-            ->withQueryString();
+        $selectedTraining = $request->filled('training_id')
+            ? TrainingModule::query()->select('id', 'name')->find($request->integer('training_id'))
+            : null;
+        if ($selectedTraining) {
+            $assignmentsQuery->where('training_module_id', $selectedTraining->id);
+        }
 
         $statusCache = [];
-        $assignments->getCollection()->transform(function (TrainingUser $assignment) use (&$statusCache) {
-            $cacheKey = $assignment->user_id . '|' . $assignment->training_module_id;
-            $module = $assignment->module;
-            $user = $assignment->user;
+        $decorateAssignments = function ($items) use (&$statusCache) {
+            return $items->transform(function (TrainingUser $assignment) use (&$statusCache) {
+                $cacheKey = $assignment->user_id . '|' . $assignment->training_module_id;
+                $module = $assignment->module;
+                $user = $assignment->user;
 
-            if (!array_key_exists($cacheKey, $statusCache)) {
-                $statusCache[$cacheKey] = $module && $user
-                    ? $module->syncTrainingStatusForUser($user)
-                    : ($assignment->status ?? 'pending');
+                if (!array_key_exists($cacheKey, $statusCache)) {
+                    $statusCache[$cacheKey] = $module && $user
+                        ? $module->syncTrainingStatusForUser($user)
+                        : ($assignment->status ?? 'pending');
+                }
+
+                $assignment->status = $statusCache[$cacheKey];
+                $assignment->status_label = $this->formatTrainingStatusLabel($assignment->status);
+                $assignment->status_class = $this->formatTrainingStatusClass($assignment->status);
+                $assignment->can_sign_and_approve = $assignment->status === 'passed';
+                $assignment->latest_exam_result = $module && $user
+                    ? $module->examResults()
+                        ->where('user_id', $user->id)
+                        ->latest('created_at')
+                        ->first()
+                    : null;
+                $assignment->reassignment_note = $assignment->reassignment_note
+                    ?: $this->buildReassignmentNote($assignment);
+                $assignment->can_reassign = $assignment->status === 'failed'
+                    && $module
+                    && (
+                        !$assignment->reassigned_at
+                        || (
+                            $assignment->latest_exam_result
+                            && $assignment->latest_exam_result->created_at
+                            && Carbon::parse($assignment->latest_exam_result->created_at)->gt(Carbon::parse($assignment->reassigned_at))
+                        )
+                    );
+                $assignment->trainer_name = optional($module?->trainers?->first())->name ?? 'N/A';
+                $assignment->signature_session = $module && $user
+                    ? $this->resolveTrainingSessionForAssignment($assignment)
+                    : null;
+                return $assignment;
+            });
+        };
+
+        $selectedStatus = $request->filled('status')
+            ? strtolower(trim((string) $request->input('status')))
+            : null;
+
+        if ($selectedStatus) {
+            $assignmentCollection = $decorateAssignments(
+                $assignmentsQuery
+                    ->orderByDesc('training_user.id')
+                    ->get()
+            );
+
+            if ($selectedTraining) {
+                $assignmentCollection = $assignmentCollection
+                    ->filter(fn (TrainingUser $assignment) => (int) $assignment->training_module_id === (int) $selectedTraining->id)
+                    ->values();
             }
 
-            $assignment->status = $statusCache[$cacheKey];
-            $assignment->status_label = $this->formatTrainingStatusLabel($assignment->status);
-            $assignment->status_class = $this->formatTrainingStatusClass($assignment->status);
-            $assignment->can_sign_and_approve = $assignment->status === 'passed';
-            $assignment->latest_exam_result = $module && $user
-                ? $module->examResults()
-                    ->where('user_id', $user->id)
-                    ->latest('created_at')
-                    ->first()
-                : null;
-            $assignment->reassignment_note = $assignment->reassignment_note
-                ?: $this->buildReassignmentNote($assignment);
-            $assignment->can_reassign = $assignment->status === 'failed'
-                && $module
-                && (
-                    !$assignment->reassigned_at
-                    || (
-                        $assignment->latest_exam_result
-                        && $assignment->latest_exam_result->created_at
-                        && Carbon::parse($assignment->latest_exam_result->created_at)->gt(Carbon::parse($assignment->reassigned_at))
-                    )
-                );
-            $assignment->trainer_name = optional($module?->trainers?->first())->name ?? 'N/A';
-            $assignment->signature_session = $module && $user
-                ? $this->resolveTrainingSessionForAssignment($assignment)
-                : null;
-            return $assignment;
-        });
+            $assignmentCollection = $assignmentCollection
+                ->filter(fn (TrainingUser $assignment) => $assignment->status === $selectedStatus)
+                ->values();
 
-        $reassignmentTrainings = $this->reassignmentTrainingOptions();
+            $perPage = 15;
+            $currentPage = LengthAwarePaginator::resolveCurrentPage();
+            $currentItems = $assignmentCollection->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+            $assignments = new LengthAwarePaginator(
+                $currentItems,
+                $assignmentCollection->count(),
+                $perPage,
+                $currentPage,
+                [
+                    'path' => $request->url(),
+                    'pageName' => 'page',
+                ]
+            );
+            $assignments->appends($request->query());
+        } else {
+            $assignments = $assignmentsQuery
+                ->orderByDesc('training_user.id')
+                ->paginate(15)
+                ->withQueryString();
+
+            $assignments->setCollection($decorateAssignments($assignments->getCollection()));
+        }
+
+        $reassignmentTrainingMap = $this->reassignmentTrainingMap(
+            $assignments->getCollection()->pluck('user')->filter()->unique('id')->values()
+        );
 
         $trainers = User::where('is_trainer', true)
             ->with('designation')
             ->get();
 
-       
+
         $trainees = User::query()
             ->with('department')
             ->get();
 
-        return view('training_sessions.index', compact('assignments', 'trainers', 'trainees', 'reassignmentTrainings'));
+        return view('training_sessions.index', compact(
+            'assignments',
+            'trainers',
+            'trainees',
+            'reassignmentTrainingMap',
+            'selectedTraining',
+            'selectedStatus',
+        ));
     }
 
 
-        public function store(Request $request)
-        {
-            $request->validate([
-                'training_date' => 'required|date',
-                'trainee_id' => 'required|exists:users,id',
-                'trainer_id' => 'nullable|exists:users,id',
-                'topic' => 'required|string',
-                'register_no' => 'required',
-                'page_no' => 'required',
-            ]);
+    public function store(Request $request)
+    {
+        $request->validate([
+            'training_date' => 'required|date',
+            'trainee_id' => 'required|exists:users,id',
+            'trainer_id' => 'nullable|exists:users,id',
+            'topic' => 'required|string',
+            'register_no' => 'required',
+            'page_no' => 'required',
+        ]);
 
-            $payload = $request->only([
-                'training_date',
-                'trainee_id',
-                'trainer_id',
-                'register_no',
-                'page_no',
-                'topic',
-            ]);
-            $payload['trainer_id'] = $request->trainer_id ?: null;
+        $payload = $request->only([
+            'training_date',
+            'trainee_id',
+            'trainer_id',
+            'register_no',
+            'page_no',
+            'topic',
+        ]);
+        $payload['trainer_id'] = $request->trainer_id ?: null;
 
-            TrainingSessions::updateOrCreate(
+        TrainingSessions::updateOrCreate(
+            [
+                'trainee_id' => $payload['trainee_id'],
+                'topic' => $payload['topic'],
+            ],
+            $payload
+        );
+        $user = User::find($request->trainee_id);
+        $module = $this->resolveTrainingModuleForTopic($payload['topic']);
+
+        if ($module && $user) {
+            TrainingUser::updateOrCreate(
                 [
-                    'trainee_id' => $payload['trainee_id'],
-                    'topic' => $payload['topic'],
+                    'user_id' => $user->id,
+                    'training_module_id' => $module->id,
                 ],
-                $payload
+                [
+                    'start_date' => $module->start_date ?? $request->training_date,
+                    'end_date' => $module->end_date ?? $request->training_date,
+                    'status' => $module->syncTrainingStatusForUser($user),
+                ]
             );
-            $user = User::find($request->trainee_id);
-            $module = $this->resolveTrainingModuleForTopic($payload['topic']);
-
-            if ($module && $user) {
-                TrainingUser::updateOrCreate(
-                    [
-                        'user_id' => $user->id,
-                        'training_module_id' => $module->id,
-                    ],
-                    [
-                        'start_date' => $module->start_date ?? $request->training_date,
-                        'end_date' => $module->end_date ?? $request->training_date,
-                        'status' => $module->syncTrainingStatusForUser($user),
-                    ]
-                );
-            }
-
-            $this->syncTrainingStatusByTopic($payload['topic'], $user);
-            $traineeRole = Role::findOrCreate('Trainee', 'web');
-            $user->assignRole($traineeRole);
-
-
-            return back()->with('success', 'Training Register updated successfully.');
         }
+
+        $this->syncTrainingStatusByTopic($payload['topic'], $user);
+        $traineeRole = Role::findOrCreate('Trainee', 'web');
+        $user->assignRole($traineeRole);
+
+
+        return back()->with('success', 'Training Register updated successfully.');
+    }
 
 
     public function userReport(User $user)
@@ -200,6 +259,10 @@ class TrainingSessionController extends Controller
                 return $assignment;
             });
 
+        $sessions = $sessions
+            ->filter(fn (TrainingUser $assignment) => $assignment->status === 'passed')
+            ->values();
+
         return view('training_sessions.user_report', compact('user', 'sessions'));
     }
 
@@ -224,7 +287,7 @@ class TrainingSessionController extends Controller
             ->get()
             ->pluck('module.name')
             ->filter()
-            ->map(fn ($name) => $this->normalizeTrainingLabel($name))
+            ->map(fn($name) => $this->normalizeTrainingLabel($name))
             ->unique()
             ->values();
 
@@ -360,13 +423,6 @@ class TrainingSessionController extends Controller
                 return;
             }
 
-            $assignment->update([
-                'reassigned_at' => $currentAssignmentUpdatedAt,
-                'reassignment_mode' => $scope,
-                'reassignment_note' => $reassignmentNote,
-                'reassigned_from_training_id' => $module->id,
-            ]);
-
             TrainingUser::updateOrCreate(
                 [
                     'user_id' => $user->id,
@@ -377,8 +433,8 @@ class TrainingSessionController extends Controller
                     'start_date' => $targetTraining->start_date ?? $module->start_date ?? now()->toDateString(),
                     'end_date' => $targetTraining->end_date ?? $module->end_date ?? now()->toDateString(),
                     'reassigned_at' => $currentAssignmentUpdatedAt,
-                    'reassignment_mode' => 'other',
-                    'reassignment_note' => $reassignmentNote,
+                    'reassignment_mode' => $scope,
+                    'reassignment_note' => null,
                     'reassigned_from_training_id' => $module->id,
                 ]
             );
@@ -388,18 +444,19 @@ class TrainingSessionController extends Controller
             ->performedOn($assignment)
             ->causedBy($currentUser)
             ->withProperties([
-                'training_user_id' => $assignment->id,
-                'trainee_id' => $user->id,
-                'from_training_id' => $module->id,
-                'from_training_name' => $module->name,
-                'to_training_id' => $targetTraining->id,
-                'to_training_name' => $targetTraining->name,
-                'scope' => $scope,
-                'reassignment_note' => $reassignmentNote,
+                'old' => [
+                    'training' => $module->name,
+                    'scope' => 'failed',
+                ],
+                'attributes' => [
+                    'training' => $targetTraining->name,
+                    'scope' => $scope === 'same' ? 'same training' : 'other training',
+                    'reassignment_note' => $reassignmentNote,
+                ],
             ])
             ->log('training reassigned');
 
-        return back()->with('success', 'Training re-assigned successfully.');    
+        return back()->with('success', 'Training re-assigned successfully.');
     }
 
     private function syncTrainingStatusByTopic(string $topic, ?User $user): ?string
@@ -457,11 +514,11 @@ class TrainingSessionController extends Controller
             foreach ($modules as $module) {
                 $moduleNames = collect([$module->name])
                     ->merge($module->steps->pluck('name'))
-                    ->map(fn (string $name) => $this->normalizeTrainingLabel($name));
+                    ->map(fn(string $name) => $this->normalizeTrainingLabel($name));
 
                 if (
                     $moduleNames->contains($candidateLabel)
-                    || $moduleNames->contains(fn (string $name) => str_contains($name, $candidateLabel))
+                    || $moduleNames->contains(fn(string $name) => str_contains($name, $candidateLabel))
                     || str_contains($candidateLabel, $this->normalizeTrainingLabel($module->name))
                 ) {
                     return $module;
@@ -501,34 +558,80 @@ class TrainingSessionController extends Controller
 
     private function buildReassignmentNote(TrainingUser $assignment): ?string
     {
-        $trainingName = $assignment->module?->name ?? null;
+        if (filled($assignment->reassignment_note)) {
+            return $assignment->reassignment_note;
+        }
 
-        if (!$trainingName) {
+        $latestActivity = \Spatie\Activitylog\Models\Activity::query()
+            ->where('subject_type', TrainingUser::class)
+            ->where('subject_id', $assignment->id)
+            ->where('description', 'training reassigned')
+            ->latest()
+            ->first();
+
+        if (!$latestActivity) {
             return null;
         }
 
-        $dateSource = $assignment->module?->start_date
-            ?? $assignment->reassigned_at
-            ?? now();
+        $note = data_get($latestActivity->properties, 'attributes.reassignment_note');
 
-        return 'reassign -> ' . $trainingName . ' | ' . Carbon::parse($dateSource)->format('d M Y');
+        if (filled($note)) {
+            return $note;
+        }
+
+        $trainingName = data_get($latestActivity->properties, 'attributes.training');
+        if (filled($trainingName)) {
+            $dateText = $assignment->reassigned_at
+                ? Carbon::parse($assignment->reassigned_at)->format('d M Y')
+                : now()->format('d M Y');
+
+            return 'reassign -> ' . $trainingName . ' | ' . $dateText;
+        }
+
+        return null;
     }
 
-    private function reassignmentTrainingOptions()
+    private function reassignmentTrainingMap($users): array
     {
+        return collect($users)
+            ->filter()
+            ->unique('id')
+            ->mapWithKeys(function (User $user) {
+                return [$user->id => $this->reassignmentTrainingOptions($user)->map(function (TrainingModule $training) {
+                    return [
+                        'id' => $training->id,
+                        'name' => $training->name,
+                        'type_label' => (int) ($training->is_anuual ?? 0) === 1 ? 'Annual' : 'Regular',
+                        'start_date' => $training->start_date,
+                        'end_date' => $training->end_date,
+                        'expired' => $training->isExpired(),
+                    ];
+                })->values()->all()];
+            })
+            ->all();
+    }
+
+    private function reassignmentTrainingOptions(User|int $user)
+    {
+        $userId = $user instanceof User ? $user->id : (int) $user;
+
         return TrainingModule::query()
+            ->with(['trainees:id'])
+            ->whereNull('parent_id')
             ->where('is_active', 1)
             ->where(function ($query) {
                 $query->where(function ($regularQuery) {
                     $regularQuery->whereNull('is_anuual')
                         ->orWhere('is_anuual', '0');
-                })->orWhere(function ($annualQuery) {
-                    $annualQuery->where('is_anuual', '1')
-                        ->whereNotNull('annual_parent_id');
                 });
             })
+            ->whereDoesntHave('trainees', function ($query) use ($userId) {
+                $query->where('users.id', $userId);
+            })
             ->orderBy('name')
-            ->get(['id', 'name', 'start_date', 'end_date', 'is_anuual', 'annual_parent_id', 'is_active']);
+            ->get(['id', 'name', 'start_date', 'end_date', 'is_anuual', 'annual_parent_id', 'is_active'])
+            ->filter(fn(TrainingModule $training) => !$training->isExpired())
+            ->values();
     }
 
     private function resolveTrainingSessionForAssignment(TrainingUser $assignment): ?TrainingSessions

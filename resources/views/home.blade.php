@@ -222,8 +222,18 @@
                         <td class="py-3">{{ $summary->register_count }}</td>
                         <td class="py-3 text-success fw-semibold">{{ $summary->present_count }}</td>
                         <td class="py-3 text-danger fw-semibold">{{ $summary->absent_count }}</td>
-                        <td class="py-3 text-success fw-semibold">{{ $summary->passed_count }}</td>
-                        <td class="py-3 text-danger fw-semibold">{{ $summary->failed_count }}</td>
+                        <td class="py-3 text-success fw-semibold">
+                          <a href="{{ route('sessions.index', ['training_id' => $summary->id, 'status' => 'passed']) }}"
+                            class="text-success text-decoration-none">
+                            {{ $summary->passed_count }}
+                          </a>
+                        </td>
+                        <td class="py-3 text-danger fw-semibold">
+                          <a href="{{ route('sessions.index', ['training_id' => $summary->id, 'status' => 'failed']) }}"
+                            class="text-danger text-decoration-none">
+                            {{ $summary->failed_count }}
+                          </a>
+                        </td>
                       </tr>
                     @empty
                       <tr>

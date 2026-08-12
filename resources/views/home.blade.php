@@ -278,7 +278,11 @@
                     <div class="fw-medium" style="font-size:0.9rem;">{{ $t->name }}</div>
                     <div class="text-muted" style="font-size:0.78rem;">{{ ucfirst(str_replace('_', ' ', $t->training_type)) }} &middot; {{ $t->created_at->format('d M Y') }}</div>
                   </div>
-                  <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-outline-warning" style="font-size:0.78rem;">Review</a>
+                  @if($t->isExpired())
+                    <span class="btn btn-sm btn-outline-secondary disabled" style="font-size:0.78rem;" aria-disabled="true" title="Ended trainings cannot be edited">Review</span>
+                  @else
+                    <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-outline-warning" style="font-size:0.78rem;">Review</a>
+                  @endif
                 </div>
               @empty
                 <div class="px-4 py-4 text-muted text-center" style="font-size:0.88rem;">No trainings awaiting review.</div>
@@ -304,7 +308,11 @@
                     <div class="fw-medium" style="font-size:0.9rem;">{{ $t->name }}</div>
                     <div class="text-muted" style="font-size:0.78rem;">{{ ucfirst(str_replace('_', ' ', $t->training_type)) }} &middot; {{ $t->created_at->format('d M Y') }}</div>
                   </div>
-                  <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-outline-primary" style="font-size:0.78rem;">Approve</a>
+                  @if($t->isExpired())
+                    <span class="btn btn-sm btn-outline-secondary disabled" style="font-size:0.78rem;" aria-disabled="true" title="Ended trainings cannot be edited">Approve</span>
+                  @else
+                    <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-outline-primary" style="font-size:0.78rem;">Approve</a>
+                  @endif
                 </div>
               @empty
                 <div class="px-4 py-4 text-muted text-center" style="font-size:0.88rem;">No trainings awaiting approval.</div>
@@ -655,7 +663,11 @@
                       &middot; {{ $t->created_at->format('d M Y') }}
                     </div>
                   </div>
-                  <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-warning" style="font-size:0.8rem;">Open &amp; Review</a>
+                  @if($t->isExpired())
+                    <span class="btn btn-sm btn-secondary disabled" style="font-size:0.8rem;" aria-disabled="true" title="Ended trainings cannot be edited">Open &amp; Review</span>
+                  @else
+                    <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-warning" style="font-size:0.8rem;">Open &amp; Review</a>
+                  @endif
                 </div>
               @empty
                 <div class="px-4 py-5 text-center text-muted">
@@ -720,7 +732,11 @@
                       &middot; {{ $t->created_at->format('d M Y') }}
                     </div>
                   </div>
-                  <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-primary" style="font-size:0.8rem;">Open &amp; Approve</a>
+                  @if($t->isExpired())
+                    <span class="btn btn-sm btn-secondary disabled" style="font-size:0.8rem;" aria-disabled="true" title="Ended trainings cannot be edited">Open &amp; Approve</span>
+                  @else
+                    <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-primary" style="font-size:0.8rem;">Open &amp; Approve</a>
+                  @endif
                 </div>
               @empty
                 <div class="px-4 py-5 text-center text-muted">

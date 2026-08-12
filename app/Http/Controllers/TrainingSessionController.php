@@ -196,7 +196,7 @@ class TrainingSessionController extends Controller
 
         $user = User::find($request->trainee_id);
         $module = $this->resolveTrainingModuleForTopic($payload['topic']);
-        $payload['training_module_id'] = $module?->id;
+        $payload['training_module_id'] = $module ? $module->id : null;
 
         $sessionLookup = $module
             ? [

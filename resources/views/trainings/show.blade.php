@@ -70,7 +70,12 @@
                 <div class="card-body">
                     <h4 class="card-title">Quick Actions</h4>
                     <div class="d-grid gap-2">
-                        <a href="{{ route('trainings.edit', $training->id) }}" class="btn btn-primary">Edit training</a>
+                        @if ($training->isExpired())
+                            <span class="btn btn-primary disabled" aria-disabled="true"
+                                title="Ended trainings cannot be edited">Edit training</span>
+                        @else
+                            <a href="{{ route('trainings.edit', $training->id) }}" class="btn btn-primary">Edit training</a>
+                        @endif
                         <a href="{{ route('manage-trainers', $training->id) }}" class="btn btn-light">Manage trainers</a>
                         <a href="{{ route('manage-users', $training->id) }}" class="btn btn-light">Manage trainees</a>
                         <a href="{{ route('admin.modules.linkDocs', $training->id) }}" class="btn btn-light">Manage documents</a>

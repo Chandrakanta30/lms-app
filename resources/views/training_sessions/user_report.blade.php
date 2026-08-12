@@ -75,10 +75,10 @@
                                             <td>{{ $session->type_label ?? 'Regular' }}</td>
                                             <td>{{ $session->trainer_name ?? 'N/A' }}</td>
                                             <td class="text-center">
-                                                @if (($session->is_self_training ?? false))
+                                                @if (($session->is_self_training ?? false) && ($session->status ?? 'pending') === 'passed')
                                                     <small><i>{{ $session->user->name ?? 'N/A' }}</i></small>
-                                                @elseif (optional($session->signature_session)->is_approved)
-                                                    <small><i>{{ optional(optional($session->signature_session)->approver)->name ?? 'N/A' }}</i></small>
+                                                @elseif ($session->is_approved ?? false)
+                                                    <small><i>{{ $session->approved_name ?? 'N/A' }}</i></small>
                                                 @else
                                                     <small><i>Pending</i></small>
                                                 @endif

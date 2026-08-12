@@ -138,7 +138,7 @@ class DashboardController extends Controller
             'totalUsers', 'totalTrainers', 'activeTrainings', 'setupTrainings',
             'inreviewTrainings', 'reviewedTrainings', 'pendingAcceptanceModules',
             'pendingSessions', 'examStats', 'recentTrainings',
-            'annualThisMonth', 'annualMonthLabel'
+            'annualThisMonth', 'annualMonthLabel','rejectedTrainerAssignments'
         );
     }
 

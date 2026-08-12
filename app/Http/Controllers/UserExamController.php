@@ -12,8 +12,6 @@ class UserExamController extends Controller
     public function index()
     {
         // Get only "Self Training" modules and include the user's latest attempt
-        $today = now()->format('Y-m-d');
-
         $modules = TrainingModule::with(['examDocuments', 'latestResult' => function($q) {
             // Specify the table name here to avoid ambiguity
             $q->where('exam_results.user_id', auth()->id()); 
@@ -46,6 +44,21 @@ class UserExamController extends Controller
 
             $module->setRelation('readTracker', $tracker);
             $module->reading_completed = !is_null($tracker->completed_at);
+            $module->reassignment_unlocked = $module->hasUnlockedReassignmentForUser(auth()->id());
+
+            if ($module->isExpired()) {
+                $module->assessment_state = 'expired';
+            } elseif (!$module->reading_completed) {
+                $module->assessment_state = 'read_documents';
+            } elseif (!$module->latestResult) {
+                $module->assessment_state = 'take_exam';
+            } elseif ($module->latestResult->is_passed) {
+                $module->assessment_state = 'completed';
+            } elseif ($module->reassignment_unlocked) {
+                $module->assessment_state = 'retake_exam';
+            } else {
+                $module->assessment_state = 'waiting_reassign';
+            }
         });
     
         return view('users.exams.index', compact('modules'));

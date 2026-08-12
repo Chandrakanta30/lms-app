@@ -55,19 +55,49 @@
 
         <!-- CLEAN CHANGES -->
         <td>
-            @if(isset($log->properties['attributes']))
-                @foreach($log->properties['attributes'] as $key => $value)
-                    <div>
-                        <strong>{{ $key }}:</strong>
-                        {{ $value }}
+            @php
+                $properties = $log->properties ?? [];
+                $attributes = data_get($properties, 'attributes', []);
+                $old = data_get($properties, 'old', []);
+                $new = data_get($properties, 'new', []);
+                $extras = collect($properties)->except(['attributes', 'old', 'new']);
+            @endphp
 
-                        @if(isset($log->properties['old'][$key]))
+            @if(count($attributes))
+                @foreach($attributes as $key => $value)
+                    <div>
+                        <strong>{{ ucfirst(str_replace('_', ' ', $key)) }}:</strong>
+                        {{ is_array($value) ? implode(', ', $value) : $value }}
+
+                        @if(array_key_exists($key, $old))
                             <small class="text-muted">
-                                (was: {{ $log->properties['old'][$key] }})
+                                (was: {{ is_array($old[$key]) ? implode(', ', $old[$key]) : $old[$key] }})
                             </small>
                         @endif
                     </div>
                 @endforeach
+            @elseif(count($new))
+                @foreach($new as $key => $value)
+                    <div>
+                        <strong>{{ ucfirst(str_replace('_', ' ', $key)) }}:</strong>
+                        <span class="text-danger">
+                            {{ is_array($old[$key] ?? null) ? implode(', ', $old[$key]) : ($old[$key] ?? '') }}
+                        </span>
+                        →
+                        <span class="text-success">
+                            {{ is_array($value) ? implode(', ', $value) : $value }}
+                        </span>
+                    </div>
+                @endforeach
+            @elseif($extras->isNotEmpty())
+                @foreach($extras as $key => $value)
+                    <div>
+                        <strong>{{ ucfirst(str_replace('_', ' ', $key)) }}:</strong>
+                        {{ is_array($value) ? implode(', ', $value) : $value }}
+                    </div>
+                @endforeach
+            @else
+                <span class="text-muted">No visible changes</span>
             @endif
         </td>
 

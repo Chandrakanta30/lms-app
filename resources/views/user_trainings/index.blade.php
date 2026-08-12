@@ -100,8 +100,12 @@
                                 <br>
 
                                 <span class="badge badge-{{ $m['color'] }} small">
-                                    {{ ucfirst($m['status']) }}
+                                    {{ $m['status_label'] ?? ucfirst($m['status']) }}
                                 </span>
+
+                                <div class="small text-muted mt-1">
+                                    Completion: {{ $m['percent'] }}%
+                                </div>
                             </td>
 
                             <td style="width: 300px; min-width: 300px;">
@@ -188,10 +192,8 @@
 
                                     @else
 
-                                        <a
-                                            href="{{ route('user.training.show', [$user->id, $m['id']]) }}"
-                                            class="btn btn-primary btn-sm"
-                                        >
+                                        <a href="{{ route('user.training.show', [$user->id, $m['id']]) }}"
+                                            class="btn btn-primary btn-sm">
                                             Manage Training
                                         </a>
                                     @endif

@@ -1,18 +1,22 @@
 <!DOCTYPE html>
-<html lang="en" class="layout-navbar-fixed layout-menu-fixed layout-compact" dir="ltr" data-skin="default" data-bs-theme="light" data-template="vertical-menu-template">
+<html lang="en" class="layout-navbar-fixed layout-menu-fixed layout-compact" dir="ltr" data-skin="default"
+    data-bs-theme="light" data-template="vertical-menu-template">
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <meta name="theme-color" content="#7367f0">
     <title>@yield('title', 'Dashboard') | Vincatis LMS</title>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&amp;display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&amp;display=swap"
+        rel="stylesheet">
 
     <!-- Material Design Icons (Legacy) -->
     <link rel="stylesheet" href="{{ asset('assets/vendors/mdi/css/materialdesignicons.min.css') }}">
@@ -136,51 +140,61 @@
             font-size: 0.75rem !important;
             font-weight: 500 !important;
         }
+
         .badge.badge-primary,
         .badge.bg-primary {
             background-color: rgba(115, 103, 240, 0.16) !important;
             color: #7367f0 !important;
         }
+
         .badge.badge-success,
         .badge.bg-success {
             background-color: rgba(40, 199, 111, 0.16) !important;
             color: #28c76f !important;
         }
+
         .badge.badge-danger,
         .badge.bg-danger {
             background-color: rgba(234, 84, 85, 0.16) !important;
             color: #ea5455 !important;
         }
+
         .badge.badge-warning,
         .badge.bg-warning {
             background-color: rgba(255, 159, 67, 0.16) !important;
             color: #ff9f43 !important;
         }
+
         .badge.badge-info,
         .badge.bg-info {
             background-color: rgba(0, 207, 232, 0.16) !important;
             color: #00cfe8 !important;
         }
+
         .badge.badge-dark,
         .badge.bg-dark {
             background-color: rgba(75, 70, 92, 0.16) !important;
             color: #4b465c !important;
         }
+
         .badge.badge-secondary,
         .badge.bg-secondary {
             background-color: rgba(168, 170, 174, 0.16) !important;
             color: #a8aae0 !important;
         }
+
         .badge.badge-outline-secondary {
             border: 1px solid rgba(168, 170, 174, 0.4) !important;
             color: #8e909a !important;
             background: transparent !important;
         }
+
         .badge.badge-outline-dark {
             border: 1px solid rgba(75, 70, 92, 0.4) !important;
             color: #4b465c !important;
             background: transparent !important;
         }
+
         .badge.badge-outline-info {
             border: 1px solid rgba(0, 207, 232, 0.4) !important;
             color: #00cfe8 !important;
@@ -372,38 +386,45 @@
     </style>
 </head>
 
-<body data-current-route="{{ request()->route()?->getName() ?? '' }}">
+<body data-current-route="{{ request()->route() ? request()->route()->getName() : '' }}">
 
     <!-- Layout wrapper -->
     <div class="layout-wrapper layout-content-navbar">
         <div class="layout-container">
-            
+
             <!-- Menu Sidebar -->
             @include('partials.sidebar')
 
             <!-- Layout Page -->
             <div class="layout-page">
-                
+
                 <!-- Navbar -->
                 @include('partials.navbar')
 
                 <!-- Content wrapper -->
                 <div class="content-wrapper">
-                    
+
                     <!-- Content -->
                     <div class="container-xxl flex-grow-1 container-p-y">
-                        
+
                         <!-- Notification System -->
                         @if (auth()->check())
                             @php
-                                $notifications = auth()->user()->notifications()->where('is_read', false)->latest()->take(5)->get();
+                                $notifications = auth()
+                                    ->user()
+                                    ->notifications()
+                                    ->where('is_read', false)
+                                    ->latest()
+                                    ->take(5)
+                                    ->get();
                             @endphp
 
                             @foreach ($notifications as $notification)
                                 @if ($notification->type == 'trainer_assignment')
                                     {{-- Hidden trigger data for JS --}}
                                     <div class="d-none trainer-notification" data-id="{{ $notification->id }}"
-                                        data-training="{{ $notification->training_id }}" data-title="{{ $notification->title }}"
+                                        data-training="{{ $notification->training_id }}"
+                                        data-title="{{ $notification->title }}"
                                         data-message="{{ $notification->message }}">
                                     </div>
                                 @else
@@ -412,8 +433,8 @@
                                         <br>
                                         {{ $notification->message }}
 
-                                        <form action="{{ route('notifications.read', $notification->id) }}" method="POST"
-                                            class="mt-2">
+                                        <form action="{{ route('notifications.read', $notification->id) }}"
+                                            method="POST" class="mt-2">
                                             @csrf
                                             @method('PATCH')
                                             <button class="btn btn-sm btn-primary">OK</button>
@@ -440,10 +461,10 @@
 
                         @yield('content')
                     </div>
-                    
+
                     <!-- Footer -->
                     @include('partials.footer')
-                    
+
                     <div class="content-backdrop fade"></div>
                 </div>
                 <!-- / Content wrapper -->
@@ -504,6 +525,7 @@
     <script>
         const routes = {
             acceptTraining: "{{ route('trainer-training.accept', ':id') }}",
+            rejectTraining: "{{ route('trainer-training.reject', ':id') }}",
             markRead: "{{ route('notifications.read', ':id') }}"
         };
 
@@ -529,43 +551,118 @@
                         title: title,
                         text: message,
                         icon: 'question',
-                        showCancelButton: true,
                         confirmButtonText: 'Accept Training',
-                        cancelButtonText: 'Cancel',
+                        showDenyButton: true,
+                        denyButtonText: 'Reject Training',
+                        showCancelButton: false,
+                        showCloseButton: false,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
                         confirmButtonColor: '#7367f0',
-                        cancelButtonColor: '#808390'
+                        denyButtonColor: '#ea5455',
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            fetch(routes.acceptTraining.replace(':id', trainingId), {
-                                    method: 'POST',
-                                    headers: {
-                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                        'Content-Type': 'application/json',
-                                        'Accept': 'application/json'
-                                    }
-                                })
-                                .then(response => {
-                                    if (response.ok) {
-                                        return markTrainerNotificationRead(id).then(() => {
-                                            Swal.fire({
-                                                title: 'Accepted!',
-                                                text: 'Training has been accepted successfully.',
-                                                icon: 'success',
-                                                timer: 1500,
-                                                showConfirmButton: false
-                                            }).then(() => {
-                                                location.reload();
-                                            });
-                                        });
-                                    }
+                            Swal.fire({
+                                title: 'Are you sure?',
+                                text: 'Do you want to accept this training invitation?',
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonText: 'OK',
+                                cancelButtonText: 'Cancel',
+                                confirmButtonColor: '#7367f0',
+                                cancelButtonColor: '#808390'
+                            }).then((confirmResult) => {
+                                if (!confirmResult.isConfirmed) {
+                                    return;
+                                }
 
-                                    Swal.fire('Error', 'Failed to accept training.', 'error');
-                                })
-                                .catch(() => {
-                                    Swal.fire('Error', 'Something went wrong.', 'error');
-                                });
-                        } else if (result.isDismissed) {
-                            markTrainerNotificationRead(id);
+                                fetch(routes.acceptTraining.replace(':id',
+                                        trainingId), {
+                                        method: 'POST',
+                                        headers: {
+                                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                            'Content-Type': 'application/json',
+                                            'Accept': 'application/json'
+                                        }
+                                    })
+                                    .then(response => {
+                                        if (response.ok) {
+                                            return markTrainerNotificationRead(
+                                                id).then(() => {
+                                                Swal.fire({
+                                                    title: 'Accepted!',
+                                                    text: 'Training has been accepted successfully.',
+                                                    icon: 'success',
+                                                    timer: 1500,
+                                                    showConfirmButton: false
+                                                }).then(() => {
+                                                    location
+                                                        .reload();
+                                                });
+                                            });
+                                        }
+
+                                        Swal.fire('Error',
+                                            'Failed to accept training.',
+                                            'error');
+                                    })
+                                    .catch(() => {
+                                        Swal.fire('Error',
+                                            'Something went wrong.', 'error'
+                                            );
+                                    });
+                            });
+                        } else if (result.isDenied) {
+                            Swal.fire({
+                                title: 'Are you sure?',
+                                text: 'Do you want to reject this training invitation?',
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonText: 'OK',
+                                cancelButtonText: 'Cancel',
+                                confirmButtonColor: '#ea5455',
+                                cancelButtonColor: '#808390'
+                            }).then((confirmResult) => {
+                                if (!confirmResult.isConfirmed) {
+                                    return;
+                                }
+
+                                fetch(routes.rejectTraining.replace(':id',
+                                        trainingId), {
+                                        method: 'POST',
+                                        headers: {
+                                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                            'Content-Type': 'application/json',
+                                            'Accept': 'application/json'
+                                        }
+                                    })
+                                    .then(response => {
+                                        if (response.ok) {
+                                            return markTrainerNotificationRead(
+                                                id).then(() => {
+                                                Swal.fire({
+                                                    title: 'Rejected',
+                                                    text: 'Training invitation has been rejected.',
+                                                    icon: 'info',
+                                                    timer: 1500,
+                                                    showConfirmButton: false
+                                                }).then(() => {
+                                                    location
+                                                        .reload();
+                                                });
+                                            });
+                                        }
+
+                                        Swal.fire('Error',
+                                            'Failed to reject training.',
+                                            'error');
+                                    })
+                                    .catch(() => {
+                                        Swal.fire('Error',
+                                            'Something went wrong.', 'error'
+                                            );
+                                    });
+                            });
                         }
                     });
                 }, 500);
@@ -582,7 +679,8 @@
                     var query = this.value.trim().toLowerCase();
                     document.querySelectorAll('#sidebar [data-nav-item]').forEach(function(item) {
                         var text = (item.getAttribute('data-nav-text') || '').toLowerCase();
-                        item.setAttribute('data-ui-hidden', query && !text.includes(query) ? 'true' : 'false');
+                        item.setAttribute('data-ui-hidden', query && !text.includes(query) ?
+                            'true' : 'false');
                     });
                 });
             }

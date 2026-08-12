@@ -263,6 +263,13 @@ class TrainingSessionController extends Controller
             });
 
         $sessions = $sessions
+            ->map(function (TrainingUser $assignment) {
+                $assignment->type_label = (int) ($assignment->module->is_anuual ?? 0) === 1
+                    ? 'Refreshment'
+                    : 'Regular';
+
+                return $assignment;
+            })
             ->filter(fn (TrainingUser $assignment) => $assignment->status === 'passed')
             ->values();
 

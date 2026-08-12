@@ -59,22 +59,20 @@
                                 <thead class="bg-light">
                                     <tr>
                                         <th width="5%">S.No.</th>
-                                        <th width="34%">Training Module</th>
-                                        <th width="14%">Start Date</th>
-                                        <th width="14%">End Date</th>
-                                        <th width="18%">Trainer</th>
-                                        <th width="15%">Signature</th>
+                                        <th width="18%">Date</th>
+                                        <th width="30%">Topic</th>
+                                        <th width="16%">Type of training</th>
+                                        <th width="18%">Name of the Trainer</th>
+                                        <th width="13%">signature of the trainer</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach ($pageSessions as $index => $session)
                                         <tr>
                                             <td>{{ $pageIndex * $rowsPerPage + $index + 1 }}</td>
+                                            <td>{{ $session->start_date ? \Carbon\Carbon::parse($session->start_date)->format('d-m-Y') : ($session->end_date ? \Carbon\Carbon::parse($session->end_date)->format('d-m-Y') : 'N/A') }}</td>
                                             <td>{{ $session->module->name ?? 'N/A' }}</td>
-                                            <td>{{ $session->start_date ? \Carbon\Carbon::parse($session->start_date)->format('d-m-Y') : 'N/A' }}
-                                            </td>
-                                            <td>{{ $session->end_date ? \Carbon\Carbon::parse($session->end_date)->format('d-m-Y') : 'N/A' }}
-                                            </td>
+                                            <td>{{ $session->type_label ?? 'Regular' }}</td>
                                             <td>{{ $session->trainer_name ?? 'N/A' }}</td>
                                             <td class="text-center">
                                                 @if (optional($session->signature_session)->is_approved)
@@ -144,11 +142,11 @@
                                 <thead class="bg-light">
                                     <tr>
                                         <th width="5%">S.No.</th>
-                                        <th width="34%">Training Module</th>
-                                        <th width="14%">Start Date</th>
-                                        <th width="14%">End Date</th>
-                                        <th width="18%">Trainer</th>
-                                        <th width="15%">Signature</th>
+                                        <th width="18%">Date</th>
+                                        <th width="30%">Topic</th>
+                                        <th width="16%">Type of training</th>
+                                        <th width="18%">Name of the Trainer</th>
+                                        <th width="13%">signature of the trainer</th>
                                     </tr>
                                 </thead>
                                 <tbody>

@@ -23,6 +23,7 @@ class TrainingSessionController extends Controller
                 'user.department',
                 'user.designation',
                 'module.trainers',
+                'approver',
             ]);
 
         $currentUser = auth()->user();
@@ -73,7 +74,19 @@ class TrainingSessionController extends Controller
                 $assignment->status = $statusCache[$cacheKey];
                 $assignment->status_label = $this->formatTrainingStatusLabel($assignment->status);
                 $assignment->status_class = $this->formatTrainingStatusClass($assignment->status);
-                $assignment->can_sign_and_approve = $assignment->status === 'passed';
+                $firstTrainer = $module && $module->trainers ? $module->trainers->first() : null;
+                $assignment->trainer_name = $firstTrainer ? $firstTrainer->name : 'N/A';
+                $assignment->is_self_training = $module
+                    ? ($module->trainers ? $module->trainers->isEmpty() : true)
+                    : false;
+                $assignment->is_approved = filled($assignment->approved_by);
+                $assignment->approved_name = optional($assignment->approver)->name;
+                $assignment->approved_at_display = $assignment->approved_at
+                    ? Carbon::parse($assignment->approved_at)->format('d M Y, h:i A')
+                    : null;
+                $assignment->can_sign_and_approve = $assignment->status === 'passed'
+                    && !$assignment->is_approved
+                    && !($assignment->is_self_training ?? false);
                 $assignment->latest_exam_result = $module && $user
                     ? $module->examResults()
                         ->where('user_id', $user->id)
@@ -92,14 +105,6 @@ class TrainingSessionController extends Controller
                             && Carbon::parse($assignment->latest_exam_result->created_at)->gt(Carbon::parse($assignment->reassigned_at))
                         )
                     );
-                $firstTrainer = $module && $module->trainers ? $module->trainers->first() : null;
-                $assignment->trainer_name = $firstTrainer ? $firstTrainer->name : 'N/A';
-                $assignment->is_self_training = $module
-                    ? ($module->trainers ? $module->trainers->isEmpty() : true)
-                    : false;
-                $assignment->signature_session = $module && $user
-                    ? $this->resolveTrainingSessionForAssignment($assignment)
-                    : null;
                 return $assignment;
             });
         };
@@ -196,17 +201,11 @@ class TrainingSessionController extends Controller
 
         $user = User::find($request->trainee_id);
         $module = $this->resolveTrainingModuleForTopic($payload['topic']);
-        $payload['training_module_id'] = $module ? $module->id : null;
 
-        $sessionLookup = $module
-            ? [
-                'trainee_id' => $payload['trainee_id'],
-                'training_module_id' => $module->id,
-            ]
-            : [
-                'trainee_id' => $payload['trainee_id'],
-                'topic' => $payload['topic'],
-            ];
+        $sessionLookup = [
+            'trainee_id' => $payload['trainee_id'],
+            'topic' => $payload['topic'],
+        ];
 
         TrainingSessions::updateOrCreate(
             $sessionLookup,
@@ -239,7 +238,7 @@ class TrainingSessionController extends Controller
     public function userReport(User $user)
     {
         $sessions = TrainingUser::query()
-            ->with(['module.trainers', 'user.department', 'user.designation'])
+            ->with(['module.trainers', 'user.department', 'user.designation', 'approver'])
             ->where('user_id', $user->id)
             ->orderBy('training_user.id', 'asc')
             ->get()
@@ -254,7 +253,11 @@ class TrainingSessionController extends Controller
                 $assignment->is_self_training = $assignment->module
                     ? ($assignment->module->trainers ? $assignment->module->trainers->isEmpty() : true)
                     : false;
-                $assignment->signature_session = $this->resolveTrainingSessionForAssignment($assignment);
+                $assignment->is_approved = filled($assignment->approved_by);
+                $assignment->approved_name = optional($assignment->approver)->name;
+                $assignment->approved_at_display = $assignment->approved_at
+                    ? Carbon::parse($assignment->approved_at)->format('d M Y, h:i A')
+                    : null;
                 $assignment->latest_exam_result = $assignment->module
                     ? $assignment->module->examResults()
                         ->where('user_id', $assignment->user_id)
@@ -353,26 +356,47 @@ class TrainingSessionController extends Controller
     // }
     public function approve($id)
     {
-        $session = TrainingSessions::findOrFail($id);
+        $assignment = TrainingUser::with(['module.trainers', 'approver', 'user'])->findOrFail($id);
 
-        if ($session->is_approved) {
-            return back()->with('info', 'This session is already approved.');
+        if (filled($assignment->approved_by)) {
+            return back()->with('info', 'This training is already approved.');
         }
 
-        if (!$this->isSessionEligibleForApproval($session)) {
+        if (($assignment->status ?? 'pending') !== 'passed') {
             return back()->with('error', 'Sign & Approve is disabled until the trainee passes the exam.');
         }
 
-        $approvedBy = $session->trainer_id ?: $session->trainee_id;
+        $currentUser = auth()->user();
+        $isPrivilegedApprover =
+            $currentUser &&
+            $currentUser->hasRole([
+                'Admin',
+                'Super Admin',
+                'admin',
+                'super admin',
+                'super-admin',
+                'Coordinator',
+                'coordinator',
+                'Co-ordinator',
+                'co-ordinator',
+        ]);
 
-        $session->update([
-            'is_approved' => true,
-            'approved_by' => $approvedBy,
+        $module = $assignment->module;
+        $isAssignedTrainer = $currentUser && $module && $module->trainers
+            ? $module->trainers->contains('id', $currentUser->id)
+            : false;
+
+        if (!$currentUser || (!$isPrivilegedApprover && !$isAssignedTrainer)) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $assignment->update([
+            'approved_by' => $currentUser->id,
             'approved_at' => now(),
         ]);
 
         // Get trainee user
-        $user = $session->trainee;
+        $user = $assignment->user;
 
         if ($user) {
 
@@ -383,7 +407,7 @@ class TrainingSessionController extends Controller
             $user->assignRole('regular');
         }
 
-        return back()->with('success', 'Session approved successfully and trainee promoted to regular.');
+        return back()->with('success', 'Training approved successfully and trainee promoted to regular.');
     }
 
     public function reassign(Request $request, TrainingUser $assignment)
@@ -667,31 +691,6 @@ class TrainingSessionController extends Controller
 
         if ($moduleName === '') {
             return null;
-        }
-
-        if ($module && $module->id) {
-            $exactModuleSession = TrainingSessions::query()
-                ->where('trainee_id', $assignment->user_id)
-                ->where('training_module_id', $module->id)
-                ->whereNull('trainer_id')
-                ->latest('training_date')
-                ->latest('id')
-                ->first();
-
-            if ($exactModuleSession) {
-                return $exactModuleSession;
-            }
-
-            $exactModuleSession = TrainingSessions::query()
-                ->where('trainee_id', $assignment->user_id)
-                ->where('training_module_id', $module->id)
-                ->latest('training_date')
-                ->latest('id')
-                ->first();
-
-            if ($exactModuleSession) {
-                return $exactModuleSession;
-            }
         }
 
         $topicPrefix = trim(explode(' - ', $moduleName, 2)[0]);

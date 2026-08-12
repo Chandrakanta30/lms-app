@@ -149,22 +149,28 @@
 
                                     <td class="align-middle">
                                         @if ($assignment->is_self_training ?? false)
-                                            <div class="d-flex flex-column align-items-center">
-                                                <div class="signature-box p-1"
-                                                    style="border: 1px dashed #28a745; background: #f0fff4; border-radius: 4px; min-width: 120px;">
-                                                    <i class="fas fa-certificate text-success mb-1"
-                                                        title="Self Signature"></i>
-                                                    <div class="signature-text"
-                                                        style="font-family: 'Dancing Script', cursive; font-size: 1.2rem; color: #003366;">
-                                                        {{ $assignment->user->name ?? 'N/A' }}
+                                            @if (($assignment->status ?? 'pending') === 'passed')
+                                                <div class="d-flex flex-column align-items-center">
+                                                    <div class="signature-box p-1"
+                                                        style="border: 1px dashed #28a745; background: #f0fff4; border-radius: 4px; min-width: 120px;">
+                                                        <i class="fas fa-certificate text-success mb-1"
+                                                            title="Self Signature"></i>
+                                                        <div class="signature-text"
+                                                            style="font-family: 'Dancing Script', cursive; font-size: 1.2rem; color: #003366;">
+                                                            {{ $assignment->user->name ?? 'N/A' }}
+                                                        </div>
                                                     </div>
+                                                    <small class="text-muted mt-1" style="font-size: 0.7rem;">
+                                                        Self Training<br>
+                                                        {{ optional($assignment->latest_exam_result)->created_at ? \Carbon\Carbon::parse(optional($assignment->latest_exam_result)->created_at)->format('d M Y') : '' }}
+                                                    </small>
                                                 </div>
-                                                <small class="text-muted mt-1" style="font-size: 0.7rem;">
-                                                    Self Training<br>
-                                                    {{ optional($assignment->latest_exam_result)->created_at ? \Carbon\Carbon::parse(optional($assignment->latest_exam_result)->created_at)->format('d M Y') : '' }}
-                                                </small>
-                                            </div>
-                                        @elseif (optional($assignment->signature_session)->is_approved)
+                                            @else
+                                                <span class="badge badge-warning p-2">
+                                                    <i class="fas fa-clock mr-1"></i> Pending
+                                                </span>
+                                            @endif
+                                        @elseif ($assignment->is_approved ?? false)
                                             <div class="d-flex flex-column align-items-center">
                                                 <div class="signature-box p-1"
                                                     style="border: 1px dashed #28a745; background: #f0fff4; border-radius: 4px; min-width: 120px;">
@@ -172,12 +178,12 @@
                                                         title="Verified Signature"></i>
                                                     <div class="signature-text"
                                                         style="font-family: 'Dancing Script', cursive; font-size: 1.2rem; color: #003366;">
-                                                        {{ optional(optional($assignment->signature_session)->approver)->name ?? 'N/A' }}
+                                                        {{ $assignment->approved_name ?? 'N/A' }}
                                                     </div>
                                                 </div>
                                                 <small class="text-muted mt-1" style="font-size: 0.7rem;">
                                                     Digitally Approved<br>
-                                                    {{ optional($assignment->signature_session)->approved_at }}
+                                                    {{ $assignment->approved_at_display ?? '' }}
                                                 </small>
                                             </div>
                                         @else
@@ -197,15 +203,12 @@
                                                         'Co-ordinator',
                                                         'co-ordinator',
                                                     ]);
-                                                $canShowApproval =
-                                                    $assignment->signature_session &&
-                                                    (auth()->id() == $assignment->signature_session->trainer_id ||
-                                                        $isPrivilegedApprover);
+                                                $canShowApproval = $isPrivilegedApprover;
                                             @endphp
 
                                             @if ($canShowApproval)
                                                 <form
-                                                    action="{{ route('sessions.approve', $assignment->signature_session->id) }}"
+                                                    action="{{ route('sessions.approve', $assignment->id) }}"
                                                     method="POST">
                                                     @csrf
                                                     @method('PATCH')
@@ -220,15 +223,9 @@
                                                     </small>
                                                 @endif
                                             @else
-                                                @if ($isPrivilegedApprover && $canSignAndApprove)
-                                                    <span class="badge badge-warning p-2">
-                                                        <i class="fas fa-clock mr-1"></i> Session not found
-                                                    </span>
-                                                @else
-                                                    <span class="badge badge-warning p-2">
-                                                        <i class="fas fa-clock mr-1"></i> Awaiting Trainer
-                                                    </span>
-                                                @endif
+                                                <span class="badge badge-warning p-2">
+                                                    <i class="fas fa-clock mr-1"></i> Awaiting Trainer
+                                                </span>
                                             @endif
                                         @endif
                                     </td>

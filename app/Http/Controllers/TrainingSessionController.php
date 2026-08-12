@@ -94,6 +94,9 @@ class TrainingSessionController extends Controller
                     );
                 $firstTrainer = $module && $module->trainers ? $module->trainers->first() : null;
                 $assignment->trainer_name = $firstTrainer ? $firstTrainer->name : 'N/A';
+                $assignment->is_self_training = $module
+                    ? ($module->trainers ? $module->trainers->isEmpty() : true)
+                    : false;
                 $assignment->signature_session = $module && $user
                     ? $this->resolveTrainingSessionForAssignment($assignment)
                     : null;
@@ -191,15 +194,24 @@ class TrainingSessionController extends Controller
         ]);
         $payload['trainer_id'] = $request->trainer_id ?: null;
 
-        TrainingSessions::updateOrCreate(
-            [
-                'trainee_id' => $payload['trainee_id'],
-                'topic' => $payload['topic'],
-            ],
-            $payload
-        );
         $user = User::find($request->trainee_id);
         $module = $this->resolveTrainingModuleForTopic($payload['topic']);
+        $payload['training_module_id'] = $module?->id;
+
+        $sessionLookup = $module
+            ? [
+                'trainee_id' => $payload['trainee_id'],
+                'training_module_id' => $module->id,
+            ]
+            : [
+                'trainee_id' => $payload['trainee_id'],
+                'topic' => $payload['topic'],
+            ];
+
+        TrainingSessions::updateOrCreate(
+            $sessionLookup,
+            $payload
+        );
 
         if ($module && $user) {
             TrainingUser::updateOrCreate(
@@ -239,6 +251,9 @@ class TrainingSessionController extends Controller
                 $assignment->status_class = $this->formatTrainingStatusClass($assignment->status);
                 $firstTrainer = $assignment->module && $assignment->module->trainers ? $assignment->module->trainers->first() : null;
                 $assignment->trainer_name = $firstTrainer ? $firstTrainer->name : 'N/A';
+                $assignment->is_self_training = $assignment->module
+                    ? ($assignment->module->trainers ? $assignment->module->trainers->isEmpty() : true)
+                    : false;
                 $assignment->signature_session = $this->resolveTrainingSessionForAssignment($assignment);
                 $assignment->latest_exam_result = $assignment->module
                     ? $assignment->module->examResults()
@@ -348,10 +363,11 @@ class TrainingSessionController extends Controller
             return back()->with('error', 'Sign & Approve is disabled until the trainee passes the exam.');
         }
 
+        $approvedBy = $session->trainer_id ?: $session->trainee_id;
 
         $session->update([
             'is_approved' => true,
-            'approved_by' => Auth::id(),
+            'approved_by' => $approvedBy,
             'approved_at' => now(),
         ]);
 
@@ -646,10 +662,36 @@ class TrainingSessionController extends Controller
 
     private function resolveTrainingSessionForAssignment(TrainingUser $assignment): ?TrainingSessions
     {
-        $moduleName = trim((string) optional($assignment->module)->name);
+        $module = $assignment->module;
+        $moduleName = trim((string) optional($module)->name);
 
         if ($moduleName === '') {
             return null;
+        }
+
+        if ($module && $module->id) {
+            $exactModuleSession = TrainingSessions::query()
+                ->where('trainee_id', $assignment->user_id)
+                ->where('training_module_id', $module->id)
+                ->whereNull('trainer_id')
+                ->latest('training_date')
+                ->latest('id')
+                ->first();
+
+            if ($exactModuleSession) {
+                return $exactModuleSession;
+            }
+
+            $exactModuleSession = TrainingSessions::query()
+                ->where('trainee_id', $assignment->user_id)
+                ->where('training_module_id', $module->id)
+                ->latest('training_date')
+                ->latest('id')
+                ->first();
+
+            if ($exactModuleSession) {
+                return $exactModuleSession;
+            }
         }
 
         $topicPrefix = trim(explode(' - ', $moduleName, 2)[0]);
@@ -658,16 +700,45 @@ class TrainingSessionController extends Controller
             $topicPrefix !== '' ? $topicPrefix : null,
         ]));
 
-        return TrainingSessions::query()
-            ->where('trainee_id', $assignment->user_id)
-            ->where(function ($query) use ($candidateLabels) {
-                foreach ($candidateLabels as $label) {
-                    $query->orWhere('topic', 'like', '%' . $label . '%');
-                }
-            })
+        $buildExactQuery = function () use ($assignment, $candidateLabels) {
+            return TrainingSessions::query()
+                ->where('trainee_id', $assignment->user_id)
+                ->where(function ($query) use ($candidateLabels) {
+                    foreach ($candidateLabels as $label) {
+                        $normalizedLabel = $this->normalizeTrainingLabel($label);
+                        $query->orWhereRaw('LOWER(TRIM(topic)) = ?', [$normalizedLabel]);
+                    }
+                });
+        };
+
+        $buildLooseQuery = function () use ($assignment, $candidateLabels) {
+            return TrainingSessions::query()
+                ->where('trainee_id', $assignment->user_id)
+                ->where(function ($query) use ($candidateLabels) {
+                    foreach ($candidateLabels as $label) {
+                        $query->orWhere('topic', 'like', '%' . $label . '%');
+                    }
+                });
+        };
+
+        return $buildExactQuery()
+            ->whereNull('trainer_id')
             ->latest('training_date')
             ->latest('id')
             ->first()
+            ?? $buildExactQuery()
+                ->latest('training_date')
+                ->latest('id')
+                ->first()
+            ?? $buildLooseQuery()
+                ->whereNull('trainer_id')
+                ->latest('training_date')
+                ->latest('id')
+                ->first()
+            ?? $buildLooseQuery()
+                ->latest('training_date')
+                ->latest('id')
+                ->first()
             ?? TrainingSessions::query()
                 ->where('trainee_id', $assignment->user_id)
                 ->latest('training_date')

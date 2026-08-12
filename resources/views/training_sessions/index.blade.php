@@ -148,7 +148,23 @@
                                     </td>
 
                                     <td class="align-middle">
-                                        @if (optional($assignment->signature_session)->is_approved)
+                                        @if ($assignment->is_self_training ?? false)
+                                            <div class="d-flex flex-column align-items-center">
+                                                <div class="signature-box p-1"
+                                                    style="border: 1px dashed #28a745; background: #f0fff4; border-radius: 4px; min-width: 120px;">
+                                                    <i class="fas fa-certificate text-success mb-1"
+                                                        title="Self Signature"></i>
+                                                    <div class="signature-text"
+                                                        style="font-family: 'Dancing Script', cursive; font-size: 1.2rem; color: #003366;">
+                                                        {{ $assignment->user->name ?? 'N/A' }}
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted mt-1" style="font-size: 0.7rem;">
+                                                    Self Training<br>
+                                                    {{ optional($assignment->latest_exam_result)->created_at ? \Carbon\Carbon::parse(optional($assignment->latest_exam_result)->created_at)->format('d M Y') : '' }}
+                                                </small>
+                                            </div>
+                                        @elseif (optional($assignment->signature_session)->is_approved)
                                             <div class="d-flex flex-column align-items-center">
                                                 <div class="signature-box p-1"
                                                     style="border: 1px dashed #28a745; background: #f0fff4; border-radius: 4px; min-width: 120px;">

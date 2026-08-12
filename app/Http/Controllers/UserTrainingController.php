@@ -3,26 +3,47 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\TrainingModule;
 use App\Models\UserTraining;
-use DB;
+use App\Services\TrainingWorkflowService;
 
 class UserTrainingController extends Controller
 {
-    public function index()
+    public function __construct(private TrainingWorkflowService $workflow)
+    {
+    }
+
+    /**
+     * Progress list for one parent program.
+     *
+     * @param  string|null  $program  induction | glp | functional (defaults to induction)
+     */
+    public function index(?string $program = null)
     {
         $currentUser = auth()->user();
+        $programSlug = $this->workflow->resolveSlug($program);
 
-     
-        $traineesQuery = User::
-            with([
-                'department',
-                'trainings' => function ($query) {
-                    $query->where('name', 'Induction Training')
-                        ->with('steps');
-                }
-            ]);
+        /*
+        |--------------------------------------------------------------------------
+        | Base Trainee Query
+        |--------------------------------------------------------------------------
+
+        */
+        $traineesQuery = User::with([
+            'department',
+            'trainings' => function ($query) {
+                $query->whereIn('training_user.status', ['enrolled', 'pending'])
+                    ->whereNull('training_modules.parent_id')
+                    ->whereIn(
+                        DB::raw('LOWER(training_modules.name)'),
+                        $this->workflow->lowerCasedLabels()
+                    )
+                    ->with('steps');
+            }
+        ]);
 
       
         if ($currentUser && $currentUser->hasRole('Trainee')) {
@@ -42,101 +63,33 @@ class UserTrainingController extends Controller
             ->get()
             ->groupBy('user_id');
 
-     
-        $trainees = $trainees->map(function ($user) use ($completedTrainings) {
+        /*
+        |--------------------------------------------------------------------------
+        | Process User Progress
+        |--------------------------------------------------------------------------
+        */
+        $trainees = $trainees->map(function ($user) use ($completedTrainings, $programSlug) {
 
             $completedModuleIds = collect($completedTrainings[$user->id] ?? [])
                 ->pluck('training_module_id')
                 ->toArray();
 
-            $user->assigned_progress = $user->trainings->map(function (TrainingModule $training) use ($completedModuleIds, $user) {
-                $trainingStatus = $training->syncTrainingStatusForUser($user);
+            // Progress for all three programs, keyed by slug.
+            $allProgress = $this->workflow->progressForPrograms($user->trainings, $completedModuleIds);
 
-                // Parent Module
-                if (is_null($training->parent_id)) {
+            $user->all_progress = $allProgress;
+            $user->is_locked = ! $this->workflow->isProgramAccessible($programSlug, $allProgress);
+            $user->locked_reason = $this->workflow->lockedReason($programSlug);
 
-                    $stepIds = $training->steps->pluck('id')->toArray();
-
-                    $totalSteps = count($stepIds);
-
-                    $completedCount = count(
-                        array_intersect($stepIds, $completedModuleIds)
-                    );
-                } else {
-
-                    // Single Step
-                    $totalSteps = 1;
-
-                    $completedCount = in_array(
-                        $training->id,
-                        $completedModuleIds
-                    ) ? 1 : 0;
-                }
-
-                $percent = $totalSteps > 0
-                    ? round(($completedCount / $totalSteps) * 100)
-                    : 0;
-
-                return [
-                    'id'        => $training->id,
-                    'name'      => $training->name,
-                    'completed' => $completedCount,
-                    'total'     => $totalSteps,
-                    'percent'   => $percent,
-                    'progress_status' => $percent == 100
-                        ? 'Completed'
-                        : ($percent > 0 ? 'In Progress' : 'Enrolled'),
-                    'status'    => $trainingStatus,
-                    'status_label' => match ($trainingStatus) {
-                        'passed' => 'Passed',
-                        'failed' => 'Failed',
-                        default => 'Pending',
-                    },
-                    'color'     => match ($trainingStatus) {
-                        'passed' => 'success',
-                        'failed' => 'danger',
-                        default => 'warning',
-                    },
-
-                    'steps' => $training->steps->map(function ($step) use ($completedModuleIds) {
-
-                        if ($step->name == 'Administration and Maintenance:') {
-
-                            $code = 'AMD';
-                        } elseif ($step->name == 'Development Quality Assurance') {
-
-                            $code = 'DQA';
-                        } elseif ($step->name == 'Analytical Services') {
-
-                            $code = 'ASD';
-                        } else {
-
-                            $words = preg_split('/[\s\-]+/', trim($step->name));
-
-                            $ignoreWords = ['and', 'of', 'the', 'for', 'to'];
-
-                            $code = collect($words)
-                                ->reject(fn($word) => in_array(strtolower($word), $ignoreWords))
-                                ->map(fn($word) => strtoupper(substr($word, 0, 1)))
-                                ->implode('');
-                        }
-
-
-
-                        return [
-                            'id'            => $step->id,
-                            'name'          => $step->name,
-                            'short_code'    => $code,
-                            'color'         => $step->color,
-                            'is_completed'  => in_array($step->id, $completedModuleIds),
-                            // 'completed_at'  => $step->activated_at,
-                        ];
-                    }),
-                ];
-            });
+            $user->assigned_progress = $allProgress->has($programSlug)
+                ? collect([$allProgress->get($programSlug)])
+                : collect();
 
             return $user;
-        });
+        })
+        // Users not enrolled in this program have nothing to show.
+        ->filter(fn ($user) => $user->assigned_progress->isNotEmpty())
+        ->values();
 
         /*
         |--------------------------------------------------------------------------
@@ -179,10 +132,23 @@ class UserTrainingController extends Controller
             ->sortByDesc('pending')
             ->values();
 
-        // return $trainees;
+        /*
+        |--------------------------------------------------------------------------
+        | Program  (Induction -> GLP -> Functional)
+        |--------------------------------------------------------------------------
+        */
+        $programTabs = collect($this->workflow->slugs())->map(fn (string $slug) => [
+            'slug'      => $slug,
+            'label'     => $this->workflow->label($slug),
+            'url'       => route('user.training.index', ['program' => $slug]),
+            'is_active' => $slug === $programSlug,
+        ]);
+
+        $programLabel = $this->workflow->label($programSlug);
+
         return view(
             'user_trainings.index',
-            compact('trainees', 'departmentBreakdown')
+            compact('trainees', 'departmentBreakdown', 'programSlug', 'programLabel', 'programTabs')
         );
     }
 
@@ -208,7 +174,7 @@ class UserTrainingController extends Controller
             abort(403, 'You are not allowed to update another trainee\'s progress.');
         }
 
-        \Illuminate\Support\Facades\DB::table('user_trainings')->updateOrInsert(
+        DB::table('user_trainings')->updateOrInsert(
             ['user_id' => $user->id, 'training_module_id' => $request->module_id],
             [
                 'interacted_person' => $request->interacted_person,
@@ -219,66 +185,37 @@ class UserTrainingController extends Controller
             ]
         );
 
-
         // 1. Get current step
-        $currentStep = \App\Models\TrainingModule::find($request->module_id);
+        $currentStep = TrainingModule::find($request->module_id);
 
-        // 2. Get parent training (main program)
-        $parentTraining = $currentStep->parent;
+        // 2. Get parent training (main program). If there is no parent, this is
+        //    the parent itself.
+        $parentTraining = $currentStep->parent ?? $currentStep;
 
-        // If no parent, it means this is parent itself
-        if (!$parentTraining) {
-            $parentTraining = $currentStep;
-        }
-
-    // 3. Get all steps under this training
-    $stepIds = \App\Models\TrainingModule::where('parent_id', $parentTraining->id)
-        ->pluck('id')
-        ->toArray();
-
-    // 4. Count completed steps
-    $completedCount = \Illuminate\Support\Facades\DB::table('user_trainings')
-        ->where('user_id', $user->id)
-        ->whereIn('training_module_id', $stepIds)
-        ->where('is_completed', 1)
-        ->count();
-
-    // 5. If ALL steps completed → update role
-    if (
-    count($stepIds) > 0 &&
-    $completedCount === count($stepIds) &&
-    strtolower($parentTraining->name) === 'induction training'
-) {
-
-    // 🔥 CHANGE ROLE (Trainee → Employee)
-    $user->assignRole(['Employee']);
-
-    // Optional: flash message
-    session()->flash('success', 'User promoted to Regular (Employee)');
-}
+        // 3. Get all steps under this training
+        $stepIds = TrainingModule::where('parent_id', $parentTraining->id)
+            ->pluck('id')
+            ->toArray();
 
         // 4. Count completed steps
-        $completedCount = \Illuminate\Support\Facades\DB::table('user_trainings')
+        $completedCount = DB::table('user_trainings')
             ->where('user_id', $user->id)
             ->whereIn('training_module_id', $stepIds)
             ->where('is_completed', 1)
             ->count();
 
         // 5. If ALL steps completed → update role
+        $programComplete = count($stepIds) > 0 && $completedCount === count($stepIds);
+
         if (
-            count($stepIds) > 0 &&
-            $completedCount === count($stepIds) &&
-            strtolower($parentTraining->name) === 'induction training'
+            $programComplete
+            && $this->workflow->slugForName($parentTraining->name) === TrainingWorkflowService::INDUCTION
         ) {
+            // CHANGE ROLE (Trainee → Regular)
+            $user->syncRoles(['Regular']);
 
-            // 🔥 CHANGE ROLE (Trainee → Employee)
-            $user->syncRoles(['Employee']);
-
-            // Optional: flash message
-            session()->flash('success', 'User promoted to Regular (Employee)');
+            session()->flash('success', 'User promoted from Trainee to Regular');
         }
-
-
 
         return back()->with('success', 'Step Logged!');
     }
@@ -297,7 +234,16 @@ class UserTrainingController extends Controller
             abort(403, 'You are not allowed to view another trainee\'s training.');
         }
 
-        $loggedInUser = $currentUser ? $currentUser->loadMissing('designation') : null;
+        
+        $slug = $this->workflow->slugForName($training->name);
+
+        if ($slug !== null && ! $this->workflow->isProgramAccessible($slug, $this->programProgressFor($user))) {
+            return redirect()
+                ->route('user.training.index', ['program' => TrainingWorkflowService::INDUCTION])
+                ->with('error', $this->workflow->lockedReason($slug));
+        }
+
+        $loggedInUser = auth()->user()?->loadMissing('designation');
 
         /**
          * 1. $training is the Parent Module (Program) assigned to the user.
@@ -311,7 +257,7 @@ class UserTrainingController extends Controller
          * 2. Fetch the IDs of all individual steps the user has finished.
          * These IDs come from your 'user_trainings' table where 'is_completed' is true.
          */
-        $completedIds = \Illuminate\Support\Facades\DB::table('user_trainings')
+        $completedIds = DB::table('user_trainings')
             ->where('user_id', $user->id)
             ->where('is_completed', true)
             ->pluck('training_module_id') // This captures the individual step IDs
@@ -368,7 +314,7 @@ class UserTrainingController extends Controller
         // 2. Fetch the Step IDs belonging to this program
         $stepIds = $trainingProgram->steps->pluck('id')->toArray();
 
-        $userLogs = \Illuminate\Support\Facades\DB::table('user_trainings')
+        $userLogs = DB::table('user_trainings')
             ->where('user_id', $user->id)
             ->whereIn('training_module_id', $stepIds)
             ->where('is_completed', true)
@@ -391,5 +337,41 @@ class UserTrainingController extends Controller
          * Our mapped collection above now supports this exactly.
          */
         return view('user_trainings.report', compact('user', 'trainingProgram', 'userLogs'));
+    }
+
+
+    public function certificate(User $user)
+    {
+        if (auth()->user()?->hasRole('Trainee') && auth()->id() !== $user->id) {
+            abort(403, 'You are not allowed to view another trainee\'s certificate.');
+        }
+
+        $user->loadMissing(['department', 'designation']);
+
+        $progress = $this->programProgressFor($user);
+
+        $isEligible = $this->workflow->hasCompletedAllPrograms($progress);
+        $rows = $this->workflow->certificateRows($progress);
+        $message = $this->workflow->certificateMessage($progress);
+
+        return view('user_trainings.certificate', compact('user', 'rows', 'isEligible', 'message'));
+    }
+
+    // Progress across Induction / GLP / Functional for a single user
+    private function programProgressFor(User $user): Collection
+    {
+        $completedIds = DB::table('user_trainings')
+            ->where('user_id', $user->id)
+            ->where('is_completed', true)
+            ->pluck('training_module_id')
+            ->toArray();
+
+        $programs = $user->trainings()
+            ->whereNull('training_modules.parent_id')
+            ->whereIn(DB::raw('LOWER(training_modules.name)'), $this->workflow->lowerCasedLabels())
+            ->with('steps')
+            ->get();
+
+        return $this->workflow->progressForPrograms($programs, $completedIds);
     }
 }

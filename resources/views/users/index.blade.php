@@ -105,6 +105,12 @@
                                             <i class="mdi mdi-file-document-outline"></i>
                                         </a>
 
+                                        <a href="{{ route('user.training.certificate', $user->id) }}"
+                                            class="btn btn-sm btn-success mr-1" title="Training Certificate"
+                                            aria-label="Training Certificate">
+                                            <i class="mdi mdi-certificate"></i>
+                                        </a>
+
                                         <form action="{{ route('users.destroy', $user->id) }}" method="POST"
                                             class="d-inline">
                                             @csrf @method('DELETE')

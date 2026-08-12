@@ -142,7 +142,7 @@
 
             @can('training-list')
                 <li class="menu-item {{ request()->routeIs('trainings.index') || request()->routeIs('created-training-setup') || request()->routeIs('annual-training') || request()->routeIs('created-annual-training') || request()->routeIs('training-list') || request()->routeIs('training-calendar') ? 'active open' : '' }}"
-                    data-nav-item="true" data-nav-text="Training Setup Created Annual Plan Calendar List">
+                    data-nav-item="true" data-nav-text="Training Setup Created Refreshment Annual Plan Calendar List">
                     <a href="javascript:void(0);" class="menu-link menu-toggle">
                         <i class="menu-icon icon-base ti tabler-book-2"></i>
                         <div>Training Program</div>
@@ -160,12 +160,12 @@
                         </li>
                         <li class="menu-item {{ request()->routeIs('annual-training') ? 'active' : '' }}">
                             <a href="{{ route('annual-training') }}" class="menu-link">
-                                <div>Annual Plan Setup</div>
+                                <div>Refreshment Plan Setup</div>
                             </a>
                         </li>
                         <li class="menu-item {{ request()->routeIs('created-annual-training') ? 'active' : '' }}">
                             <a href="{{ route('created-annual-training') }}" class="menu-link">
-                                <div>Created Annual Plan</div>
+                                <div>Created Refreshment Plan</div>
                             </a>
                         </li>
                         <li class="menu-item {{ request()->routeIs('training-list') ? 'active' : '' }}">
@@ -250,15 +250,26 @@
             </li>
         @endcan
 
-        {{-- INDUCTION --}}
+        {{-- TRAINING PROGRESS (Induction -> GLP -> Functional) --}}
         @can('induction-training')
-            <li class="menu-item {{ request()->routeIs('user.training.index') ? 'active' : '' }}" data-nav-item="true"
-                data-nav-text="Induction Training Progress Trainee Setup">
-                <a href="{{ route('user.training.index') }}" class="menu-link">
-                    <i class="menu-icon icon-base ti tabler-school"></i>
-                    <div>Induction Progress</div>
-                </a>
-            </li>
+            @php
+                $currentProgram = request()->route('program') ?: 'induction';
+                $programMenu = [
+                    ['slug' => 'induction', 'title' => 'Induction Progress', 'icon' => 'tabler-school', 'keywords' => 'Induction Training Progress Trainee Setup'],
+                    ['slug' => 'glp', 'title' => 'GLP Progress', 'icon' => 'tabler-flask', 'keywords' => 'GLP Good Laboratory Practice Training Progress'],
+                    ['slug' => 'functional', 'title' => 'Functional Progress', 'icon' => 'tabler-settings-cog', 'keywords' => 'Functional Training Progress Job Role'],
+                ];
+            @endphp
+
+            @foreach ($programMenu as $program)
+                <li class="menu-item {{ request()->routeIs('user.training.index') && $currentProgram === $program['slug'] ? 'active' : '' }}"
+                    data-nav-item="true" data-nav-text="{{ $program['keywords'] }}">
+                    <a href="{{ route('user.training.index', ['program' => $program['slug']]) }}" class="menu-link">
+                        <i class="menu-icon icon-base ti {{ $program['icon'] }}"></i>
+                        <div>{{ $program['title'] }}</div>
+                    </a>
+                </li>
+            @endforeach
         @endcan
 
     </ul>

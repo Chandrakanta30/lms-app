@@ -98,7 +98,7 @@
                                             @if ($isExpired)
                                                 <div class="mb-2">
                                                     <span class="badge badge-danger">
-                                                        Expired
+                                                        Ended
                                                     </span>
                                                 </div>
                                             @endif

@@ -25,7 +25,8 @@ class TrainingSessionController extends Controller
                 'module.trainers',
             ]);
 
-        if (auth()->user()?->hasRole('Trainee')) {
+        $currentUser = auth()->user();
+        if ($currentUser && $currentUser->hasRole('Trainee')) {
             $assignmentsQuery->where('user_id', auth()->id());
         }
 
@@ -91,7 +92,8 @@ class TrainingSessionController extends Controller
                             && Carbon::parse($assignment->latest_exam_result->created_at)->gt(Carbon::parse($assignment->reassigned_at))
                         )
                     );
-                $assignment->trainer_name = optional($module?->trainers?->first())->name ?? 'N/A';
+                $firstTrainer = $module && $module->trainers ? $module->trainers->first() : null;
+                $assignment->trainer_name = $firstTrainer ? $firstTrainer->name : 'N/A';
                 $assignment->signature_session = $module && $user
                     ? $this->resolveTrainingSessionForAssignment($assignment)
                     : null;
@@ -235,7 +237,8 @@ class TrainingSessionController extends Controller
                     : ($assignment->status ?? 'pending');
                 $assignment->status_label = $this->formatTrainingStatusLabel($assignment->status);
                 $assignment->status_class = $this->formatTrainingStatusClass($assignment->status);
-                $assignment->trainer_name = optional($assignment->module?->trainers?->first())->name ?? 'N/A';
+                $firstTrainer = $assignment->module && $assignment->module->trainers ? $assignment->module->trainers->first() : null;
+                $assignment->trainer_name = $firstTrainer ? $firstTrainer->name : 'N/A';
                 $assignment->signature_session = $this->resolveTrainingSessionForAssignment($assignment);
                 $assignment->latest_exam_result = $assignment->module
                     ? $assignment->module->examResults()
@@ -396,7 +399,7 @@ class TrainingSessionController extends Controller
         }
 
         if ($scope === 'same' && $targetTraining->isExpired()) {
-            return back()->with('error', 'This training has expired, so you must choose another active training instead.');
+            return back()->with('error', 'This training has ended, so you must choose another active training instead.');
         }
 
         if ($scope === 'other' && $targetTraining->id === $module->id) {
@@ -404,7 +407,7 @@ class TrainingSessionController extends Controller
         }
 
         if ($scope === 'other' && $targetTraining->isExpired()) {
-            return back()->with('error', 'The selected training is expired and cannot be used for reassignment.');
+            return back()->with('error', 'The selected training has ended and cannot be used for reassignment.');
         }
 
         $reassignmentNote = $this->formatReassignmentNote($targetTraining);
@@ -601,7 +604,7 @@ class TrainingSessionController extends Controller
                     return [
                         'id' => $training->id,
                         'name' => $training->name,
-                        'type_label' => (int) ($training->is_anuual ?? 0) === 1 ? 'Annual' : 'Regular',
+                        'type_label' => (int) ($training->is_anuual ?? 0) === 1 ? 'Refreshment' : 'Regular',
                         'start_date' => $training->start_date,
                         'end_date' => $training->end_date,
                         'expired' => $training->isExpired(),

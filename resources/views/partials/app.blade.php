@@ -386,7 +386,7 @@
     </style>
 </head>
 
-<body data-current-route="{{ request()->route()?->getName() ?? '' }}">
+<body data-current-route="{{ request()->route() ? request()->route()->getName() : '' }}">
 
     <!-- Layout wrapper -->
     <div class="layout-wrapper layout-content-navbar">

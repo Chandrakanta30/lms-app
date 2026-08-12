@@ -14,7 +14,7 @@
                     <div>
                         <h4 class="card-title mb-1">Training Summary</h4>
                         <p class="text-muted mb-0">
-                            Annual and induction trainings only. Failed includes users who did not attempt the exam before the allowed time ended.
+                            Refreshment and induction trainings only. Failed includes users who did not attempt the exam before the allowed time ended.
                         </p>
                     </div>
 
@@ -38,7 +38,7 @@
                     </div>
                     <div class="col-md-4 mb-3">
                         <div class="border rounded p-3 bg-light">
-                            <div class="text-muted" style="font-size:0.74rem;text-transform:uppercase;letter-spacing:0.08em;">Expired</div>
+                            <div class="text-muted" style="font-size:0.74rem;text-transform:uppercase;letter-spacing:0.08em;">Ended</div>
                             <h4 class="mb-0">{{ $trainingSummaryRows->where('is_expired', true)->count() }}</h4>
                         </div>
                     </div>
@@ -63,7 +63,7 @@
                                     <td class="px-4 py-3">
                                         <div class="fw-medium">{{ $summary->name }}</div>
                                         @if($summary->is_expired)
-                                            <span class="badge badge-danger mt-1">Expired</span>
+                                            <span class="badge badge-danger mt-1">Ended</span>
                                         @endif
                                     </td>
                                     <td class="py-3 text-muted">

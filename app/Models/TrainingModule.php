@@ -243,7 +243,7 @@ class TrainingModule extends Model
             return $assignment->status;
         }
 
-        if ($latestResult?->is_passed) {
+        if ($latestResult && $latestResult->is_passed) {
             return 'passed';
         }
 

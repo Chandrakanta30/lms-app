@@ -86,7 +86,7 @@
                                 <div class="d-flex flex-wrap align-items-center" style="gap: 6px;">
                                 @if ($isExpired)
                                     <span class="badge badge-danger">
-                                        Expired
+                                        Ended
                                     </span>
                                 @endif
 

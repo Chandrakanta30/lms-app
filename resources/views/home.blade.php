@@ -183,7 +183,7 @@
                 </div>
                 <div class="col-md-4 mb-2">
                   <div class="border rounded px-3 py-2 bg-light">
-                    <div class="text-muted" style="font-size:0.74rem;text-transform:uppercase;letter-spacing:0.08em;">Expired</div>
+                    <div class="text-muted" style="font-size:0.74rem;text-transform:uppercase;letter-spacing:0.08em;">Ended</div>
                     <strong>{{ $trainingSummaryRows->where('is_expired', true)->count() }}</strong>
                   </div>
                 </div>
@@ -213,7 +213,7 @@
                         <td class="px-4 py-3">
                           <div class="fw-medium">{{ $summary->name }}</div>
                           @if($summary->is_expired)
-                            <span class="badge badge-danger mt-1">Expired</span>
+                            <span class="badge badge-danger mt-1">Ended</span>
                           @endif
                         </td>
                         <td class="py-3 text-muted">
@@ -823,7 +823,7 @@
                 'read_documents' => 'Start Reading',
                 'take_exam'      => 'Take Exam',
                 'retake_exam'    => 'Retake Exam',
-                'expired'        => 'Expired',
+                'expired'        => 'Ended',
                 'waiting_reassign' => 'Awaiting Reassignment',
                 default          => 'Continue',
               };

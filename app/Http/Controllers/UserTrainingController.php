@@ -202,7 +202,9 @@ class UserTrainingController extends Controller
     // // Log the interaction
     public function store(Request $request, User $user, TrainingModule $training)
     {
-        if (auth()->user()?->hasRole('Trainee') && auth()->id() !== $user->id) {
+        $currentUser = auth()->user();
+
+        if ($currentUser && $currentUser->hasRole('Trainee') && auth()->id() !== $user->id) {
             abort(403, 'You are not allowed to update another trainee\'s progress.');
         }
 
@@ -289,11 +291,13 @@ class UserTrainingController extends Controller
 
     public function show(User $user, TrainingModule $training)
     {
-        if (auth()->user()?->hasRole('Trainee') && auth()->id() !== $user->id) {
+        $currentUser = auth()->user();
+
+        if ($currentUser && $currentUser->hasRole('Trainee') && auth()->id() !== $user->id) {
             abort(403, 'You are not allowed to view another trainee\'s training.');
         }
 
-        $loggedInUser = auth()->user()?->loadMissing('designation');
+        $loggedInUser = $currentUser ? $currentUser->loadMissing('designation') : null;
 
         /**
          * 1. $training is the Parent Module (Program) assigned to the user.
@@ -314,8 +318,8 @@ class UserTrainingController extends Controller
             ->toArray();
 
         $interactionDefaults = [
-            'interacted_person' => $loggedInUser?->name ?? '',
-            'designation' => $loggedInUser?->designation?->name ?? '',
+            'interacted_person' => $loggedInUser ? $loggedInUser->name : '',
+            'designation' => $loggedInUser && $loggedInUser->designation ? $loggedInUser->designation->name : '',
             'comments' => 'Training step reviewed and explained to the trainee. User demonstrated understanding and the completion was recorded.',
         ];
 
@@ -347,7 +351,9 @@ class UserTrainingController extends Controller
 
     public function report(User $user, $training_id)
     {
-        if (auth()->user()?->hasRole('Trainee') && auth()->id() !== $user->id) {
+        $currentUser = auth()->user();
+
+        if ($currentUser && $currentUser->hasRole('Trainee') && auth()->id() !== $user->id) {
             abort(403, 'You are not allowed to view another trainee\'s report.');
         }
 

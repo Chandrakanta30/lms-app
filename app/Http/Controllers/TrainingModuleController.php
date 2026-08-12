@@ -44,6 +44,29 @@ class TrainingModuleController extends Controller
         return $allowed;
     }
 
+
+    private function annualProgramPeriod(\Carbon\Carbon $planStart, int $index, int $gap): array
+    {
+        $year = $planStart->year;
+        $startMonth = 1 + ($index * $gap);
+        $endMonth = min(12, $startMonth + $gap - 1);
+
+        // The plan's day-of-month is reused on BOTH ends of the period, clamped
+        // per month so a plan starting on the 31st still lands inside shorter
+        // months (31 -> 30 in September, 28/29 in February).
+        $startDay = min($planStart->day, \Carbon\Carbon::create($year, $startMonth, 1)->daysInMonth);
+        $endDay = min($planStart->day, \Carbon\Carbon::create($year, $endMonth, 1)->daysInMonth);
+
+        $start = \Carbon\Carbon::create($year, $startMonth, $startDay)->startOfDay();
+        $end = \Carbon\Carbon::create($year, $endMonth, $endDay)->startOfDay();
+
+        $label = $startMonth === $endMonth
+            ? $start->format('F')
+            : $start->format('F') . ' to ' . $end->format('F');
+
+        return compact('start', 'end', 'label');
+    }
+
     public function index(Request $request)
     {
         $query = TrainingModule::with([
@@ -432,7 +455,7 @@ class TrainingModuleController extends Controller
                 'monthly' => ['count' => 12, 'gap' => 1],
                 'quarterly' => ['count' => 3, 'gap' => 4],
                 'half_yearly' => ['count' => 2, 'gap' => 6],
-                'yearly' => ['count' => 1, 'gap' => 12],
+                'yearly' => ['count' => 1,'gap' => 12],
             ];
 
             $config = $frequencyMap[$request->frequency] ?? ['count' => 0, 'gap' => 1];
@@ -440,19 +463,23 @@ class TrainingModuleController extends Controller
             $count = $config['count'];
             $gap = $config['gap'];
 
+            
+            $planStart = $parent->start_date
+                ? \Carbon\Carbon::parse($parent->start_date)
+                : now();
+
             for ($i = 0; $i < $count; $i++) {
 
-                $monthDate = now()->addMonths($i * $gap);
-                $monthName = $monthDate->format('F');
+                $period = $this->annualProgramPeriod($planStart, $i, $gap);
 
                 $child = TrainingModule::create([
-                    'name' => $parent->name . ' - ' . $monthName . ' Training',
+                    'name' => $parent->name . ' - ' . $period['label'] . ' Training',
 
                     'training_type' => $parent->training_type,
                     'status' => $parent->status,
 
-                    'start_date' => $parent->start_date,
-                    'end_date' => $parent->end_date,
+                    'start_date' => $period['start']->toDateString(),
+                    'end_date' => $period['end']->toDateString(),
                     'start_time' => $parent->start_time,
                     'end_time' => $parent->end_time,
 

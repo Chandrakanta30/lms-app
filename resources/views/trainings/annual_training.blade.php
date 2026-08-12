@@ -1,6 +1,6 @@
 @extends('partials.app')
 
-@section('title', 'Annual Training Plans')
+@section('title', 'Refreshment Training Plans')
 
 @php
     $statusMap = [
@@ -24,7 +24,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
                     <div>
                         <h4 class="card-title mb-1">
-                            {{ $isChildView ? 'Annual  Programs' : 'Annual Main Plan Setup' }}
+                            {{ $isChildView ? 'Refreshment Programs' : 'Refreshment Main Plan Setup' }}
                         </h4>
                         <p class="text-muted mb-0">
                             @if ($isChildView)
@@ -37,7 +37,7 @@
 
                     <div class="d-flex" style="gap: 8px;">
                         <a href="{{ route('annual-training.create') }}" class="btn btn-primary shadow-sm">
-                            <i class="mdi mdi-plus"></i> Add New Annual Program
+                            <i class="mdi mdi-plus"></i> Add New Refreshment Program
                         </a>
                     </div>
                 </div>

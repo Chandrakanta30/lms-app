@@ -141,7 +141,7 @@
 
             @can('training-list')
                 <li class="menu-item {{ request()->routeIs('trainings.index') || request()->routeIs('created-training-setup') || request()->routeIs('annual-training') || request()->routeIs('created-annual-training') || request()->routeIs('training-list') || request()->routeIs('training-calendar') ? 'active open' : '' }}"
-                    data-nav-item="true" data-nav-text="Training Setup Created Annual Plan Calendar List">
+                    data-nav-item="true" data-nav-text="Training Setup Created Refreshment Annual Plan Calendar List">
                     <a href="javascript:void(0);" class="menu-link menu-toggle">
                         <i class="menu-icon icon-base ti tabler-book-2"></i>
                         <div>Training Program</div>
@@ -159,12 +159,12 @@
                         </li>
                         <li class="menu-item {{ request()->routeIs('annual-training') ? 'active' : '' }}">
                             <a href="{{ route('annual-training') }}" class="menu-link">
-                                <div>Annual Plan Setup</div>
+                                <div>Refreshment Plan Setup</div>
                             </a>
                         </li>
                         <li class="menu-item {{ request()->routeIs('created-annual-training') ? 'active' : '' }}">
                             <a href="{{ route('created-annual-training') }}" class="menu-link">
-                                <div>Created Annual Plan</div>
+                                <div>Created Refreshment Plan</div>
                             </a>
                         </li>
                         <li class="menu-item {{ request()->routeIs('training-list') ? 'active' : '' }}">

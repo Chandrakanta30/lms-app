@@ -319,6 +319,58 @@
         </div>
       </section>
 
+      {{-- Refreshment training programmes falling in the current month --}}
+      <h5 class="mb-3 fw-semibold" style="color:#2f2b3d;">
+        Refreshment Training Programme <span class="text-muted fw-normal">— {{ $annualMonthLabel }}</span>
+      </h5>
+      <section class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table mb-0" style="font-size:0.88rem;">
+                  <thead style="background:rgba(15,23,42,0.03);">
+                    <tr>
+                      <th class="px-4 py-3 fw-semibold">Programme</th>
+                      <th class="py-3 fw-semibold">Date</th>
+                      <th class="py-3 fw-semibold">Trainees</th>
+                      <th class="py-3 fw-semibold">Status</th>
+                      <th class="py-3 fw-semibold"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @forelse($annualThisMonth as $annual)
+                      <tr style="border-top:1px solid rgba(15,23,42,0.06);">
+                        <td class="px-4 py-3 fw-medium">{{ $annual->name }}</td>
+                        <td class="py-3 text-muted" style="font-size:0.8rem;">
+                          {{ $annual->start_date ? \Carbon\Carbon::parse($annual->start_date)->format('d M') : '—' }}
+                          @if($annual->end_date) – {{ \Carbon\Carbon::parse($annual->end_date)->format('d M Y') }} @endif
+                        </td>
+                        <td class="py-3">{{ $annual->trainees_count }}</td>
+                        <td class="py-3">
+                          @php
+                            $annualStatusColor = ['created'=>'secondary','inreview'=>'warning','reviewed'=>'info','approved'=>'success'][$annual->status] ?? 'secondary';
+                          @endphp
+                          <span class="badge bg-{{ $annualStatusColor }}">{{ ucfirst($annual->status) }}</span>
+                        </td>
+                        <td class="py-3">
+                          <a href="{{ route('trainings.show', $annual->id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:0.78rem;">View</a>
+                        </td>
+                      </tr>
+                    @empty
+                      <tr><td colspan="5" class="text-center text-muted py-4">No refreshment training scheduled for {{ $annualMonthLabel }}.</td></tr>
+                    @endforelse
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card-footer d-flex justify-content-end py-2">
+              <a href="{{ route('created-annual-training') }}" class="btn btn-sm btn-outline-primary">View all refreshment trainings</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
     {{-- ═══════════════════════════════════════════════════════════
          TRAINER DASHBOARD

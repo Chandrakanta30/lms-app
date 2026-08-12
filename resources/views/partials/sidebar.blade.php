@@ -1,7 +1,8 @@
 @php
-    $currentRoute = request()->route()?->getName() ?? '';
+    $route = request()->route();
+    $currentRoute = $route ? $route->getName() : '';
     $user = auth()->user();
-    $primaryRole = $user?->getRoleNames()->first() ?? 'Team Member';
+    $primaryRole = $user ? $user->getRoleNames()->first() : 'Team Member';
 @endphp
 
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">

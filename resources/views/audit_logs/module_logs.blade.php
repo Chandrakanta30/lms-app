@@ -7,7 +7,6 @@
 
             <h4 class="mb-4">Training Audit Logs</h4>
 
-            {{-- Optional: Show Training Name --}}
             @if($logs->count())
                 <div class="mb-3">
                     <strong>Training:</strong>
@@ -29,12 +28,9 @@
                 <tbody>
                     @forelse($logs as $log)
                         <tr>
-                            {{-- USER --}}
                             <td>{{ $log->causer->name ?? 'System' }}</td>
-
-                            {{-- ACTION --}}
                             <td>
-                                <span class="badge 
+                                <span class="badge
                                     @if($log->description == 'created') badge-success
                                     @elseif($log->description == 'updated') badge-warning
                                     @elseif($log->description == 'deleted') badge-danger
@@ -44,72 +40,66 @@
                                     {{ ucfirst($log->description) }}
                                 </span>
                             </td>
-
-                            {{-- CHANGES --}}
                             <td>
-    @php
-        $attributes = $log->properties['attributes'] ?? [];
-        $old = $log->properties['old'] ?? [];
-        $new = $log->properties['new'] ?? [];
-    @endphp
+                                @php
+                                    $properties = $log->properties ?? [];
+                                    $attributes = data_get($properties, 'attributes', []);
+                                    $old = data_get($properties, 'old', []);
+                                    $new = data_get($properties, 'new', []);
+                                    $extras = collect($properties)->except(['attributes', 'old', 'new']);
+                                @endphp
 
-    {{-- CASE 1: Default Laravel updates (attributes) --}}
-    @if(count($attributes))
-        @foreach($attributes as $key => $value)
-            @php
-                $oldValue = $old[$key] ?? null;
+                                @if(count($attributes))
+                                    @foreach($attributes as $key => $value)
+                                        @php
+                                            $oldValue = $old[$key] ?? null;
+                                            $formattedNew = $value;
+                                            $formattedOld = $oldValue;
 
-                $formattedNew = $value;
-                $formattedOld = $oldValue;
+                                            if ($key === 'is_active') {
+                                                $formattedNew = $value ? 'Active' : 'Inactive';
+                                                $formattedOld = isset($oldValue) ? ($oldValue ? 'Active' : 'Inactive') : null;
+                                            }
 
-                if ($key == 'is_active') {
-                    $formattedNew = $value ? 'Active' : 'Inactive';
-                    $formattedOld = isset($oldValue) ? ($oldValue ? 'Active' : 'Inactive') : null;
-                }
+                                            if ($key === 'training_type') {
+                                                $formattedNew = ucfirst(str_replace('_', ' ', $value));
+                                                $formattedOld = isset($oldValue) ? ucfirst(str_replace('_', ' ', $oldValue)) : null;
+                                            }
+                                        @endphp
 
-                if ($key == 'training_type') {
-                    $formattedNew = ucfirst(str_replace('_', ' ', $value));
-                    $formattedOld = isset($oldValue) ? ucfirst(str_replace('_', ' ', $oldValue)) : null;
-                }
-            @endphp
-
-            <div>
-                <strong>{{ ucfirst(str_replace('_',' ', $key)) }}:</strong>
-
-                @if(!is_null($formattedOld))
-                    <span class="text-danger">{{ $formattedOld }}</span> →
-                @endif
-
-                <span class="text-success">{{ $formattedNew }}</span>
-            </div>
-        @endforeach
-
-    {{-- CASE 2: Custom logs (trainers / trainees) --}}
-    @elseif(count($new))
-        @foreach($new as $key => $value)
-            <div>
-                <strong>{{ ucfirst($key) }}:</strong>
-
-                <span class="text-danger">
-                    {{ implode(', ', $old[$key] ?? []) }}
-                </span>
-                →
-                <span class="text-success">
-                    {{ implode(', ', $value ?? []) }}
-                </span>
-            </div>
-        @endforeach
-
-    {{-- CASE 3: Nothing --}}
-    @else
-        <span class="text-muted">No visible changes</span>
-    @endif
-</td>
-
-                            {{-- DATE --}}
-                            <td>
-                                {{ $log->created_at->format('d M Y, h:i A') }}
+                                        <div>
+                                            <strong>{{ ucfirst(str_replace('_', ' ', $key)) }}:</strong>
+                                            @if(!is_null($formattedOld))
+                                                <span class="text-danger">{{ $formattedOld }}</span> ->
+                                            @endif
+                                            <span class="text-success">{{ $formattedNew }}</span>
+                                        </div>
+                                    @endforeach
+                                @elseif(count($new))
+                                    @foreach($new as $key => $value)
+                                        <div>
+                                            <strong>{{ ucfirst($key) }}:</strong>
+                                            <span class="text-danger">
+                                                {{ implode(', ', (array) ($old[$key] ?? [])) }}
+                                            </span>
+                                            ->
+                                            <span class="text-success">
+                                                {{ implode(', ', (array) $value) }}
+                                            </span>
+                                        </div>
+                                    @endforeach
+                                @elseif($extras->isNotEmpty())
+                                    @foreach($extras as $key => $value)
+                                        <div>
+                                            <strong>{{ ucfirst(str_replace('_', ' ', $key)) }}:</strong>
+                                            {{ is_array($value) ? implode(', ', $value) : $value }}
+                                        </div>
+                                    @endforeach
+                                @else
+                                    <span class="text-muted">No visible changes</span>
+                                @endif
                             </td>
+                            <td>{{ $log->created_at->format('d M Y, h:i A') }}</td>
                         </tr>
                     @empty
                         <tr>

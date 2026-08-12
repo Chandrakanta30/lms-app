@@ -50,6 +50,11 @@ class QuestionController extends Controller
     {
         $module = TrainingModule::with('examDocuments')->findOrFail($moduleId);
 
+        if ($module->isExpired()) {
+            return redirect()->route('exam.list')
+                ->with('error', 'This assessment has already ended.');
+        }
+
         if ($module->examDocuments->isEmpty()) {
             return redirect()->route('exam.list')
                 ->with('error', 'No reviewed documents are enabled for this assessment yet.');
@@ -92,6 +97,11 @@ class QuestionController extends Controller
     {
         $module = TrainingModule::with('examDocuments')->findOrFail($moduleId);
 
+        if ($module->isExpired()) {
+            return redirect()->route('exam.list')
+                ->with('error', 'This assessment has already ended.');
+        }
+
         if ($module->examDocuments->isEmpty()) {
             return redirect()->route('exam.list')
                 ->with('error', 'No reviewed documents are enabled for this assessment yet.');
@@ -127,6 +137,18 @@ class QuestionController extends Controller
     public function takeExam($moduleId)
     {
         $module = TrainingModule::with('examDocuments')->findOrFail($moduleId);
+
+        if ($module->isExpired()) {
+            return redirect()->route('exam.list')
+                ->with('error', 'This assessment has already ended.');
+        }
+
+        $latestResult = $module->latestResultForUser(auth()->id());
+
+        if ($latestResult && !$latestResult->is_passed && !$module->hasUnlockedReassignmentForUser(auth()->id())) {
+            return redirect()->route('exam.list')
+                ->with('error', 'This failed assessment is waiting for reassignment before it can be attempted again.');
+        }
 
         $tracker = DocumentReadTracker::where('user_id', auth()->id())
             ->where('training_module_id', $module->id)
@@ -181,6 +203,12 @@ class QuestionController extends Controller
 
 
         $module = TrainingModule::with('examDocuments')->findOrFail($moduleId);
+
+        if ($module->isExpired()) {
+            return redirect()->route('exam.list')
+                ->with('error', 'This assessment has already ended.');
+        }
+
         $tracker = DocumentReadTracker::where('user_id', auth()->id())
             ->where('training_module_id', $module->id)
             ->first();
@@ -240,6 +268,10 @@ class QuestionController extends Controller
             'is_passed' => $isPassed,
             'details' => $details,
         ]);
+
+        if ($module->trainees()->where('users.id', auth()->id())->exists()) {
+            $module->syncTrainingStatusForUser(auth()->user());
+        }
 
 
         // 6. Log a Training Card entry for self-training passes (no trainer to log attendance for them)

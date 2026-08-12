@@ -88,11 +88,21 @@
                         @foreach ($trainings as $training)
                             @php
                                 $statusMeta = $statusMap[$training->status ?? 'created'] ?? $statusMap['created'];
+                                $trainerAcceptance = $training->trainerAcceptanceSummary();
+                                $isExpired = $training->isExpired();
                             @endphp
                             <div class="card border mb-3">
                                 <div class="card-header bg-white py-3">
                                     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
                                         <div class="training-left">
+                                            @if ($isExpired)
+                                                <div class="mb-2">
+                                                    <span class="badge badge-danger">
+                                                        Ended
+                                                    </span>
+                                                </div>
+                                            @endif
+
                                             <button
                                                 class="btn btn-link text-decoration-none text-dark font-weight-bold p-0 training-title"
                                                 data-toggle="collapse" data-target="#collapse{{ $training->id }}"
@@ -105,6 +115,9 @@
                                                     Steps</span>
                                                 <span
                                                     class="badge {{ $statusMeta['class'] }}">{{ $statusMeta['label'] }}</span>
+                                                <span class="badge {{ $trainerAcceptance['class'] }}">
+                                                    {{ $trainerAcceptance['display'] }}
+                                                </span>
                                             </div>
                                         </div>
                                         <div class="action-buttons">
@@ -141,10 +154,17 @@
                                                         class="status-text">{{ $training->is_active ? 'Active' : 'Inactive' }}</span>
                                                 </button>
                                             </form>
-                                            <a href="{{ route('trainings.edit', $training->id) }}"
-                                                class="btn btn-sm btn-light text-info">
-                                                <i class="mdi mdi-pencil"></i>
-                                            </a>
+                                            @if ($isExpired)
+                                                <span class="btn btn-sm btn-light text-muted disabled"
+                                                    title="Ended trainings cannot be edited" aria-disabled="true">
+                                                    <i class="mdi mdi-pencil"></i>
+                                                </span>
+                                            @else
+                                                <a href="{{ route('trainings.edit', $training->id) }}"
+                                                    class="btn btn-sm btn-light text-info">
+                                                    <i class="mdi mdi-pencil"></i>
+                                                </a>
+                                            @endif
                                             <form action="{{ route('trainings.destroy', $training->id) }}" method="POST"
                                                 class="d-inline">
                                                 @csrf

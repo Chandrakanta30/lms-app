@@ -17,6 +17,7 @@
     <section class="page-intro mb-4">
       <span class="eyebrow">
         @if($isAdmin) Admin Workspace
+        @elseif($isCoordinator) Coordinator Workspace
         @elseif($isTrainer) Trainer Workspace
         @elseif($isReviewer) Reviewer Workspace
         @elseif($isApprover) Approver Workspace
@@ -27,7 +28,7 @@
         <div>
           <h1 class="mb-1">{{ $greeting }}, {{ $firstName }}.</h1>
           <p class="mb-0">
-            @if($isAdmin)
+            @if($isAdmin || $isCoordinator)
               Here's the live picture of your training operations — users, active programmes, and items waiting on action.
             @elseif($isTrainer)
               Your assigned trainings, pending acceptance requests, and upcoming sessions are below.
@@ -52,7 +53,7 @@
     {{-- ═══════════════════════════════════════════════════════════
          ADMIN DASHBOARD
     ═══════════════════════════════════════════════════════════════ --}}
-    @if($isAdmin)
+    @if($isAdmin || $isCoordinator)
 
       {{-- Stats row --}}
       <section class="row mb-4">
@@ -152,6 +153,110 @@
         </div>
       </section>
 
+      {{-- Training summary table --}}
+      <h5 class="mb-3 fw-semibold" style="color:#2f2b3d;">Training Summary</h5>
+      <section class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2 py-3">
+              <div>
+                <h6 class="mb-1 fw-semibold">Dashboard Preview</h6>
+                <div class="text-muted" style="font-size:0.8rem;">
+                  Showing the latest 5 annual/induction trainings only.
+                </div>
+              </div>
+              <a href="{{ route('dashboard.training-summary') }}" class="btn btn-sm btn-outline-primary">
+                View All
+              </a>
+            </div>
+            <div class="card-body">
+              @php
+                $trainingSummaryRows = $trainingSummaries ?? collect();
+                $trainingSummaryPreview = $trainingSummaryRows->take(5);
+              @endphp
+              <div class="row mb-3">
+                <div class="col-md-4 mb-2">
+                  <div class="border rounded px-3 py-2 bg-light">
+                    <div class="text-muted" style="font-size:0.74rem;text-transform:uppercase;letter-spacing:0.08em;">Programs</div>
+                    <strong>{{ $trainingSummaryRows->count() }}</strong>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-2">
+                  <div class="border rounded px-3 py-2 bg-light">
+                    <div class="text-muted" style="font-size:0.74rem;text-transform:uppercase;letter-spacing:0.08em;">Ended</div>
+                    <strong>{{ $trainingSummaryRows->where('is_expired', true)->count() }}</strong>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-2">
+                  <div class="border rounded px-3 py-2 bg-light">
+                    <div class="text-muted" style="font-size:0.74rem;text-transform:uppercase;letter-spacing:0.08em;">Register Total</div>
+                    <strong>{{ $trainingSummaryRows->sum('register_count') }}</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm mb-0" style="font-size:0.84rem;">
+                  <thead style="background:rgba(15,23,42,0.03);">
+                    <tr>
+                      <th class="px-4 py-3 fw-semibold">Training Name</th>
+                      <th class="py-3 fw-semibold">Date</th>
+                      <th class="py-3 fw-semibold">Register</th>
+                      <th class="py-3 fw-semibold">Present</th>
+                      <th class="py-3 fw-semibold">Absent</th>
+                      <th class="py-3 fw-semibold">Passed Count</th>
+                      <th class="py-3 fw-semibold">Failed Count</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @forelse($trainingSummaryPreview as $summary)
+                      <tr style="border-top:1px solid rgba(15,23,42,0.06);">
+                        <td class="px-4 py-3">
+                          <div class="fw-medium">{{ $summary->name }}</div>
+                          @if($summary->is_expired)
+                            <span class="badge badge-danger mt-1">Ended</span>
+                          @endif
+                        </td>
+                        <td class="py-3 text-muted">
+                          {{ $summary->date ? \Carbon\Carbon::parse($summary->date)->format('d M Y') : '-' }}
+                        </td>
+                        <td class="py-3">{{ $summary->register_count }}</td>
+                        <td class="py-3 text-success fw-semibold">{{ $summary->present_count }}</td>
+                        <td class="py-3 text-danger fw-semibold">{{ $summary->absent_count }}</td>
+                        <td class="py-3 text-success fw-semibold">
+                          <a href="{{ route('sessions.index', ['training_id' => $summary->id, 'status' => 'passed']) }}"
+                            class="text-success text-decoration-none">
+                            {{ $summary->passed_count }}
+                          </a>
+                        </td>
+                        <td class="py-3 text-danger fw-semibold">
+                          <a href="{{ route('sessions.index', ['training_id' => $summary->id, 'status' => 'failed']) }}"
+                            class="text-danger text-decoration-none">
+                            {{ $summary->failed_count }}
+                          </a>
+                        </td>
+                      </tr>
+                    @empty
+                      <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                          No training summary data available yet.
+                        </td>
+                      </tr>
+                    @endforelse
+                  </tbody>
+                </table>
+              </div>
+              @if($trainingSummaryRows->count() > 5)
+                <div class="text-end mt-2">
+                  <a href="{{ route('dashboard.training-summary') }}" class="small text-decoration-none">
+                    Show {{ $trainingSummaryRows->count() - 5 }} more
+                  </a>
+                </div>
+              @endif
+            </div>
+          </div>
+        </div>
+      </section>
+
       {{-- Needs your attention --}}
       <h5 class="mb-3 fw-semibold" style="color:#2f2b3d;">Needs your attention</h5>
       <section class="row mb-4">
@@ -173,7 +278,11 @@
                     <div class="fw-medium" style="font-size:0.9rem;">{{ $t->name }}</div>
                     <div class="text-muted" style="font-size:0.78rem;">{{ ucfirst(str_replace('_', ' ', $t->training_type)) }} &middot; {{ $t->created_at->format('d M Y') }}</div>
                   </div>
-                  <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-outline-warning" style="font-size:0.78rem;">Review</a>
+                  @if($t->isExpired())
+                    <span class="btn btn-sm btn-outline-secondary disabled" style="font-size:0.78rem;" aria-disabled="true" title="Ended trainings cannot be edited">Review</span>
+                  @else
+                    <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-outline-warning" style="font-size:0.78rem;">Review</a>
+                  @endif
                 </div>
               @empty
                 <div class="px-4 py-4 text-muted text-center" style="font-size:0.88rem;">No trainings awaiting review.</div>
@@ -199,7 +308,11 @@
                     <div class="fw-medium" style="font-size:0.9rem;">{{ $t->name }}</div>
                     <div class="text-muted" style="font-size:0.78rem;">{{ ucfirst(str_replace('_', ' ', $t->training_type)) }} &middot; {{ $t->created_at->format('d M Y') }}</div>
                   </div>
-                  <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-outline-primary" style="font-size:0.78rem;">Approve</a>
+                  @if($t->isExpired())
+                    <span class="btn btn-sm btn-outline-secondary disabled" style="font-size:0.78rem;" aria-disabled="true" title="Ended trainings cannot be edited">Approve</span>
+                  @else
+                    <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-outline-primary" style="font-size:0.78rem;">Approve</a>
+                  @endif
                 </div>
               @empty
                 <div class="px-4 py-4 text-muted text-center" style="font-size:0.88rem;">No trainings awaiting approval.</div>
@@ -262,6 +375,41 @@
         </div>
 
       </section>
+
+      {{-- Rejected trainer assignments --}}
+      @if(isset($rejectedTrainerAssignments) && $rejectedTrainerAssignments->count() > 0)
+        <h5 class="mb-3 fw-semibold" style="color:#2f2b3d;">Rejected Trainer Assignments</h5>
+        <section class="row mb-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-body p-0">
+                @foreach($rejectedTrainerAssignments as $module)
+                  <div class="px-4 py-3" style="border-bottom:1px solid rgba(15,23,42,0.06);">
+                    <div class="d-flex align-items-center justify-content-between gap-3 mb-2">
+                      <div>
+                        <div class="fw-medium" style="font-size:0.9rem;">{{ $module->name }}</div>
+                        <div class="text-muted" style="font-size:0.78rem;">Rejected trainer assignments are highlighted below.</div>
+                      </div>
+                      <a href="{{ route('manage-trainers', $module->id) }}" class="btn btn-sm btn-outline-danger" style="font-size:0.78rem;">Open training</a>
+                    </div>
+                    <div class="d-flex flex-wrap" style="gap:6px;">
+                      @foreach($module->trainers as $trainer)
+                        <a
+                          href="{{ route('manage-trainers', $module->id) }}#trainer-row-{{ $trainer->id }}"
+                          class="badge bg-danger text-white text-decoration-none"
+                          style="padding:6px 10px;"
+                        >
+                          {{ $trainer->name }}
+                        </a>
+                      @endforeach
+                    </div>
+                  </div>
+                @endforeach
+              </div>
+            </div>
+          </div>
+        </section>
+      @endif
 
       {{-- Recent active trainings --}}
       <h5 class="mb-3 fw-semibold" style="color:#2f2b3d;">Active Training Programmes</h5>
@@ -515,7 +663,11 @@
                       &middot; {{ $t->created_at->format('d M Y') }}
                     </div>
                   </div>
-                  <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-warning" style="font-size:0.8rem;">Open &amp; Review</a>
+                  @if($t->isExpired())
+                    <span class="btn btn-sm btn-secondary disabled" style="font-size:0.8rem;" aria-disabled="true" title="Ended trainings cannot be edited">Open &amp; Review</span>
+                  @else
+                    <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-warning" style="font-size:0.8rem;">Open &amp; Review</a>
+                  @endif
                 </div>
               @empty
                 <div class="px-4 py-5 text-center text-muted">
@@ -580,7 +732,11 @@
                       &middot; {{ $t->created_at->format('d M Y') }}
                     </div>
                   </div>
-                  <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-primary" style="font-size:0.8rem;">Open &amp; Approve</a>
+                  @if($t->isExpired())
+                    <span class="btn btn-sm btn-secondary disabled" style="font-size:0.8rem;" aria-disabled="true" title="Ended trainings cannot be edited">Open &amp; Approve</span>
+                  @else
+                    <a href="{{ route('trainings.edit', $t->id) }}" class="btn btn-sm btn-primary" style="font-size:0.8rem;">Open &amp; Approve</a>
+                  @endif
                 </div>
               @empty
                 <div class="px-4 py-5 text-center text-muted">
@@ -652,30 +808,39 @@
                 'read_documents' => 'Read documents first',
                 'take_exam'      => 'Exam ready — take it now',
                 'retake_exam'    => 'Exam failed — retake available',
+                'expired'        => 'Training expired',
+                'waiting_reassign' => 'Exam failed — awaiting reassignment',
                 default          => 'In progress',
               };
               $stepColor = match($item['next_step']) {
                 'read_documents' => '#d97706',
                 'take_exam'      => '#2563eb',
                 'retake_exam'    => '#dc2626',
+                'expired'        => '#6b7280',
+                'waiting_reassign' => '#b45309',
                 default          => '#64748b',
               };
               $stepIcon = match($item['next_step']) {
                 'read_documents' => 'mdi-book-open-page-variant-outline',
                 'take_exam'      => 'mdi-clipboard-text-outline',
                 'retake_exam'    => 'mdi-reload-alert',
+                'expired'        => 'mdi-calendar-remove',
+                'waiting_reassign' => 'mdi-alert-circle-outline',
                 default          => 'mdi-dots-horizontal-circle-outline',
               };
               $actionRoute = match($item['next_step']) {
                 'read_documents' => route('exams.read', $item['training']->id),
                 'take_exam'      => route('exams.take', $item['training']->id),
                 'retake_exam'    => route('exams.take', $item['training']->id),
+                'expired'        => '#',
                 default          => '#',
               };
               $actionLabel = match($item['next_step']) {
                 'read_documents' => 'Start Reading',
                 'take_exam'      => 'Take Exam',
                 'retake_exam'    => 'Retake Exam',
+                'expired'        => 'Ended',
+                'waiting_reassign' => 'Awaiting Reassignment',
                 default          => 'Continue',
               };
             @endphp
@@ -705,9 +870,15 @@
                       <i class="mdi {{ $item['exam_passed'] ? 'mdi-check-circle' : 'mdi-circle-outline' }}"></i> Assessment
                     </span>
                   </div>
-                  <a href="{{ $actionRoute }}" class="btn btn-sm w-100" style="background:{{ $stepColor }};color:#fff;font-size:0.82rem;">
-                    {{ $actionLabel }}
-                  </a>
+                  @if(in_array($item['next_step'], ['waiting_reassign', 'expired'], true))
+                    <button type="button" class="btn btn-sm w-100" disabled style="background:{{ $stepColor }};color:#fff;font-size:0.82rem;opacity:0.7;">
+                      {{ $actionLabel }}
+                    </button>
+                  @else
+                    <a href="{{ $actionRoute }}" class="btn btn-sm w-100" style="background:{{ $stepColor }};color:#fff;font-size:0.82rem;">
+                      {{ $actionLabel }}
+                    </a>
+                  @endif
                 </div>
               </div>
             </div>

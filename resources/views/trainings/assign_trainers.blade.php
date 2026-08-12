@@ -10,6 +10,11 @@
                 <div class="card-body">
                     @php
                         $trainerRequired = ($module->training_type ?? 'classroom') !== 'self_training';
+                        $trainerStatusMap = [
+                            'pending' => ['label' => 'Pending', 'class' => 'badge-warning'],
+                            'accepted' => ['label' => 'Accepted', 'class' => 'badge-success'],
+                            'rejected' => ['label' => 'Rejected', 'class' => 'badge-danger'],
+                        ];
                     @endphp
 
                     @if (!$trainerRequired)
@@ -26,12 +31,13 @@
                                     <th>Select Trainer</th>
                                     <th>Assignment Start Date</th>
                                     <th>Assignment End Date</th>
+                                    <th>Status</th>
                                     <th width="50px">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($module->trainers as $index => $trainer)
-                                    <tr>
+                                    <tr id="trainer-row-{{ $trainer->id }}">
                                         <td>
                                             <select name="trainers[{{ $index }}][user_id]" class="form-control"
                                                 {{ $trainerRequired ? 'required' : '' }}>
@@ -54,6 +60,14 @@
                                                 {{ $trainerRequired ? 'required' : '' }}>
                                         </td>
                                         <td>
+                                            @php
+                                                $trainerStatus = $trainerStatusMap[$trainer->pivot->acceptance_status ?? 'pending'] ?? $trainerStatusMap['pending'];
+                                            @endphp
+                                            <span class="badge {{ $trainerStatus['class'] }}">
+                                                {{ $trainerStatus['label'] }}
+                                            </span>
+                                        </td>
+                                        <td>
                                             <button type="button" class="btn btn-danger btn-sm"
                                                 onclick="this.closest('tr').remove()">
                                                 <i class="fas fa-times"></i> x
@@ -62,7 +76,7 @@
                                     </tr>
                                 @empty
                                     <tr class="empty-row">
-                                        <td colspan="4" class="text-center text-muted">No trainers assigned. Click "Add
+                                        <td colspan="5" class="text-center text-muted">No trainers assigned. Click "Add
                                             Trainer" to start.</td>
                                     </tr>
                                 @endforelse
@@ -154,6 +168,7 @@
             </td>
             <td><input type="date" name="trainers[${trainerCount}][start_date]" class="form-control" {{ $trainerRequired ? 'required' : '' }}></td>
             <td><input type="date" name="trainers[${trainerCount}][end_date]" class="form-control" {{ $trainerRequired ? 'required' : '' }}></td>
+            <td><span class="badge badge-warning">Pending</span></td>
             <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">x</button></td>
         `;
 

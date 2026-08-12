@@ -55,6 +55,8 @@
                     @foreach ($trainings as $training)
                         @php
                             $statusMeta = $statusMap[$training->status ?? 'created'] ?? $statusMap['created'];
+                            $trainerAcceptance = $training->trainerAcceptanceSummary();
+                            $isExpired = $training->isExpired();
                         @endphp
 
                         <!-- CARD START -->
@@ -67,6 +69,14 @@
 
                                     <!-- LEFT -->
                                     <div class="training-left">
+
+                                        @if ($isExpired)
+                                            <div class="mb-2">
+                                                <span class="badge badge-danger">
+                                                    Ended
+                                                </span>
+                                            </div>
+                                        @endif
 
                                         <button
                                             class="btn btn-link text-decoration-none text-dark font-weight-bold p-0 training-title"
@@ -86,6 +96,10 @@
 
                                             <span class="badge {{ $statusMeta['class'] }}">
                                                 {{ $statusMeta['label'] }}
+                                            </span>
+
+                                            <span class="badge {{ $trainerAcceptance['class'] }}">
+                                                {{ $trainerAcceptance['display'] }}
                                             </span>
 
                                         </div>
@@ -144,11 +158,17 @@
                                         </form>
 
                                         <!-- EDIT -->
-                                        <a href="{{ route('trainings.edit', $training->id) }}"
-                                            class="btn btn-sm btn-light text-info">
-
-                                            <i class="mdi mdi-pencil"></i>
-                                        </a>
+                                        @if ($isExpired)
+                                            <span class="btn btn-sm btn-light text-muted disabled"
+                                                title="Ended trainings cannot be edited" aria-disabled="true">
+                                                <i class="mdi mdi-pencil"></i>
+                                            </span>
+                                        @else
+                                            <a href="{{ route('trainings.edit', $training->id) }}"
+                                                class="btn btn-sm btn-light text-info">
+                                                <i class="mdi mdi-pencil"></i>
+                                            </a>
+                                        @endif
 
                                         <!-- DELETE -->
                                         <form action="{{ route('trainings.destroy', $training->id) }}" method="POST"

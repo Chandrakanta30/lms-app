@@ -196,17 +196,11 @@ class TrainingSessionController extends Controller
 
         $user = User::find($request->trainee_id);
         $module = $this->resolveTrainingModuleForTopic($payload['topic']);
-        $payload['training_module_id'] = $module ? $module->id : null;
 
-        $sessionLookup = $module
-            ? [
-                'trainee_id' => $payload['trainee_id'],
-                'training_module_id' => $module->id,
-            ]
-            : [
-                'trainee_id' => $payload['trainee_id'],
-                'topic' => $payload['topic'],
-            ];
+        $sessionLookup = [
+            'trainee_id' => $payload['trainee_id'],
+            'topic' => $payload['topic'],
+        ];
 
         TrainingSessions::updateOrCreate(
             $sessionLookup,
@@ -667,31 +661,6 @@ class TrainingSessionController extends Controller
 
         if ($moduleName === '') {
             return null;
-        }
-
-        if ($module && $module->id) {
-            $exactModuleSession = TrainingSessions::query()
-                ->where('trainee_id', $assignment->user_id)
-                ->where('training_module_id', $module->id)
-                ->whereNull('trainer_id')
-                ->latest('training_date')
-                ->latest('id')
-                ->first();
-
-            if ($exactModuleSession) {
-                return $exactModuleSession;
-            }
-
-            $exactModuleSession = TrainingSessions::query()
-                ->where('trainee_id', $assignment->user_id)
-                ->where('training_module_id', $module->id)
-                ->latest('training_date')
-                ->latest('id')
-                ->first();
-
-            if ($exactModuleSession) {
-                return $exactModuleSession;
-            }
         }
 
         $topicPrefix = trim(explode(' - ', $moduleName, 2)[0]);

@@ -55,7 +55,7 @@ class User extends Authenticatable
         //     ->withTimestamps();
 
         return $this->belongsToMany(TrainingModule::class, 'training_user', 'user_id', 'training_module_id')
-            ->withPivot('status');
+            ->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by', 'reassigned_at', 'reassignment_mode', 'reassignment_note', 'reassigned_from_training_id');
     }
 
 

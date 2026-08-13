@@ -45,7 +45,7 @@
                 @if ($failedAssessmentCount > 0)
                     <div class="alert alert-info mt-3">
                         {{ $failedAssessmentCount }}
-                        assessment(s) need re-attempt after document review.
+                        assessment(s) are awaiting reassignment or re-attempt.
                     </div>
                 @endif
 
@@ -55,18 +55,20 @@
         {{-- Training Cards --}}
         <div class="row">
 
-            @foreach ($modules as $module)
-                @php
-                    $totalQuestions = $module->examDocuments->sum(
-                        fn($document) => (int) ($document->pivot->question_quota ?? 0),
-                    );
+                @foreach ($modules as $module)
+                    @php
+                        $totalQuestions = $module->examDocuments->sum(
+                            fn($document) => (int) ($document->pivot->question_quota ?? 0),
+                        );
 
-                    $status = $module->latestResult;
+                        $status = $module->latestResult;
 
-                    $readTracker = $module->readTracker;
+                        $readTracker = $module->readTracker;
 
-                    $readingCompleted = (bool) ($module->reading_completed ?? false);
-                @endphp
+                        $readingCompleted = (bool) ($module->reading_completed ?? false);
+                        $isExpired = $module->isExpired();
+                        
+                    @endphp
 
                 <div class="col-md-6 col-lg-4 grid-margin stretch-card">
 
@@ -81,19 +83,27 @@
                                     {{ $module->name }}
                                 </h4>
 
-                                @if ($status && $status->is_passed)
-                                    <span class="badge badge-success">
-                                        Passed
-                                    </span>
-                                @elseif($status)
+                                <div class="d-flex flex-wrap align-items-center" style="gap: 6px;">
+                                @if ($isExpired)
                                     <span class="badge badge-danger">
-                                        Failed
-                                    </span>
-                                @else
-                                    <span class="badge badge-warning text-white">
-                                        Pending
+                                        Ended
                                     </span>
                                 @endif
+
+                                    @if ($status && $status->is_passed)
+                                        <span class="badge badge-success">
+                                            Passed
+                                        </span>
+                                    @elseif($status)
+                                        <span class="badge badge-danger">
+                                            Failed
+                                        </span>
+                                    @else
+                                        <span class="badge badge-warning text-white">
+                                            Pending
+                                        </span>
+                                    @endif
+                                </div>
 
                             </div>
 
@@ -169,7 +179,11 @@
                             {{-- Action Buttons --}}
                             <div class="mt-auto">
 
-                                @if (!$readingCompleted)
+                                @if ($isExpired)
+                                    <button class="btn btn-secondary btn-block" disabled>
+                                        Already Ended
+                                    </button>
+                                @elseif (!$readingCompleted)
                                     <a href="{{ route('exams.read', $module->id) }}" class="btn btn-warning btn-block">
 
                                         Complete Reading
@@ -181,12 +195,18 @@
                                         Completed
 
                                     </button>
-                                @elseif($status && !$status->is_passed)
+                                @elseif(($module->assessment_state ?? null) === 'retake_exam')
                                     <a href="{{ route('exams.take', $module->id) }}" class="btn btn-danger btn-block">
 
                                         Re-Attempt
 
                                     </a>
+                                @elseif(($module->assessment_state ?? null) === 'waiting_reassign')
+                                    <button class="btn btn-outline-danger btn-block" disabled>
+
+                                        Awaiting Re-Assignment
+
+                                    </button>
                                 @else
                                     <a href="{{ route('exams.take', $module->id) }}" class="btn btn-primary btn-block">
 

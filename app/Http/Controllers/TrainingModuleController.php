@@ -963,14 +963,31 @@ class TrainingModuleController extends Controller
         // Reload relation
         $training->load('acceptedTrainers');
 
-        // Mark ALL unread notifications for this trainer and training as read
-        \App\Models\Notification::where('user_id', auth()->id())
+        $this->markTrainerAssignmentNotificationsAsRead($trainingId);
+
+        return response()->json(['success' => true, 'message' => 'Training accepted successfully.']);
+    }
+
+    public function rejectTrainerTraining($trainingId)
+    {
+        $training = TrainingModule::findOrFail($trainingId);
+
+        $training->trainers()->updateExistingPivot(auth()->id(), [
+            'acceptance_status' => 'rejected',
+        ]);
+
+        $this->markTrainerAssignmentNotificationsAsRead($trainingId);
+
+        return response()->json(['success' => true, 'message' => 'Training rejected successfully.']);
+    }
+
+    private function markTrainerAssignmentNotificationsAsRead(int $trainingId): void
+    {
+        Notification::where('user_id', auth()->id())
             ->where('training_id', $trainingId)
             ->where('type', 'trainer_assignment')
             ->where('is_read', false)
             ->update(['is_read' => true]);
-
-        return response()->json(['success' => true, 'message' => 'Training accepted successfully.']);
     }
 
     private function resolveTrainingBackUrl(string $sessionKey, string $currentUrl, string $fallbackUrl): string

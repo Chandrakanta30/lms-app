@@ -27,7 +27,7 @@ class TrainingSessionController extends Controller
             ]);
 
         $currentUser = auth()->user();
-        if ($currentUser && $currentUser->hasRole('Trainee')) {
+        if ($currentUser && $currentUser->hasRole('Trainee') && !$currentUser->is_trainer) {
             $assignmentsQuery->where('user_id', auth()->id());
         }
 
@@ -92,7 +92,7 @@ class TrainingSessionController extends Controller
                         ->where('user_id', $user->id)
                         ->latest('created_at')
                         ->first()
-                    : null;
+                    : null;   
                 $assignment->reassignment_note = $assignment->reassignment_note
                     ?: $this->buildReassignmentNote($assignment);
                 $assignment->can_reassign = $assignment->status === 'failed'

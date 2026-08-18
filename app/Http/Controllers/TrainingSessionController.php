@@ -27,7 +27,7 @@ class TrainingSessionController extends Controller
             ]);
 
         $currentUser = auth()->user();
-        if ($currentUser && $currentUser->hasRole('Trainee')) {
+        if ($currentUser && $currentUser->hasRole('Trainee') && !$currentUser->is_trainer) {
             $assignmentsQuery->where('user_id', auth()->id());
         }
 
@@ -92,7 +92,7 @@ class TrainingSessionController extends Controller
                         ->where('user_id', $user->id)
                         ->latest('created_at')
                         ->first()
-                    : null;
+                    : null;   
                 $assignment->reassignment_note = $assignment->reassignment_note
                     ?: $this->buildReassignmentNote($assignment);
                 $assignment->can_reassign = $assignment->status === 'failed'
@@ -238,7 +238,7 @@ class TrainingSessionController extends Controller
     public function userReport(User $user)
     {
         $sessions = TrainingUser::query()
-            ->with(['module.trainers', 'user.department', 'user.designation', 'approver'])
+            ->with(['module.trainers', 'module.documents', 'user.department', 'user.designation', 'approver'])
             ->where('user_id', $user->id)
             ->orderBy('training_user.id', 'asc')
             ->get()
@@ -258,6 +258,7 @@ class TrainingSessionController extends Controller
                 $assignment->approved_at_display = $assignment->approved_at
                     ? Carbon::parse($assignment->approved_at)->format('d M Y, h:i A')
                     : null;
+                $assignment->document_names = $this->trainingDocumentNames($assignment);
                 $assignment->latest_exam_result = $assignment->module
                     ? $assignment->module->examResults()
                         ->where('user_id', $assignment->user_id)
@@ -292,6 +293,17 @@ class TrainingSessionController extends Controller
             ->values();
 
         return view('training_sessions.user_report', compact('user', 'sessions'));
+    }
+
+    private function trainingDocumentNames(TrainingUser $assignment): array
+    {
+        $documents = $assignment->module?->documents?->pluck('doc_name')->filter()->values() ?? collect();
+
+        if ($documents->isEmpty()) {
+            return ['N/A'];
+        }
+
+        return $documents->all();
     }
 
     private function sessionHasPassedTraining(TrainingSessions $session): bool

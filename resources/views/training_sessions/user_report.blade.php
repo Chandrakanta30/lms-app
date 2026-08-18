@@ -23,19 +23,21 @@
                     style="min-height: 29.7cm; {{ $pageIndex > 0 ? 'page-break-before: always;' : '' }}">
                     <div class="card-body">
                         @if ($pageIndex === 0)
-                            <div class="row mb-4 border border-dark align-items-center">
-                                <div class="col-3 text-center py-3 border-right border-dark">
-                                    <div style="font-size: 20px;">SMS</div>
-                                    <div style="font-size: 16px;">Central Lab</div>
+                            <div class="training-card-header mb-4 border border-dark">
+                                <div class="training-card-header__cell training-card-header__cell--left">
+                                    <div class="training-card-header__brand">
+                                        <div class="training-card-header__brand-line">SMS</div>
+                                        <div class="training-card-header__brand-line training-card-header__brand-line--small">Central Lab</div>
+                                    </div>
                                 </div>
 
-                                <div class="col-6 text-center py-3">
-                                    <h3 class="mb-0">STAFF TRAINING CARD</h3>
+                                <div class="training-card-header__cell training-card-header__cell--center">
+                                    <h3 class="mb-0 text-center">STAFF TRAINING CARD</h3>
                                 </div>
 
-                                <div class="col-3 text-center py-2 border-left border-dark">
+                                <div class="training-card-header__cell training-card-header__cell--right">
                                     <img src="{{ asset('assets/images/sms-logo.jpg') }}" alt="SMS Logo"
-                                        style="width: 70px; height: 70px; object-fit: contain;">
+                                        class="training-card-header__logo">
                                 </div>
                             </div>
 
@@ -71,7 +73,13 @@
                                         <tr>
                                             <td>{{ $pageIndex * $rowsPerPage + $index + 1 }}</td>
                                             <td>{{ $session->start_date ? \Carbon\Carbon::parse($session->start_date)->format('d-m-Y') : ($session->end_date ? \Carbon\Carbon::parse($session->end_date)->format('d-m-Y') : 'N/A') }}</td>
-                                            <td>{{ $session->module->name ?? 'N/A' }}</td>
+                                            <td>
+                                                @forelse(($session->document_names ?? ['N/A']) as $documentName)
+                                                    <div>{{ $documentName }}</div>
+                                                @empty
+                                                    N/A
+                                                @endforelse
+                                            </td>
                                             <td>{{ $session->type_label ?? 'Regular' }}</td>
                                             <td>{{ $session->trainer_name ?? 'N/A' }}</td>
                                             <td class="text-center">
@@ -121,7 +129,7 @@
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-4">
                             <img src="{{ asset('assets/images/sms-logo.jpg') }}" alt="SMS Logo"
-                                style="width: 52px; height: 52px; object-fit: contain; margin-right: 14px;">
+                                class="training-card-header__logo training-card-header__logo--compact">
                             <h3 class="mb-0">STAFF TRAINING CARD</h3>
                         </div>
 
@@ -182,6 +190,65 @@
     </div>
 
     <style>
+        .training-card-header {
+            display: flex;
+            align-items: stretch;
+            width: 100%;
+            min-height: 100px;
+            background: #fff;
+        }
+
+        .training-card-header__cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 16px;
+            min-height: 100px;
+        }
+
+        .training-card-header__cell--left,
+        .training-card-header__cell--right {
+            flex: 0 0 25%;
+        }
+
+        .training-card-header__cell--center {
+            flex: 0 0 50%;
+        }
+
+        .training-card-header__cell--left {
+            border-right: 1px solid #000;
+        }
+
+        .training-card-header__cell--right {
+            border-left: 1px solid #000;
+        }
+
+        .training-card-header__brand {
+            text-align: center;
+            line-height: 1.1;
+        }
+
+        .training-card-header__brand-line {
+            font-size: 20px;
+        }
+
+        .training-card-header__brand-line--small {
+            font-size: 16px;
+        }
+
+        .training-card-header__logo {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .training-card-header__logo--compact {
+            width: 52px;
+            height: 52px;
+            margin-right: 14px;
+        }
+
         .border-dark {
             border: 1px solid #000 !important;
         }

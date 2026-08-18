@@ -12,7 +12,22 @@
 
             <div class="card p-5 border-dark shadow-none">
                 <div class="card-body">
-                    <h2 class="text-center mb-4 text-uppercase"><u>{{ $trainingProgram->name }} Card</u></h2>
+                    {{-- Branded Header --}}
+                    <table class="table table-bordered border-dark mb-4 card-header-table">
+                        <tr>
+                            <td width="22%" class="text-center align-middle">
+                                <span class="brand-org">SMS<br>Central Lab</span>
+                            </td>
+                            <td class="text-center align-middle">
+                                <h3 class="mb-0 text-uppercase font-weight-bold card-title-text">
+                                    {{ $trainingProgram->name }}
+                                </h3>
+                            </td>
+                            <td width="22%" class="text-center align-middle">
+                                <img src="{{ asset('assets/images/sms-logo.jpg') }}" alt="SMS Logo" class="brand-logo">
+                            </td>
+                        </tr>
+                    </table>
 
                     {{-- Header Table --}}
                     <table class="table table-bordered border-dark mb-4">
@@ -73,6 +88,29 @@
     <style>
         .border-dark {
             border: 2px solid #000 !important;
+        }
+
+        .card-header-table td {
+            border: 2px solid #000 !important;
+            padding: 12px 16px;
+        }
+
+        .brand-org {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            font-style: italic;
+            line-height: 1.2;
+        }
+
+        .card-title-text {
+            letter-spacing: 1px;
+        }
+
+        .brand-logo {
+            max-height: 60px;
+            width: auto;
+            object-fit: contain;
         }
 
         .step-container {

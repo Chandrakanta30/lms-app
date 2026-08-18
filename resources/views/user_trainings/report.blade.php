@@ -24,8 +24,7 @@
                                 </h3>
                             </td>
                             <td width="22%" class="text-center align-middle">
-                                <img src="{{ asset('assets/images/sms-logo.jpg') }}" alt="SMS Logo"
-                                    class="brand-logo">
+                                <img src="{{ asset('assets/images/sms-logo.jpg') }}" alt="SMS Logo" class="brand-logo">
                             </td>
                         </tr>
                     </table>

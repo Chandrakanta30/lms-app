@@ -203,7 +203,11 @@
                                                         'Co-ordinator',
                                                         'co-ordinator',
                                                     ]);
-                                                $canShowApproval = $isPrivilegedApprover;
+                                                $isAssignedTrainer =
+                                                    $currentUser && $assignment->module && $assignment->module->trainers
+                                                        ? $assignment->module->trainers->contains('id', $currentUser->id)
+                                                        : false;
+                                                $canShowApproval = $isPrivilegedApprover || $isAssignedTrainer;
                                             @endphp
 
                                             @if ($canShowApproval)

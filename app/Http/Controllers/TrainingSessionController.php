@@ -258,7 +258,7 @@ class TrainingSessionController extends Controller
                 $assignment->approved_at_display = $assignment->approved_at
                     ? Carbon::parse($assignment->approved_at)->format('d M Y, h:i A')
                     : null;
-                $assignment->document_names = $this->trainingDocumentNames($assignment);
+                // $assignment->document_names = $this->trainingDocumentNames($assignment);
                 $assignment->latest_exam_result = $assignment->module
                     ? $assignment->module->examResults()
                         ->where('user_id', $assignment->user_id)

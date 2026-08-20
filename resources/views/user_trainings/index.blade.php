@@ -2,9 +2,31 @@
 
 @section('content')
 <div class="content-wrapper">
+    @if (session('error'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="mdi mdi-lock-outline"></i> {{ session('error') }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    @endif
+
     <div class="card shadow-sm">
-        <div class="card-header bg-white font-weight-bold">
-            Training Enrollment & Progress
+        <div class="card-header bg-white">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="font-weight-bold">{{ $programLabel }} — Enrollment & Progress</span>
+
+                <ul class="nav nav-pills">
+                    @foreach ($programTabs as $tab)
+                        <li class="nav-item">
+                            <a class="nav-link py-1 px-3 {{ $tab['is_active'] ? 'active' : '' }}"
+                                href="{{ $tab['url'] }}">
+                                {{ $tab['label'] }}
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
         </div>
 
         <div class="card-body p-0">
@@ -57,7 +79,7 @@
                     </thead>
 
                     <tbody>
-                        @foreach($trainees as $user)
+                        @forelse($trainees as $user)
                         @foreach($user->assigned_progress as $m)
 
                         <tr>
@@ -88,7 +110,7 @@
 
                             <td style="width: 300px; min-width: 300px;">
 
-                                @if($m['name'] === 'Induction Training')
+                                @if(count($m['steps']) > 0)
 
                                 @php
                                 $stepCount = count($m['steps']);
@@ -133,16 +155,35 @@
                                         </div>
 
                                         <small class="d-block text-center text-muted">
-                                            {{ $m['percent'] }}%
+                                            @if($m['total'] === 0)
+                                                No steps configured yet
+                                            @else
+                                                {{ $m['percent'] }}% ({{ $m['completed'] }}/{{ $m['total'] }})
+                                            @endif
                                         </small>
 
                                     </td>
 
                                     <td class="text-right">
 
-                                @if($m['name'] === 'Induction Training' && $m['status'] === 'passed')
+                                    @if($user->is_locked)
 
-                                    <a
+                                        <button
+                                            type="button"
+                                            class="btn btn-secondary btn-sm"
+                                            disabled
+                                            title="{{ $user->locked_reason }}"
+                                        >
+                                            <i class="mdi mdi-lock-outline"></i> Locked
+                                        </button>
+
+                                        <div class="small text-muted mt-1">
+                                            {{ $user->locked_reason }}
+                                        </div>
+
+                                    @elseif($m['is_completed'])
+
+                                        <a
                                             href="{{ route('user.training.report', [$user->id, $m['id']]) }}"
                                             class="btn btn-primary btn-sm"
                                         >
@@ -163,7 +204,13 @@
                                 </tr>
 
                             @endforeach
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">
+                                    No user is currently enrolled in {{ $programLabel }}.
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -177,7 +224,7 @@
 @foreach($trainees as $user)
 @foreach($user->assigned_progress as $m)
 
-@if($m['name'] === 'Induction Training')
+@if(count($m['steps']) > 0)
 
 @foreach($m['steps'] as $step)
 

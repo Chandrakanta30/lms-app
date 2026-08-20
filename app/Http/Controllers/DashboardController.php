@@ -113,21 +113,32 @@ class DashboardController extends Controller
             ->take(6)
             ->get(['id', 'name', 'status', 'training_type', 'start_date', 'end_date', 'activated_at']);
 
-        $trainingSummaries = $this->buildTrainingSummaries();
+        // Refreshment programmes running in the CURRENT month.
+        // A programme is a generated occurrence (annual_parent_id set), not the
+        // plan itself (annual_parent_id null).
+        //
+        // Programmes cover fixed periods (Jan-Jun, Jul-Dec, ...), so we match any
+        // period that OVERLAPS this month rather than one that starts in it -
+        // in August the running programme is "July to December".
+        $annualMonth = now();
+        $annualMonthLabel = $annualMonth->format('F Y');
+        $monthStart = $annualMonth->copy()->startOfMonth()->toDateString();
+        $monthEnd = $annualMonth->copy()->endOfMonth()->toDateString();
+
+        $annualThisMonth = TrainingModule::where('is_anuual', '1')
+            ->whereNotNull('annual_parent_id')
+            ->where('is_active', 1)
+            ->whereDate('start_date', '<=', $monthEnd)
+            ->whereDate('end_date', '>=', $monthStart)
+            ->withCount('trainees')
+            ->orderBy('start_date')
+            ->get(['id', 'name', 'status', 'annual_parent_id', 'start_date', 'end_date']);
 
         return compact(
-            'totalUsers',
-            'totalTrainers',
-            'activeTrainings',
-            'setupTrainings',
-            'inreviewTrainings',
-            'reviewedTrainings',
-            'pendingAcceptanceModules',
-            'rejectedTrainerAssignments',
-            'pendingSessions',
-            'examStats',
-            'recentTrainings',
-            'trainingSummaries'
+            'totalUsers', 'totalTrainers', 'activeTrainings', 'setupTrainings',
+            'inreviewTrainings', 'reviewedTrainings', 'pendingAcceptanceModules',
+            'pendingSessions', 'examStats', 'recentTrainings',
+            'annualThisMonth', 'annualMonthLabel','rejectedTrainerAssignments'
         );
     }
 

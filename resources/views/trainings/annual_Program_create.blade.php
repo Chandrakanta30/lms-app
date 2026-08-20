@@ -5,7 +5,7 @@
             <div class="col-12 grid-margin stretch-card">
                 <div class="card">
                     <div class="card-body">
-                        <h4 class="card-title">Define Annual Training Program</h4>
+                        <h4 class="card-title">Define Refreshment Training Program</h4>
                         <form action="{{ route('trainings.store') }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <input type="hidden" name="is_annual" value="1">

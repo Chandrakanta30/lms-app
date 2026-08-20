@@ -75,7 +75,7 @@
                                 </thead>
                                 <tbody>
                                     @foreach ($pageSessions as $index => $session)
-                                        @forelse(($session->document_names ?? ['N/A']) as $documentName)
+                                        @forelse(($session->module->documents ?? collect()) as $document)
                                             <tr>
                                                 <td>{{ $pageIndex * $rowsPerPage + $index + 1 }}</td>
 
@@ -87,9 +87,12 @@
                                                             : 'N/A') }}
                                                 </td>
 
-                                                <td>{{ $documentName }}</td>
+                                                <td>
+                                                    {{ $document->doc_name ?? 'N/A' }} -
+                                                    {{ $document->doc_number ?? 'N/A' }}
+                                                </td>
 
-                                                <td>{{ $session->type_label ?? 'Regular' }}</td>
+                                                <td>{{ $session->module->name ?? 'N/A' }}</td>
 
                                                 <td>{{ $session->trainer_name ?? 'N/A' }}</td>
 

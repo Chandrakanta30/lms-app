@@ -114,6 +114,29 @@
             object-fit: contain;
         }
 
+        .card-header-table td {
+            border: 2px solid #000 !important;
+            padding: 12px 16px;
+        }
+
+        .brand-org {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            font-style: italic;
+            line-height: 1.2;
+        }
+
+        .card-title-text {
+            letter-spacing: 1px;
+        }
+
+        .brand-logo {
+            max-height: 60px;
+            width: auto;
+            object-fit: contain;
+        }
+
         .step-container {
             page-break-inside: avoid;
         }

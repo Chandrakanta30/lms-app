@@ -581,8 +581,8 @@ class TrainingModuleController extends Controller
         foreach ($matchingUserIds as $userId) {
             $syncData[$userId] = [
                 'status' => 'pending',
-                'start_date' => null,
-                'end_date' => null,
+                'start_date' => $training->start_date,
+                'end_date' => $training->end_date,
             ];
         }
 

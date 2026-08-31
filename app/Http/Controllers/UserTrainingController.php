@@ -35,12 +35,17 @@ class UserTrainingController extends Controller
         $traineesQuery = User::with([
             'department',
             'trainings' => function ($query) {
-                $query->whereIn('training_user.status', ['enrolled', 'pending'])
-                    ->whereNull('training_modules.parent_id')
-                    ->whereIn(
-                        DB::raw('LOWER(training_modules.name)'),
-                        $this->workflow->lowerCasedLabels()
-                    )
+                // Enrollment is simply the existence of the training_user row.
+                // The pivot's `status` column tracks the EXAM outcome
+                // (pending -> passed / failed, written by
+                // TrainingModule::syncTrainingStatusForUser), not enrollment,
+                // so filtering on it hid every trainee who had sat the exam.
+                $query->whereNull('training_modules.parent_id')
+                    ->where(function ($q) {
+                        foreach ($this->workflow->nameLikePatterns() as $pattern) {
+                            $q->orWhereRaw('LOWER(training_modules.name) LIKE ?', [$pattern]);
+                        }
+                    })
                     ->with('steps');
             }
         ]);
@@ -81,8 +86,11 @@ class UserTrainingController extends Controller
             $user->is_locked = ! $this->workflow->isProgramAccessible($programSlug, $allProgress);
             $user->locked_reason = $this->workflow->lockedReason($programSlug);
 
+            // One row per training, so numbered variants (Induction Training,
+            // Induction Training 2, ...) each get their own line. The lock above
+            // still uses the aggregate for the whole programme.
             $user->assigned_progress = $allProgress->has($programSlug)
-                ? collect([$allProgress->get($programSlug)])
+                ? collect($allProgress->get($programSlug)['trainings'])
                 : collect();
 
             return $user;
@@ -204,11 +212,20 @@ class UserTrainingController extends Controller
             ->where('is_completed', 1)
             ->count();
 
-        // 5. If ALL steps completed → update role
+        // 5. If ALL steps completed → update role.
+        //    With numbered variants (Induction Training, Induction Training 2, ...)
+        //    the trainee is only promoted once EVERY induction training they are
+        //    enrolled in is finished, so recheck the whole programme here.
         $programComplete = count($stepIds) > 0 && $completedCount === count($stepIds);
 
+        $inductionComplete = $programComplete
+            && $this->workflow->hasCompleted(
+                TrainingWorkflowService::INDUCTION,
+                $this->programProgressFor($user)
+            );
+
         if (
-            $programComplete
+            $inductionComplete
             && $this->workflow->slugForName($parentTraining->name) === TrainingWorkflowService::INDUCTION
         ) {
             // CHANGE ROLE (Trainee → Regular)
@@ -368,7 +385,11 @@ class UserTrainingController extends Controller
 
         $programs = $user->trainings()
             ->whereNull('training_modules.parent_id')
-            ->whereIn(DB::raw('LOWER(training_modules.name)'), $this->workflow->lowerCasedLabels())
+            ->where(function ($q) {
+                foreach ($this->workflow->nameLikePatterns() as $pattern) {
+                    $q->orWhereRaw('LOWER(training_modules.name) LIKE ?', [$pattern]);
+                }
+            })
             ->with('steps')
             ->get();
 

@@ -46,13 +46,23 @@ class TrainingWorkflowService
         return array_key_exists($slug, self::PROGRAMS) ? $slug : self::INDUCTION;
     }
 
-    // Map a training_modules.name back to its slug (null if not one of the three).
+    /**
+     * Map a training_modules.name back to its slug (null if not one of the three).
+     *
+     * A trailing number makes a numbered variant of the same programme, so
+     * "Induction Training", "Induction Training 2" and "Induction Training 3"
+     * all resolve to the 'induction' slug. Separators (-, _, space) and case
+     * are ignored, but the label itself must match in full: "induction9" or
+     * "Induction Refresher" deliberately do NOT match.
+     */
     public function slugForName(?string $name): ?string
     {
         $name = strtolower(trim((string) $name));
 
         foreach (self::PROGRAMS as $slug => $label) {
-            if (strtolower($label) === $name) {
+            $pattern = '/^' . preg_quote(strtolower($label), '/') . '[\s\-_]*\d*$/';
+
+            if (preg_match($pattern, $name)) {
                 return $slug;
             }
         }
@@ -66,6 +76,21 @@ class TrainingWorkflowService
         return array_map('strtolower', array_values(self::PROGRAMS));
     }
 
+    /**
+     * LOWER(name) LIKE patterns that capture a programme and its numbered
+     * variants ("induction training", "induction training 2", ...).
+     *
+     * Deliberately a superset: the SQL narrows the rows, then slugForName()
+     * decides precisely which of them really belong to a programme.
+     */
+    public function nameLikePatterns(): array
+    {
+        return array_map(
+            fn (string $label) => strtolower($label) . '%',
+            array_values(self::PROGRAMS)
+        );
+    }
+
    
      // Progress for every parent program the user is enrolled in, keyed by slug
      // and ordered Induction -> GLP -> Functional.
@@ -74,15 +99,54 @@ class TrainingWorkflowService
     {
         $completedModuleIds = array_map('intval', $completedModuleIds);
 
+        // A user may be enrolled in several numbered trainings of the same
+        // programme (Induction Training, Induction Training 2, ...). Group them
+        // by slug and aggregate, so the programme only counts as complete when
+        // EVERY training the user holds for that slug is complete.
         $bySlug = $programs
             ->map(fn (TrainingModule $program) => $this->progressForProgram($program, $completedModuleIds))
             ->filter(fn (?array $progress) => $progress !== null)
-            ->keyBy('slug');
+            ->groupBy('slug');
 
         // Re-order to the canonical Induction -> GLP -> Functional sequence.
         return collect($this->slugs())
             ->filter(fn (string $slug) => $bySlug->has($slug))
-            ->mapWithKeys(fn (string $slug) => [$slug => $bySlug->get($slug)]);
+            ->mapWithKeys(fn (string $slug) => [
+                $slug => $this->aggregate($slug, $bySlug->get($slug)->values()),
+            ]);
+    }
+
+    /**
+     * Roll several trainings of one programme into a single progress entry.
+     *
+     * @param  Collection<int, array>  $trainings  per-training progress rows
+     */
+    private function aggregate(string $slug, Collection $trainings): array
+    {
+        $completed = (int) $trainings->sum('completed');
+        $total = (int) $trainings->sum('total');
+        $percent = $total > 0 ? (int) round(($completed / $total) * 100) : 0;
+
+        // Complete only when every training for this programme is complete.
+        $isCompleted = $trainings->isNotEmpty()
+            && $trainings->every(fn (array $training) => $training['is_completed']);
+
+        $first = $trainings->first();
+
+        return [
+            'slug'         => $slug,
+            'id'           => $first['id'] ?? null,
+            'name'         => $first['name'] ?? $this->label($slug),
+            'label'        => $this->label($slug),
+            'completed'    => $completed,
+            'total'        => $total,
+            'percent'      => $percent,
+            'is_completed' => $isCompleted,
+            'status'       => $isCompleted ? 'Completed' : ($percent > 0 ? 'In Progress' : 'Enrolled'),
+            'color'        => $isCompleted ? 'success' : ($percent > 0 ? 'warning' : 'info'),
+            'steps'        => $trainings->flatMap(fn (array $training) => $training['steps'])->values(),
+            'trainings'    => $trainings,
+        ];
     }
 
     /** Progress for a single parent program, or null if it is not one of the three. */

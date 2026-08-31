@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\DocumentReadTracker;
 use App\Models\TrainingModule;
+use App\Models\User;
 use Illuminate\Support\Collection;
 
 
@@ -18,6 +20,24 @@ class TrainingWorkflowService
         self::GLP        => 'GLP Training',
         self::FUNCTIONAL => 'Functional Training',
     ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Assessment stages
+    |--------------------------------------------------------------------------
+    | A trainee walks enrol -> attendance -> read documents -> exam -> pass.
+    | Steps may only be logged once that walk has reached STAGE_READY.
+    */
+    public const STAGE_NOT_ENROLLED  = 'not_enrolled';
+    public const STAGE_NO_ASSESSMENT = 'no_assessment';
+    public const STAGE_ATTENDANCE   = 'attendance';
+    public const STAGE_READING      = 'reading';
+    public const STAGE_EXAM         = 'exam';
+    public const STAGE_FAILED       = 'failed';
+    public const STAGE_READY        = 'ready';
+
+    /** Per-request cache so a progress list does not re-query the same pair. */
+    private array $eligibilityCache = [];
 
     // Step short codes that must not be derived from initials. 
     private const SHORT_CODE_OVERRIDES = [
@@ -46,15 +66,7 @@ class TrainingWorkflowService
         return array_key_exists($slug, self::PROGRAMS) ? $slug : self::INDUCTION;
     }
 
-    /**
-     * Map a training_modules.name back to its slug (null if not one of the three).
-     *
-     * A trailing number makes a numbered variant of the same programme, so
-     * "Induction Training", "Induction Training 2" and "Induction Training 3"
-     * all resolve to the 'induction' slug. Separators (-, _, space) and case
-     * are ignored, but the label itself must match in full: "induction9" or
-     * "Induction Refresher" deliberately do NOT match.
-     */
+
     public function slugForName(?string $name): ?string
     {
         $name = strtolower(trim((string) $name));
@@ -76,13 +88,7 @@ class TrainingWorkflowService
         return array_map('strtolower', array_values(self::PROGRAMS));
     }
 
-    /**
-     * LOWER(name) LIKE patterns that capture a programme and its numbered
-     * variants ("induction training", "induction training 2", ...).
-     *
-     * Deliberately a superset: the SQL narrows the rows, then slugForName()
-     * decides precisely which of them really belong to a programme.
-     */
+
     public function nameLikePatterns(): array
     {
         return array_map(
@@ -95,16 +101,13 @@ class TrainingWorkflowService
      // Progress for every parent program the user is enrolled in, keyed by slug
      // and ordered Induction -> GLP -> Functional.
   
-    public function progressForPrograms(Collection $programs, array $completedModuleIds): Collection
+    public function progressForPrograms(Collection $programs, array $completedModuleIds, ?User $user = null): Collection
     {
         $completedModuleIds = array_map('intval', $completedModuleIds);
 
-        // A user may be enrolled in several numbered trainings of the same
-        // programme (Induction Training, Induction Training 2, ...). Group them
-        // by slug and aggregate, so the programme only counts as complete when
-        // EVERY training the user holds for that slug is complete.
+       
         $bySlug = $programs
-            ->map(fn (TrainingModule $program) => $this->progressForProgram($program, $completedModuleIds))
+            ->map(fn (TrainingModule $program) => $this->progressForProgram($program, $completedModuleIds, $user))
             ->filter(fn (?array $progress) => $progress !== null)
             ->groupBy('slug');
 
@@ -127,30 +130,53 @@ class TrainingWorkflowService
         $total = (int) $trainings->sum('total');
         $percent = $total > 0 ? (int) round(($completed / $total) * 100) : 0;
 
-        // Complete only when every training for this programme is complete.
+        // Complete only when every training for this programme is complete
+        // (all steps logged AND its assessment passed).
         $isCompleted = $trainings->isNotEmpty()
             && $trainings->every(fn (array $training) => $training['is_completed']);
 
+        $canLogSteps = $trainings->isNotEmpty()
+            && $trainings->every(fn (array $training) => $training['can_log_steps']);
+
+        $blockedReason = (string) ($trainings
+            ->first(fn (array $training) => $training['blocked_reason'] !== '')['blocked_reason'] ?? '');
+
         $first = $trainings->first();
 
+        [$status, $color] = match (true) {
+            $isCompleted   => ['Completed', 'success'],
+            ! $canLogSteps => ['Assessment Pending', 'warning'],
+            $percent > 0   => ['In Progress', 'warning'],
+            default        => ['Enrolled', 'info'],
+        };
+
         return [
-            'slug'         => $slug,
-            'id'           => $first['id'] ?? null,
-            'name'         => $first['name'] ?? $this->label($slug),
-            'label'        => $this->label($slug),
-            'completed'    => $completed,
-            'total'        => $total,
-            'percent'      => $percent,
-            'is_completed' => $isCompleted,
-            'status'       => $isCompleted ? 'Completed' : ($percent > 0 ? 'In Progress' : 'Enrolled'),
-            'color'        => $isCompleted ? 'success' : ($percent > 0 ? 'warning' : 'info'),
-            'steps'        => $trainings->flatMap(fn (array $training) => $training['steps'])->values(),
-            'trainings'    => $trainings,
+            'slug'           => $slug,
+            'id'             => $first['id'] ?? null,
+            'name'           => $first['name'] ?? $this->label($slug),
+            'label'          => $this->label($slug),
+            'completed'      => $completed,
+            'total'          => $total,
+            'percent'        => $percent,
+            'is_completed'   => $isCompleted,
+            'can_log_steps'  => $canLogSteps,
+            'blocked_reason' => $blockedReason,
+            'status'         => $status,
+            'status_label'   => $status,
+            'color'          => $color,
+            'steps'          => $trainings->flatMap(fn (array $training) => $training['steps'])->values(),
+            'trainings'      => $trainings,
         ];
     }
 
-    /** Progress for a single parent program, or null if it is not one of the three. */
-    public function progressForProgram(TrainingModule $program, array $completedModuleIds): ?array
+    /**
+     * Progress for a single parent program, or null if it is not one of the three.
+     *
+     * When $user is given the programme is also gated on the assessment: the
+     * steps only count as a finished programme once the trainee has passed the
+     * programme's exam. Passing $user as null keeps the old, ungated behaviour.
+     */
+    public function progressForProgram(TrainingModule $program, array $completedModuleIds, ?User $user = null): ?array
     {
         $slug = $this->slugForName($program->name);
 
@@ -167,18 +193,39 @@ class TrainingWorkflowService
         $completed = count(array_intersect($stepIds, $completedModuleIds));
         $percent = $total > 0 ? (int) round(($completed / $total) * 100) : 0;
 
+        $eligibility = $user ? $this->eligibility($program, $user) : null;
+        $assessmentCleared = $eligibility === null ? true : $eligibility['can_log_steps'];
+
+        $stepsCompleted = $total > 0 && $completed === $total;
+        $isCompleted = $stepsCompleted && $assessmentCleared;
+
+        [$status, $color] = match (true) {
+            $isCompleted                           => ['Completed', 'success'],
+            $stepsCompleted && ! $assessmentCleared => ['Assessment Pending', 'warning'],
+            ! $assessmentCleared                   => ['Awaiting Assessment', 'secondary'],
+            $percent > 0                           => ['In Progress', 'warning'],
+            default                                => ['Enrolled', 'info'],
+        };
+
         return [
-            'slug'         => $slug,
-            'id'           => $program->id,
-            'name'         => $program->name,
-            'label'        => $this->label($slug),
-            'completed'    => $completed,
-            'total'        => $total,
-            'percent'      => $percent,
-            'is_completed' => $total > 0 && $completed === $total,
-            'status'       => $percent === 100 ? 'Completed' : ($percent > 0 ? 'In Progress' : 'Enrolled'),
-            'color'        => $percent === 100 ? 'success' : ($percent > 0 ? 'warning' : 'info'),
-            'steps'        => $steps->map(fn (TrainingModule $step) => [
+            'slug'            => $slug,
+            'id'              => $program->id,
+            'name'            => $program->name,
+            'label'           => $this->label($slug),
+            'completed'       => $completed,
+            'total'           => $total,
+            'percent'         => $percent,
+            'steps_completed' => $stepsCompleted,
+            'exam_passed'     => $eligibility === null ? true : $eligibility['exam_passed'],
+            'exam_configured' => $eligibility === null ? true : $eligibility['exam_configured'],
+            'can_log_steps'   => $assessmentCleared,
+            'exam_stage'      => $eligibility['stage'] ?? self::STAGE_READY,
+            'blocked_reason'  => $assessmentCleared ? '' : $eligibility['reason'],
+            'is_completed'    => $isCompleted,
+            'status'          => $status,
+            'status_label'    => $status,
+            'color'           => $color,
+            'steps'           => $steps->map(fn (TrainingModule $step) => [
                 'id'           => $step->id,
                 'name'         => $step->name,
                 'short_code'   => $this->shortCode($step->name),
@@ -254,6 +301,103 @@ class TrainingWorkflowService
     public function lockedReason(string $slug): string
     {
         return 'Complete Induction Training to unlock ' . $this->label($slug) . '.';
+    }
+
+    /**
+     * Where a trainee stands on one parent programme's assessment walk:
+     * enrol -> attendance -> read documents -> attempt exam -> pass.
+     *
+     * Steps may only be logged once that walk is finished, so this is the one
+     * place that decides it. The exam outcome itself is not recomputed here --
+     * TrainingModule::resolveTrainingStatusForUser() stays the authority, so
+     * reassignment, deadlines and the cached pivot status keep their meaning.
+     *
+     * @return array{enrolled:bool, attendance_marked:bool, reading_completed:bool,
+     *               exam_attempted:bool, exam_passed:bool, exam_required:bool,
+     *               exam_status:string, can_log_steps:bool, stage:string, reason:string}
+     */
+    public function eligibility(TrainingModule $program, User $user): array
+    {
+        $cacheKey = $program->id . ':' . $user->id;
+
+        if (isset($this->eligibilityCache[$cacheKey])) {
+            return $this->eligibilityCache[$cacheKey];
+        }
+
+        $assignment = $program->currentAssignmentForUser($user);
+        $enrolled = $assignment !== null;
+
+        // Whether an exam can actually be sat: at least one linked document that
+        // is reviewed, carries questions and has a quota. When this is false the
+        // programme is mis-configured -- the trainee cannot reach the exam, so
+        // the steps stay locked and the reason says what the admin must fix.
+        $examConfigured = $program->examDocuments()->exists();
+
+        $attendanceMarked = $enrolled && ($assignment->attendance_status ?? null) === 'present';
+
+        $readingCompleted = $enrolled && DocumentReadTracker::query()
+            ->where('user_id', $user->id)
+            ->where('training_module_id', $program->id)
+            ->whereNotNull('completed_at')
+            ->exists();
+
+        $examStatus = $enrolled ? $program->resolveTrainingStatusForUser($user) : 'pending';
+        $examAttempted = $enrolled && $program->latestResultForUser($user) !== null;
+        $examPassed = $examStatus === 'passed';
+
+        // The exam pass is mandatory. Enrolment alone never unlocks the steps.
+        $canLogSteps = $enrolled && $examPassed;
+
+        $stage = match (true) {
+            ! $enrolled              => self::STAGE_NOT_ENROLLED,
+            $examPassed              => self::STAGE_READY,
+            ! $examConfigured        => self::STAGE_NO_ASSESSMENT,
+            $examStatus === 'failed' => self::STAGE_FAILED,
+            ! $attendanceMarked      => self::STAGE_ATTENDANCE,
+            ! $readingCompleted      => self::STAGE_READING,
+            default                  => self::STAGE_EXAM,
+        };
+
+        $eligibility = [
+            'enrolled'          => $enrolled,
+            'attendance_marked' => $attendanceMarked,
+            'reading_completed' => $readingCompleted,
+            'exam_attempted'    => $examAttempted,
+            'exam_passed'       => $examPassed,
+            'exam_configured'   => $examConfigured,
+            'exam_status'       => $examStatus,
+            'can_log_steps'     => $canLogSteps,
+            'stage'             => $stage,
+            'reason'            => $this->stageReason($stage, $program->name),
+        ];
+
+        return $this->eligibilityCache[$cacheKey] = $eligibility;
+    }
+
+    /** Human-readable explanation of why steps cannot be logged yet. */
+    public function stageReason(string $stage, string $programName): string
+    {
+        return match ($stage) {
+            self::STAGE_NOT_ENROLLED  => 'This trainee is not enrolled in ' . $programName . '.',
+            self::STAGE_NO_ASSESSMENT => 'No assessment is available for ' . $programName . ' yet. Link a reviewed document that has questions and a question quota before steps can be logged.',
+            self::STAGE_ATTENDANCE   => 'Attendance for ' . $programName . ' has not been marked yet.',
+            self::STAGE_READING      => 'The required documents for ' . $programName . ' have not been read yet.',
+            self::STAGE_EXAM         => 'The assessment for ' . $programName . ' has not been passed yet.',
+            self::STAGE_FAILED       => 'The assessment for ' . $programName . ' was not passed. Reassign the training so the trainee can retake it.',
+            default                  => '',
+        };
+    }
+
+    /** Ordered checklist of the assessment walk, for display. */
+    public function eligibilityChecklist(array $eligibility): array
+    {
+        return [
+            ['label' => 'Enrolled in the training',  'done' => $eligibility['enrolled']],
+            ['label' => 'Attendance marked present', 'done' => $eligibility['attendance_marked']],
+            ['label' => 'Required documents read',   'done' => $eligibility['reading_completed']],
+            ['label' => 'Assessment attempted',      'done' => $eligibility['exam_attempted']],
+            ['label' => 'Assessment passed',         'done' => $eligibility['exam_passed']],
+        ];
     }
 
     private function shortCode(string $name): string

@@ -190,6 +190,19 @@
                                            View Report
                                         </a>
 
+                                    @elseif(! $m['can_log_steps'])
+
+                                        {{-- Assessment not cleared yet, so no step may be logged. --}}
+                                        <a href="{{ route('user.training.show', [$user->id, $m['id']]) }}"
+                                            class="btn btn-outline-secondary btn-sm"
+                                            title="{{ $m['blocked_reason'] }}">
+                                            <i class="mdi mdi-lock-outline"></i> Assessment Pending
+                                        </a>
+
+                                        <div class="small text-muted mt-1">
+                                            {{ $m['blocked_reason'] }}
+                                        </div>
+
                                     @else
 
                                         <a href="{{ route('user.training.show', [$user->id, $m['id']]) }}"

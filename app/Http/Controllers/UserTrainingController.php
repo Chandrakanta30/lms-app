@@ -80,7 +80,7 @@ class UserTrainingController extends Controller
                 ->toArray();
 
             // Progress for all three programs, keyed by slug.
-            $allProgress = $this->workflow->progressForPrograms($user->trainings, $completedModuleIds);
+            $allProgress = $this->workflow->progressForPrograms($user->trainings, $completedModuleIds, $user);
 
             $user->all_progress = $allProgress;
             $user->is_locked = ! $this->workflow->isProgramAccessible($programSlug, $allProgress);
@@ -182,23 +182,53 @@ class UserTrainingController extends Controller
             abort(403, 'You are not allowed to update another trainee\'s progress.');
         }
 
-        DB::table('user_trainings')->updateOrInsert(
-            ['user_id' => $user->id, 'training_module_id' => $request->module_id],
-            [
-                'interacted_person' => $request->interacted_person,
-                'designation'       => $request->designation,
-                'comments'          => $request->comments,
-                'is_completed'      => 1,
-                'updated_at'        => now()
-            ]
-        );
+        $data = $request->validate([
+            'module_id'         => 'required|integer|exists:training_modules,id',
+            'interacted_person' => 'nullable|string|max:255',
+            'designation'       => 'nullable|string|max:255',
+            'comments'          => 'nullable|string',
+        ]);
 
         // 1. Get current step
-        $currentStep = TrainingModule::find($request->module_id);
+        $currentStep = TrainingModule::findOrFail($data['module_id']);
 
         // 2. Get parent training (main program). If there is no parent, this is
         //    the parent itself.
         $parentTraining = $currentStep->parent ?? $currentStep;
+
+        // The posted step must belong to the training in the URL. The checklist
+        // form posts the step itself as {training}, so accept either.
+        if (! in_array((int) $training->id, [(int) $currentStep->id, (int) $parentTraining->id], true)) {
+            abort(403, 'This step does not belong to the selected training programme.');
+        }
+
+        // The programme itself must be unlocked (Induction gates GLP/Functional).
+        // show() already redirects, but a direct POST must not slip past it.
+        $slug = $this->workflow->slugForName($parentTraining->name);
+
+        if ($slug !== null && ! $this->workflow->isProgramAccessible($slug, $this->programProgressFor($user))) {
+            return back()->with('error', $this->workflow->lockedReason($slug));
+        }
+
+        // Enrol -> attendance -> read documents -> pass the exam. Until that
+        // walk is finished no step may be logged, so a bare enrolment can no
+        // longer produce a completed programme or a certificate.
+        $eligibility = $this->workflow->eligibility($parentTraining, $user);
+
+        if (! $eligibility['can_log_steps']) {
+            return back()->with('error', $eligibility['reason']);
+        }
+
+        DB::table('user_trainings')->updateOrInsert(
+            ['user_id' => $user->id, 'training_module_id' => $currentStep->id],
+            [
+                'interacted_person' => $data['interacted_person'] ?? null,
+                'designation'       => $data['designation'] ?? null,
+                'comments'          => $data['comments'] ?? null,
+                'is_completed'      => 1,
+                'updated_at'        => now()
+            ]
+        );
 
         // 3. Get all steps under this training
         $stepIds = TrainingModule::where('parent_id', $parentTraining->id)
@@ -224,10 +254,7 @@ class UserTrainingController extends Controller
                 $this->programProgressFor($user)
             );
 
-        if (
-            $inductionComplete
-            && $this->workflow->slugForName($parentTraining->name) === TrainingWorkflowService::INDUCTION
-        ) {
+        if ($inductionComplete && $slug === TrainingWorkflowService::INDUCTION) {
             // CHANGE ROLE (Trainee → Regular)
             $user->syncRoles(['Regular']);
 
@@ -280,6 +307,10 @@ class UserTrainingController extends Controller
             ->pluck('training_module_id') // This captures the individual step IDs
             ->toArray();
 
+        // Drives the banner and the disabled "Log Step" buttons in the view.
+        $eligibility = $this->workflow->eligibility($program, $user);
+        $eligibilityChecklist = $this->workflow->eligibilityChecklist($eligibility);
+
         $interactionDefaults = [
             'interacted_person' => $loggedInUser ? $loggedInUser->name : '',
             'designation' => $loggedInUser && $loggedInUser->designation ? $loggedInUser->designation->name : '',
@@ -292,7 +323,14 @@ class UserTrainingController extends Controller
          * - The Parent Module (with its child steps)
          * - The array of finished step IDs for the Blade's in_array() check
          */
-        return view('user_trainings.show', compact('user', 'program', 'completedIds', 'interactionDefaults'));
+        return view('user_trainings.show', compact(
+            'user',
+            'program',
+            'completedIds',
+            'interactionDefaults',
+            'eligibility',
+            'eligibilityChecklist'
+        ));
     }
 
     // public function store(Request $request, User $user, TrainingModule $training)
@@ -393,6 +431,6 @@ class UserTrainingController extends Controller
             ->with('steps')
             ->get();
 
-        return $this->workflow->progressForPrograms($programs, $completedIds);
+        return $this->workflow->progressForPrograms($programs, $completedIds, $user);
     }
 }

@@ -146,6 +146,7 @@
                                     <div><strong>Signature:</strong> __________________________</div>
                                 </div>
                                 <div class="col-6 text-right">
+                                    <div><strong>Format No.: SMSCL-DQA004-F01-00</strong></div>
                                     <div><strong>Timestamp:</strong> {{ now()->format('d M Y, h:i A') }}</div>
                                 </div>
                             </div>

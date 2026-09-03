@@ -25,7 +25,7 @@ class UserController extends Controller
 
 
 
-        $query = User::with(['department', 'designation', 'roles'])->orderBy('id', 'desc');
+        $query = User::with(['department', 'designation', 'roles', 'creator'])->orderBy('id', 'desc');
 
         // Filter by Keyword (Name, User ID, or Email)
         if ($request->filled('search')) {
@@ -50,11 +50,20 @@ class UserController extends Controller
         $users = $query->paginate(10)->withQueryString(); // withQueryString keeps filters in pagination links
 
         // You'll need to pass these to the view for the dropdowns
-        $departments = \App\Models\Department::all();
-        $roles = \Spatie\Permission\Models\Role::all();
+        $departments = Department::all();
+        $roles = Role::all();
 
 
-        return view('users.index', compact('users', 'departments', 'roles'));
+        if ($request->routeIs('employee.allotment')) {
+            return view('users.allotment', compact(
+                'users',
+            ));
+        }
+        return view('users.index', compact(
+            'users',
+            'departments',
+            'roles'
+        ));
     }
 
     // 2. SHOW CREATE FORM
@@ -127,6 +136,7 @@ class UserController extends Controller
             $userData['password'] = Hash::make($request->password);
         }
         $userData['is_trainer'] = $request->has('is_trainer') ? 1 : 0;
+        $userData['created_by'] = auth()->id();
         $user = User::create($userData);
         // $user = User::create([
         //     'name' => $request->name,

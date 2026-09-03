@@ -73,7 +73,7 @@
                 <span class="menu-header-text">People</span>
             </li>
 
-            <li class="menu-item {{ str_contains($currentRoute, 'users') || str_contains($currentRoute, 'trainers') ? 'active open' : '' }}"
+            <li class="menu-item {{ str_contains($currentRoute, 'users') || str_contains($currentRoute, 'trainers') || request()->routeIs('employee.allotment') ? 'active open' : '' }}"
                 data-nav-item="true" data-nav-text="Users Trainers List">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon icon-base ti tabler-users"></i>

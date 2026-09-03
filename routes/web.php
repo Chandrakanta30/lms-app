@@ -56,6 +56,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('users', UserController::class);
     Route::get('/employee-allotment', [UserController::class, 'index'])
         ->name('employee.allotment');
+    Route::post('/employee-allotment/remarks', [UserController::class, 'saveAllotmentRemarks'])
+        ->name('employee.allotment.remarks');
     Route::resource('roles', RoleController::class);
     Route::resource('permissions', PermissionController::class);
     Route::resource('trainings', TrainingModuleController::class);

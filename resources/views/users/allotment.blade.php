@@ -37,7 +37,9 @@
 
                 </div>
                 <div class="table-responsive mt-6">
-                    <table class="table table-bordered table-striped text-center">
+                    <form method="POST" action="{{ route('employee.allotment.remarks') }}">
+                        @csrf
+                        <table class="table table-bordered table-striped text-center">
                         <thead>
                             <tr>
                                 <th>S.No.</th>
@@ -93,7 +95,7 @@
 
                                     <td>
                                         <input type="text" name="remarks[{{ $user->id }}]" class="form-control"
-                                            placeholder="Remarks">
+                                            value="{{ old('remarks.' . $user->id, $user->remarks) }}" placeholder="Remarks">
                                     </td>
                                 </tr>
                             @empty
@@ -104,7 +106,13 @@
                                 </tr>
                             @endforelse
                         </tbody>
-                    </table>
+                        </table>
+                        <div class="text-right mt-3">
+                            <button type="submit" class="btn btn-success">
+                                <i class="mdi mdi-content-save mr-1"></i> Save Remarks
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
                 <div class="d-flex justify-content-center mt-4">

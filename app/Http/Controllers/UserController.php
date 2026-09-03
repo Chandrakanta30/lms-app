@@ -66,6 +66,20 @@ class UserController extends Controller
         ));
     }
 
+    public function saveAllotmentRemarks(Request $request)
+    {
+        $validated = $request->validate([
+            'remarks' => 'nullable|array',
+            'remarks.*' => 'nullable|string|max:2000',
+        ]);
+
+        foreach ($validated['remarks'] ?? [] as $userId => $remark) {
+            User::whereKey($userId)->update(['remarks' => $remark]);
+        }
+
+        return redirect()->back()->with('success', 'Remarks saved successfully.');
+    }
+
     // 2. SHOW CREATE FORM
     public function create()
     {

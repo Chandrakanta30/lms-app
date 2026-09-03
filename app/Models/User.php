@@ -33,6 +33,7 @@ class User extends Authenticatable
         'corporate_id',
         'internal_id',
         'created_by',
+        'remarks',
     ];
     use HasFactory, Notifiable;
     use HasRoles;

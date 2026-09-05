@@ -3,6 +3,19 @@
     data-bs-theme="light" data-template="vertical-menu-template">
 
 <head>
+    <script>
+        // Apply the saved theme before the page paints so every route starts consistently.
+        (function () {
+            var themeKey = 'templateCustomizer-vertical-menu-template--Theme';
+            var savedTheme = localStorage.getItem(themeKey);
+            var theme = savedTheme === 'dark' || savedTheme === 'light'
+                ? savedTheme
+                : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+            document.documentElement.setAttribute('data-bs-theme', theme);
+        })();
+    </script>
+
     <meta charset="utf-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
@@ -57,6 +70,13 @@
                 radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 24%),
                 radial-gradient(circle at top right, rgba(20, 184, 166, 0.12), transparent 20%),
                 linear-gradient(180deg, #f8fbff 0%, #f4f7fb 42%, #eef3f9 100%) !important;
+        }
+
+        html[data-bs-theme="dark"] body {
+            background:
+                radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 24%),
+                radial-gradient(circle at top right, rgba(20, 184, 166, 0.14), transparent 20%),
+                linear-gradient(180deg, #171a2b 0%, #1f2235 42%, #25283d 100%) !important;
         }
 
         /* Brand Styling overrides */
@@ -518,6 +538,22 @@
                     text: '{!! addslashes(session('error')) !!}'
                 });
             @endif
+        });
+    </script>
+
+    <script>
+        // Keep separate tabs in sync when the theme changes in another tab.
+        window.addEventListener('storage', function (event) {
+            if (event.key !== 'templateCustomizer-vertical-menu-template--Theme') {
+                return;
+            }
+
+            var theme = event.newValue === 'dark' || event.newValue === 'light'
+                ? event.newValue
+                : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+            window.Helpers.setTheme(theme);
+            window.Helpers.showActiveTheme(theme);
         });
     </script>
 

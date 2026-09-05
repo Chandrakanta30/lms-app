@@ -47,9 +47,11 @@ class TrainingModule extends Model
     public function examDocuments()
     {
         return $this->documents()
-            ->wherePivot('question_quota', '>', 0)
             ->whereNotNull('master_documents.reviewed_at')
-            ->whereHas('questions');
+            ->where(function ($query) {
+                $query->where('module_document_pivot.question_quota', '>', 0)
+                    ->orWhereDoesntHave('questions');
+            });
     }
 
     public function requiredReadingSeconds(): int

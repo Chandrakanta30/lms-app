@@ -73,7 +73,7 @@
                 <span class="menu-header-text">People</span>
             </li>
 
-            <li class="menu-item {{ str_contains($currentRoute, 'users') || str_contains($currentRoute, 'trainers') ? 'active open' : '' }}"
+            <li class="menu-item {{ str_contains($currentRoute, 'users') || str_contains($currentRoute, 'trainers') || request()->routeIs('employee.allotment') ? 'active open' : '' }}"
                 data-nav-item="true" data-nav-text="Users Trainers List">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon icon-base ti tabler-users"></i>
@@ -81,6 +81,11 @@
                 </a>
                 <ul class="menu-sub">
                     @can('user-list')
+                        <li class="menu-item {{ request()->routeIs('employee.allotment') ? 'active' : '' }}">
+                            <a href="{{ route('employee.allotment') }}" class="menu-link">
+                                <div>Employee Allotment</div>
+                            </a>
+                        </li>
                         <li class="menu-item {{ request()->routeIs('users.index') ? 'active' : '' }}">
                             <a href="{{ route('users.index') }}" class="menu-link">
                                 <div>Users List</div>
@@ -255,9 +260,24 @@
             @php
                 $currentProgram = request()->route('program') ?: 'induction';
                 $programMenu = [
-                    ['slug' => 'induction', 'title' => 'Induction Progress', 'icon' => 'tabler-school', 'keywords' => 'Induction Training Progress Trainee Setup'],
-                    ['slug' => 'glp', 'title' => 'GLP Progress', 'icon' => 'tabler-flask', 'keywords' => 'GLP Good Laboratory Practice Training Progress'],
-                    ['slug' => 'functional', 'title' => 'Functional Progress', 'icon' => 'tabler-settings-cog', 'keywords' => 'Functional Training Progress Job Role'],
+                    [
+                        'slug' => 'induction',
+                        'title' => 'Induction Progress',
+                        'icon' => 'tabler-school',
+                        'keywords' => 'Induction Training Progress Trainee Setup',
+                    ],
+                    [
+                        'slug' => 'glp',
+                        'title' => 'GLP Progress',
+                        'icon' => 'tabler-flask',
+                        'keywords' => 'GLP Good Laboratory Practice Training Progress',
+                    ],
+                    [
+                        'slug' => 'functional',
+                        'title' => 'Functional Progress',
+                        'icon' => 'tabler-settings-cog',
+                        'keywords' => 'Functional Training Progress Job Role',
+                    ],
                 ];
             @endphp
 

@@ -25,7 +25,7 @@ class UserController extends Controller
 
 
 
-        $query = User::with(['department', 'designation', 'roles'])->orderBy('id', 'desc');
+        $query = User::with(['department', 'designation', 'roles', 'creator'])->orderBy('id', 'desc');
 
         // Filter by Keyword (Name, User ID, or Email)
         if ($request->filled('search')) {
@@ -50,11 +50,48 @@ class UserController extends Controller
         $users = $query->paginate(10)->withQueryString(); // withQueryString keeps filters in pagination links
 
         // You'll need to pass these to the view for the dropdowns
-        $departments = \App\Models\Department::all();
-        $roles = \Spatie\Permission\Models\Role::all();
+        $departments = Department::all();
+        $roles = Role::all();
 
 
-        return view('users.index', compact('users', 'departments', 'roles'));
+        if ($request->routeIs('employee.allotment')) {
+            abort_unless($this->canManageInternalIds(), 403, 'Unauthorized action.');
+
+            return view('users.allotment', compact(
+                'users',
+            ));
+        }
+        return view('users.index', compact(
+            'users',
+            'departments',
+            'roles'
+        ));
+    }
+
+    public function saveAllotmentRemarks(Request $request)
+    {
+        abort_unless($this->canManageInternalIds(), 403, 'Unauthorized action.');
+
+        $validated = $request->validate([
+            'remarks' => 'nullable|array',
+            'remarks.*' => 'nullable|string|max:2000',
+        ]);
+
+        foreach ($validated['remarks'] ?? [] as $userId => $remark) {
+            User::whereKey($userId)->update(['remarks' => $remark]);
+        }
+
+        return redirect()->back()->with('success', 'Remarks saved successfully.');
+    }
+
+    private function canManageInternalIds(): bool
+    {
+        $allowedRoles = ['admin', 'super admin', 'super-admin', 'Super Admin', 'dqa'];
+
+        return auth()->user()->getRoleNames()
+            ->map(fn($role) => strtolower(trim($role)))
+            ->intersect($allowedRoles)
+            ->isNotEmpty();
     }
 
     // 2. SHOW CREATE FORM
@@ -127,6 +164,7 @@ class UserController extends Controller
             $userData['password'] = Hash::make($request->password);
         }
         $userData['is_trainer'] = $request->has('is_trainer') ? 1 : 0;
+        $userData['created_by'] = auth()->id();
         $user = User::create($userData);
         // $user = User::create([
         //     'name' => $request->name,

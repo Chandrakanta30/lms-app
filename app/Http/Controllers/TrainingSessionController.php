@@ -23,6 +23,7 @@ class TrainingSessionController extends Controller
                 'user.department',
                 'user.designation',
                 'module.trainers',
+                'module.documents',
                 'approver',
             ]);
 

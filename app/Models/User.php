@@ -31,7 +31,9 @@ class User extends Authenticatable
         'experience_years',
         'is_trainer',
         'corporate_id',
-        'internal_id'
+        'internal_id',
+        'created_by',
+        'remarks',
     ];
     use HasFactory, Notifiable;
     use HasRoles;
@@ -97,5 +99,10 @@ class User extends Authenticatable
     public function examResults()
     {
         return $this->hasMany(ExamResult::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(self::class, 'created_by');
     }
 }

@@ -179,11 +179,6 @@ class QuestionController extends Controller
         // Shuffle final list so questions from different SOPs are mixed
         $examPaper = $examPaper->shuffle();
 
-        if ($examPaper->isEmpty()) {
-            return redirect()->route('exam.list')
-                ->with('error', 'No reviewed documents with questions are currently enabled for this assessment.');
-        }
-
         session([
             $this->examPaperSessionKey($module->id) => $examPaper->pluck('id')->values()->all(),
         ]);
@@ -196,9 +191,9 @@ class QuestionController extends Controller
 
     public function submitExam(Request $request, $moduleId)
     {
-        // 1. Validate that answers were actually sent
+        // A reviewed assessment may intentionally contain no questions.
         $request->validate([
-            'answers' => 'required|array',
+            'answers' => 'nullable|array',
         ]);
 
 
@@ -221,7 +216,7 @@ class QuestionController extends Controller
         $storedQuestionIds = session()->pull($this->examPaperSessionKey($module->id), []);
         $storedQuestionIds = array_values(array_filter(array_map('intval', (array) $storedQuestionIds)));
 
-        $userAnswers = $request->input('answers'); // Format: [question_id => "Yes/No"]
+        $userAnswers = $request->input('answers', []); // Format: [question_id => "Yes/No"]
         $questionIds = !empty($storedQuestionIds) ? $storedQuestionIds : array_map('intval', array_keys($userAnswers));
 
         // 2. Fetch only the questions that were in the user's exam paper
@@ -252,7 +247,7 @@ class QuestionController extends Controller
         }
 
         // 4. Calculate Percentage
-        $percentage = ($totalQuestions > 0) ? ($correctCount / $totalQuestions) * 100 : 0;
+        $percentage = ($totalQuestions > 0) ? ($correctCount / $totalQuestions) * 100 : 100;
 
         // Passing criteria (e.g., 80%)
         $passMark = 60;

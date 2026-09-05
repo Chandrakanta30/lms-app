@@ -55,6 +55,8 @@ class UserController extends Controller
 
 
         if ($request->routeIs('employee.allotment')) {
+            abort_unless($this->canManageInternalIds(), 403, 'Unauthorized action.');
+
             return view('users.allotment', compact(
                 'users',
             ));
@@ -68,6 +70,8 @@ class UserController extends Controller
 
     public function saveAllotmentRemarks(Request $request)
     {
+        abort_unless($this->canManageInternalIds(), 403, 'Unauthorized action.');
+
         $validated = $request->validate([
             'remarks' => 'nullable|array',
             'remarks.*' => 'nullable|string|max:2000',
@@ -78,6 +82,16 @@ class UserController extends Controller
         }
 
         return redirect()->back()->with('success', 'Remarks saved successfully.');
+    }
+
+    private function canManageInternalIds(): bool
+    {
+        $allowedRoles = ['admin', 'super admin', 'super-admin', 'Super Admin', 'dqa'];
+
+        return auth()->user()->getRoleNames()
+            ->map(fn($role) => strtolower(trim($role)))
+            ->intersect($allowedRoles)
+            ->isNotEmpty();
     }
 
     // 2. SHOW CREATE FORM

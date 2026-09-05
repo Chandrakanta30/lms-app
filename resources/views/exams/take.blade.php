@@ -77,6 +77,12 @@
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-lg-10">
+
+                @if ($examPaper->isEmpty())
+                    <div class="alert alert-info text-center">
+                        This assessment has no questions. Submit to complete it successfully.
+                    </div>
+                @endif
                     
                 @foreach($examPaper as $index => $question)
                 <div class="card question-card mb-4" data-aos="fade-up">

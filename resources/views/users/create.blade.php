@@ -56,16 +56,19 @@
                         </div>
 
 
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Internal ID</label>
-                                <input type="text" name="internal_id" class="form-control"
-                                    value="{{ old('internal_id', $user->internal_id ?? '') }}">
-                                @error('internal_id')
-                                    <small class="text-danger">{{ $message }}</small>
-                                @enderror
+                        @if (isset($user) && auth()->user()->getRoleNames()->map(fn ($role) => strtolower(trim($role)))->intersect(['admin', 'super admin', 'super-admin', 'dqa'])->isNotEmpty())
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Internal ID</label>
+                                    <input type="text" name="internal_id" class="form-control"
+                                        value="{{ old('internal_id', $user->internal_id ?? '') }}">
+
+                                    @error('internal_id')
+                                        <small class="text-danger">{{ $message }}</small>
+                                    @enderror
+                                </div>
                             </div>
-                        </div>
+                        @endif
 
 
                         <!--make changes in email field -->
@@ -76,44 +79,45 @@
 
 
                         <div class="col-md-12">
-                        <div class="form-group">
-                            <label>Job Role</label>
-                            <select name="roles[]" class="form-control js-example-basic-multiple" multiple>
-                            @foreach($roles as $role)
-                                <option value="{{ $role->name }}"
-                                    {{ (isset($user) && $user->hasRole($role->name)) ? 'selected' : '' }}>
-                                    {{ $role->name }}
-                                </option>
-                            @endforeach
-                            </select>
-                            @error('roles')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
-                            @error('roles.*')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <div class="password-row">
-                        <div class="form-group">
-                            <label>Password {{ isset($user) ? '(Leave blank to keep current)' : '' }}</label>
-                            <input type="password" name="password" class="form-control" {{ isset($user) ? '' : 'required' }}>
-                            @error('password')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
-                        </div>
-
-                        @if(!isset($user))
                             <div class="form-group">
-                                <label>Confirm Password</label>
-                                <input type="password" name="password_confirmation" class="form-control" required>
-                                @error('password_confirmation')
+                                <label>Job Role</label>
+                                <select name="roles[]" class="form-control js-example-basic-multiple" multiple>
+                                    @foreach ($roles as $role)
+                                        <option value="{{ $role->name }}"
+                                            {{ isset($user) && $user->hasRole($role->name) ? 'selected' : '' }}>
+                                            {{ $role->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('roles')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
+                                @error('roles.*')
                                     <small class="text-danger">{{ $message }}</small>
                                 @enderror
                             </div>
-                        @endif
-                    </div>
+                        </div>
+
+                        <div class="password-row">
+                            <div class="form-group">
+                                <label>Password {{ isset($user) ? '(Leave blank to keep current)' : '' }}</label>
+                                <input type="password" name="password" class="form-control"
+                                    {{ isset($user) ? '' : 'required' }}>
+                                @error('password')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
+                            </div>
+
+                            @if (!isset($user))
+                                <div class="form-group">
+                                    <label>Confirm Password</label>
+                                    <input type="password" name="password_confirmation" class="form-control" required>
+                                    @error('password_confirmation')
+                                        <small class="text-danger">{{ $message }}</small>
+                                    @enderror
+                                </div>
+                            @endif
+                        </div>
 
                         <div class="col-md-4">
                             <div class="form-group">
@@ -180,34 +184,32 @@
                             </div>
                         </div>
 
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Qualification</label>
-                            <input
-                                type="text"
-                                name="qualification"
-                                class="form-control"
-                                value="{{ old('qualification', $user->qualification ?? '') }}"
-                                placeholder="e.g. M.Sc. Chemistry"
-                            >
-                            @error('qualification')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Qualification</label>
+                                <input type="text" name="qualification" class="form-control"
+                                    value="{{ old('qualification', $user->qualification ?? '') }}"
+                                    placeholder="e.g. M.Sc. Chemistry">
+                                @error('qualification')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
+                            </div>
                         </div>
-                    </div>
 
                         <div class="col-md-6 d-flex align-items-center mt-3">
                             <div class="card bg-label-primary border-0 w-100 shadow-none">
                                 <div class="card-body p-3">
                                     <div class="form-check">
-                                        <input type="checkbox" name="is_trainer" value="1" id="is_trainer" class="form-check-input"
+                                        <input type="checkbox" name="is_trainer" value="1" id="is_trainer"
+                                            class="form-check-input"
                                             {{ isset($user) && $user->is_trainer ? 'checked' : '' }}>
                                         <label class="form-check-label fw-semibold text-primary" for="is_trainer">
                                             Authorize as a Trainer
                                         </label>
                                     </div>
                                     <div class="mt-1 ps-4">
-                                        <small class="text-muted d-block">If checked, this user will appear in the trainer assignments and session log lists.</small>
+                                        <small class="text-muted d-block">If checked, this user will appear in the trainer
+                                            assignments and session log lists.</small>
                                     </div>
                                 </div>
                             </div>

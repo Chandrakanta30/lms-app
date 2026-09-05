@@ -5,6 +5,13 @@
 @section('content')
     <div class="content-wrapper">
 
+        @php
+            $canManageInternalIds = auth()->user()->getRoleNames()
+                ->map(fn ($role) => strtolower(trim($role)))
+                ->intersect(['admin', 'super admin', 'super-admin', 'dqa'])
+                ->isNotEmpty();
+        @endphp
+
 
         <div class="card mb-3">
             <div class="card-body">
@@ -59,9 +66,11 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h4 class="card-title">User Management</h4>
-                    <a href="{{ route('users.create') }}" class="btn btn-primary btn-icon-text">
-                        <i class="mdi mdi-plus btn-icon-prepend"></i> Add User
-                    </a>
+                    <div>
+                        <a href="{{ route('users.create') }}" class="btn btn-primary btn-icon-text">
+                            <i class="mdi mdi-plus btn-icon-prepend"></i> Add User
+                        </a>
+                    </div>
                 </div>
 
                 <div class="table-responsive">
@@ -70,6 +79,7 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Employee ID</th>
+                                <th>Internal ID</th>
                                 <th>Roles</th>
                                 <th>Department</th>
                                 <th>Designation</th>
@@ -82,6 +92,17 @@
                                 <tr>
                                     <td>{{ $user->name }}</td>
                                     <td>{{ $user->corporate_id }}</td>
+                                    <td>
+                                        @if ($user->internal_id)
+                                            {{ $user->internal_id }}
+                                        @elseif ($canManageInternalIds)
+                                            <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-warning">
+                                                Not Assigned
+                                            </a>
+                                        @else
+                                            Not Assigned
+                                        @endif
+                                    </td>
                                     <td>
                                         @foreach ($user->getRoleNames() as $role)
                                             <label class="badge badge-info">{{ $role }}</label>

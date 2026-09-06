@@ -53,11 +53,11 @@
                         @endphp
 
                         <div class="step-container mt-4 p-3 border border-secondary">
-                            <h5 class="font-weight-bold">Step {{ $step->step_number }}: {{ $step->name }}</h5>
+                            <h5 class="font-weight-bold">Department {{ $step->step_number }}: {{ $step->name }}</h5>
 
                             <div class="row mt-3">
                                 <div class="col-12">
-                                    <p><strong>Interacted Person:</strong>
+                                    <p><strong>Name of the Interacted Person:</strong>
                                         {{ $log ? $log->pivot->interacted_person : '___________________________' }}
                                     </p>
                                     <p><strong>Designation:</strong>
@@ -67,13 +67,18 @@
                                     <div class="p-2 border bg-light" style="min-height: 60px;">
                                         {{ $log ? $log->pivot->comments : '' }}
                                     </div>
+
+                                    {{-- Contacted Person: left blank for now, to be populated later --}}
+                                    <p class="mt-3"><strong>Contacted Person:</strong>
+                                        {{ $contactedPerson ?? '___________________________' }}
+                                    </p>
                                 </div>
                             </div>
 
                             <div class="row mt-3">
                                 <div class="col-7">
                                     @if ($log)
-                                        <small class="text-success">System Verified on:
+                                        <small class="text-success"><strong>Sign &amp; Date:</strong>
                                             {{ \Carbon\Carbon::parse($log->pivot->completed_at)->format('d-M-Y H:i') }}</small>
                                     @endif
                                 </div>

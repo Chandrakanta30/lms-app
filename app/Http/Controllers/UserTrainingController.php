@@ -35,12 +35,17 @@ class UserTrainingController extends Controller
         $traineesQuery = User::with([
             'department',
             'trainings' => function ($query) {
-                $query->whereIn('training_user.status', ['enrolled', 'pending'])
-                    ->whereNull('training_modules.parent_id')
-                    ->whereIn(
-                        DB::raw('LOWER(training_modules.name)'),
-                        $this->workflow->lowerCasedLabels()
-                    )
+                // Enrollment is simply the existence of the training_user row.
+                // The pivot's `status` column tracks the EXAM outcome
+                // (pending -> passed / failed, written by
+                // TrainingModule::syncTrainingStatusForUser), not enrollment,
+                // so filtering on it hid every trainee who had sat the exam.
+                $query->whereNull('training_modules.parent_id')
+                    ->where(function ($q) {
+                        foreach ($this->workflow->nameLikePatterns() as $pattern) {
+                            $q->orWhereRaw('LOWER(training_modules.name) LIKE ?', [$pattern]);
+                        }
+                    })
                     ->with('steps');
             }
         ]);
@@ -75,14 +80,17 @@ class UserTrainingController extends Controller
                 ->toArray();
 
             // Progress for all three programs, keyed by slug.
-            $allProgress = $this->workflow->progressForPrograms($user->trainings, $completedModuleIds);
+            $allProgress = $this->workflow->progressForPrograms($user->trainings, $completedModuleIds, $user);
 
             $user->all_progress = $allProgress;
             $user->is_locked = ! $this->workflow->isProgramAccessible($programSlug, $allProgress);
             $user->locked_reason = $this->workflow->lockedReason($programSlug);
 
+            // One row per training, so numbered variants (Induction Training,
+            // Induction Training 2, ...) each get their own line. The lock above
+            // still uses the aggregate for the whole programme.
             $user->assigned_progress = $allProgress->has($programSlug)
-                ? collect([$allProgress->get($programSlug)])
+                ? collect($allProgress->get($programSlug)['trainings'])
                 : collect();
 
             return $user;
@@ -174,23 +182,53 @@ class UserTrainingController extends Controller
             abort(403, 'You are not allowed to update another trainee\'s progress.');
         }
 
-        DB::table('user_trainings')->updateOrInsert(
-            ['user_id' => $user->id, 'training_module_id' => $request->module_id],
-            [
-                'interacted_person' => $request->interacted_person,
-                'designation'       => $request->designation,
-                'comments'          => $request->comments,
-                'is_completed'      => 1,
-                'updated_at'        => now()
-            ]
-        );
+        $data = $request->validate([
+            'module_id'         => 'required|integer|exists:training_modules,id',
+            'interacted_person' => 'nullable|string|max:255',
+            'designation'       => 'nullable|string|max:255',
+            'comments'          => 'nullable|string',
+        ]);
 
         // 1. Get current step
-        $currentStep = TrainingModule::find($request->module_id);
+        $currentStep = TrainingModule::findOrFail($data['module_id']);
 
         // 2. Get parent training (main program). If there is no parent, this is
         //    the parent itself.
         $parentTraining = $currentStep->parent ?? $currentStep;
+
+        // The posted step must belong to the training in the URL. The checklist
+        // form posts the step itself as {training}, so accept either.
+        if (! in_array((int) $training->id, [(int) $currentStep->id, (int) $parentTraining->id], true)) {
+            abort(403, 'This step does not belong to the selected training programme.');
+        }
+
+        // The programme itself must be unlocked (Induction gates GLP/Functional).
+        // show() already redirects, but a direct POST must not slip past it.
+        $slug = $this->workflow->slugForName($parentTraining->name);
+
+        if ($slug !== null && ! $this->workflow->isProgramAccessible($slug, $this->programProgressFor($user))) {
+            return back()->with('error', $this->workflow->lockedReason($slug));
+        }
+
+        // Enrol -> attendance -> read documents -> pass the exam. Until that
+        // walk is finished no step may be logged, so a bare enrolment can no
+        // longer produce a completed programme or a certificate.
+        $eligibility = $this->workflow->eligibility($parentTraining, $user);
+
+        if (! $eligibility['can_log_steps']) {
+            return back()->with('error', $eligibility['reason']);
+        }
+
+        DB::table('user_trainings')->updateOrInsert(
+            ['user_id' => $user->id, 'training_module_id' => $currentStep->id],
+            [
+                'interacted_person' => $data['interacted_person'] ?? null,
+                'designation'       => $data['designation'] ?? null,
+                'comments'          => $data['comments'] ?? null,
+                'is_completed'      => 1,
+                'updated_at'        => now()
+            ]
+        );
 
         // 3. Get all steps under this training
         $stepIds = TrainingModule::where('parent_id', $parentTraining->id)
@@ -204,13 +242,19 @@ class UserTrainingController extends Controller
             ->where('is_completed', 1)
             ->count();
 
-        // 5. If ALL steps completed → update role
+        // 5. If ALL steps completed → update role.
+        //    With numbered variants (Induction Training, Induction Training 2, ...)
+        //    the trainee is only promoted once EVERY induction training they are
+        //    enrolled in is finished, so recheck the whole programme here.
         $programComplete = count($stepIds) > 0 && $completedCount === count($stepIds);
 
-        if (
-            $programComplete
-            && $this->workflow->slugForName($parentTraining->name) === TrainingWorkflowService::INDUCTION
-        ) {
+        $inductionComplete = $programComplete
+            && $this->workflow->hasCompleted(
+                TrainingWorkflowService::INDUCTION,
+                $this->programProgressFor($user)
+            );
+
+        if ($inductionComplete && $slug === TrainingWorkflowService::INDUCTION) {
             // CHANGE ROLE (Trainee → Regular)
             $user->syncRoles(['Regular']);
 
@@ -263,6 +307,10 @@ class UserTrainingController extends Controller
             ->pluck('training_module_id') // This captures the individual step IDs
             ->toArray();
 
+        // Drives the banner and the disabled "Log Step" buttons in the view.
+        $eligibility = $this->workflow->eligibility($program, $user);
+        $eligibilityChecklist = $this->workflow->eligibilityChecklist($eligibility);
+
         $interactionDefaults = [
             'interacted_person' => $loggedInUser ? $loggedInUser->name : '',
             'designation' => $loggedInUser && $loggedInUser->designation ? $loggedInUser->designation->name : '',
@@ -275,7 +323,14 @@ class UserTrainingController extends Controller
          * - The Parent Module (with its child steps)
          * - The array of finished step IDs for the Blade's in_array() check
          */
-        return view('user_trainings.show', compact('user', 'program', 'completedIds', 'interactionDefaults'));
+        return view('user_trainings.show', compact(
+            'user',
+            'program',
+            'completedIds',
+            'interactionDefaults',
+            'eligibility',
+            'eligibilityChecklist'
+        ));
     }
 
     // public function store(Request $request, User $user, TrainingModule $training)
@@ -368,10 +423,14 @@ class UserTrainingController extends Controller
 
         $programs = $user->trainings()
             ->whereNull('training_modules.parent_id')
-            ->whereIn(DB::raw('LOWER(training_modules.name)'), $this->workflow->lowerCasedLabels())
+            ->where(function ($q) {
+                foreach ($this->workflow->nameLikePatterns() as $pattern) {
+                    $q->orWhereRaw('LOWER(training_modules.name) LIKE ?', [$pattern]);
+                }
+            })
             ->with('steps')
             ->get();
 
-        return $this->workflow->progressForPrograms($programs, $completedIds);
+        return $this->workflow->progressForPrograms($programs, $completedIds, $user);
     }
 }

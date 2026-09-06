@@ -5,6 +5,40 @@
     <div class="card">
         <div class="card-body">
             <h3 class="mb-4">Training Checklist: {{ $user->name }}</h3>
+
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="mdi mdi-alert-outline"></i> {{ session('error') }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            @endif
+
+            {{-- Steps stay locked until the trainee has cleared the assessment:
+                 enrol -> attendance -> read documents -> attempt exam -> pass. --}}
+            @unless($eligibility['can_log_steps'])
+                <div class="alert alert-warning">
+                    <h6 class="font-weight-bold mb-2">
+                        <i class="mdi mdi-lock-outline"></i> Steps are locked
+                    </h6>
+
+                    <p class="mb-2">{{ $eligibility['reason'] }}</p>
+
+                    <ul class="list-unstyled mb-0 small">
+                        @foreach($eligibilityChecklist as $check)
+                            <li>
+                                @if($check['done'])
+                                    <i class="mdi mdi-check-circle text-success"></i>
+                                @else
+                                    <i class="mdi mdi-circle-outline text-muted"></i>
+                                @endif
+                                {{ $check['label'] }}
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endunless
             
                 <div class="card mb-4 shadow-sm">
                     <div class="card-header bg-light d-flex justify-content-between align-items-center">
@@ -23,6 +57,11 @@
                                     <span class="badge badge-success px-3 py-2">
                                         <i class="mdi mdi-check-circle"></i> Completed
                                     </span>
+                                @elseif(! $eligibility['can_log_steps'])
+                                    <button type="button" class="btn btn-sm btn-secondary" disabled
+                                            title="{{ $eligibility['reason'] }}">
+                                        <i class="mdi mdi-lock-outline"></i> Locked
+                                    </button>
                                 @else
                                     {{-- Using both BS4 and BS5 data attributes for safety --}}
                                     <button type="button" class="btn btn-sm btn-info" 
@@ -41,7 +80,7 @@
 
 {{-- MODALS LOOP: Keep this at the bottom, just before @endsection --}}
 
-    @foreach($program->steps as $step)
+    @foreach($eligibility['can_log_steps'] ? $program->steps : collect() as $step)
         <div class="modal fade" id="modalStep{{$step->id}}" tabindex="-1" role="dialog" aria-labelledby="label{{$step->id}}" aria-hidden="true">
             <div class="modal-dialog" role="document">
                 <div class="modal-content">

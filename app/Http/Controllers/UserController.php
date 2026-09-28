@@ -216,6 +216,7 @@ class UserController extends Controller
             'job_description',
             'experience_years',
             'corporate_id',
+            'internal_id',
         ]);
 
         // 2. Handle password only if it's provided

@@ -55,6 +55,10 @@ class QuestionController extends Controller
                 ->with('error', 'This assessment has already ended.');
         }
 
+        if (!$module->documents()->exists()) {
+            return redirect()->route('exams.take', $module->id);
+        }
+
         if ($module->examDocuments->isEmpty()) {
             return redirect()->route('exam.list')
                 ->with('error', 'No reviewed documents are enabled for this assessment yet.');
@@ -100,6 +104,10 @@ class QuestionController extends Controller
         if ($module->isExpired()) {
             return redirect()->route('exam.list')
                 ->with('error', 'This assessment has already ended.');
+        }
+
+        if (!$module->documents()->exists()) {
+            return redirect()->route('exams.take', $module->id);
         }
 
         if ($module->examDocuments->isEmpty()) {
@@ -154,9 +162,14 @@ class QuestionController extends Controller
             ->where('training_module_id', $module->id)
             ->first();
 
-        if (!$tracker || !$tracker->completed_at) {
+        if ($module->documents()->exists() && (!$tracker || !$tracker->completed_at)) {
             return redirect()->route('exams.read', $module->id)
                 ->with('error', 'Please complete the required document reading before starting the assessment.');
+        }
+
+        if (!$module->documents()->exists() && $module->training_type === 'classroom' && !$this->hasClassroomAttendance($module)) {
+            return redirect()->route('exam.list')
+                ->with('error', 'Your attendance for this classroom training has not been marked by the trainer yet.');
         }
 
         $examPaper = collect();
@@ -208,9 +221,14 @@ class QuestionController extends Controller
             ->where('training_module_id', $module->id)
             ->first();
 
-        if (!$tracker || !$tracker->completed_at) {
+        if ($module->documents()->exists() && (!$tracker || !$tracker->completed_at)) {
             return redirect()->route('exams.read', $module->id)
                 ->with('error', 'Please complete the required document reading before submitting the assessment.');
+        }
+
+        if (!$module->documents()->exists() && $module->training_type === 'classroom' && !$this->hasClassroomAttendance($module)) {
+            return redirect()->route('exam.list')
+                ->with('error', 'Your attendance for this classroom training has not been marked by the trainer yet.');
         }
 
         $storedQuestionIds = session()->pull($this->examPaperSessionKey($module->id), []);

@@ -118,7 +118,9 @@
                             {{-- Reading Status --}}
                             <div class="alert {{ $readingCompleted ? 'alert-success' : 'alert-warning' }} py-2 small">
 
-                                @if ($readingCompleted)
+                                @if ($module->documents->isEmpty())
+                                    No documents attached. Reading is not required.
+                                @elseif ($readingCompleted)
                                     Reading completed. Assessment unlocked.
                                 @else
                                     Reading required:

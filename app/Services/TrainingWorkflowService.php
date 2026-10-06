@@ -327,19 +327,22 @@ class TrainingWorkflowService
         $assignment = $program->currentAssignmentForUser($user);
         $enrolled = $assignment !== null;
 
-        // Whether an exam can actually be sat: at least one linked document that
-        // is reviewed, carries questions and has a quota. When this is false the
+        // Trainings without attached documents do not require document reading.
+        $hasDocuments = $program->documents()->exists();
+
+        // When documents are attached, at least one must be eligible for the exam.
+        // When this is false the
         // programme is mis-configured -- the trainee cannot reach the exam, so
         // the steps stay locked and the reason says what the admin must fix.
-        $examConfigured = $program->examDocuments()->exists();
+        $examConfigured = !$hasDocuments || $program->examDocuments()->exists();
 
         $attendanceMarked = $enrolled && ($assignment->attendance_status ?? null) === 'present';
 
-        $readingCompleted = $enrolled && DocumentReadTracker::query()
+        $readingCompleted = $enrolled && (!$hasDocuments || DocumentReadTracker::query()
             ->where('user_id', $user->id)
             ->where('training_module_id', $program->id)
             ->whereNotNull('completed_at')
-            ->exists();
+            ->exists());
 
         $examStatus = $enrolled ? $program->resolveTrainingStatusForUser($user) : 'pending';
         $examAttempted = $enrolled && $program->latestResultForUser($user) !== null;

@@ -7,7 +7,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\TrainingModule;
-use App\Models\UserTraining;
 use App\Services\TrainingWorkflowService;
 
 class UserTrainingController extends Controller
@@ -206,6 +205,16 @@ class UserTrainingController extends Controller
         // show() already redirects, but a direct POST must not slip past it.
         $slug = $this->workflow->slugForName($parentTraining->name);
 
+        // Logging an induction step is restricted to the designated department
+        // approvers. Keep this check on the POST as well as in the view.
+        if ($slug === TrainingWorkflowService::INDUCTION) {
+            $departmentCode = $this->inductionApprovalDepartment($currentUser);
+            if (! $departmentCode || ($departmentCode !== 'SA'
+                && $departmentCode !== $this->inductionStepDepartmentCode($currentStep))) {
+                abort(403, 'You are not authorized to log this induction step.');
+            }
+        }
+
         if ($slug !== null && ! $this->workflow->isProgramAccessible($slug, $this->programProgressFor($user))) {
             return back()->with('error', $this->workflow->lockedReason($slug));
         }
@@ -219,15 +228,33 @@ class UserTrainingController extends Controller
             return back()->with('error', $eligibility['reason']);
         }
 
+        $existingStep = DB::table('user_trainings')
+            ->where('user_id', $user->id)
+            ->where('training_module_id', $currentStep->id)
+            ->whereNull('department')
+            ->first();
+        if ($slug === TrainingWorkflowService::INDUCTION && $existingStep) {
+            if ($existingStep->is_completed) {
+                return back()->with('info', 'This induction step is already complete.');
+            }
+            if (DB::table('user_trainings')->where('user_id', $user->id)
+                ->where('training_module_id', $currentStep->id)->whereNotNull('department')->exists()) {
+                return back()->with('error', 'This induction step already has signatures and cannot be edited.');
+            }
+        }
+
+        $logPayload = [
+            'interacted_person' => $data['interacted_person'] ?? null,
+            'designation'       => $data['designation'] ?? null,
+            'comments'          => $data['comments'] ?? null,
+            'is_completed'      => 1,
+            'completed_at'      => now(),
+            'updated_at'        => now(),
+        ];
+
         DB::table('user_trainings')->updateOrInsert(
-            ['user_id' => $user->id, 'training_module_id' => $currentStep->id],
-            [
-                'interacted_person' => $data['interacted_person'] ?? null,
-                'designation'       => $data['designation'] ?? null,
-                'comments'          => $data['comments'] ?? null,
-                'is_completed'      => 1,
-                'updated_at'        => now()
-            ]
+            ['user_id' => $user->id, 'training_module_id' => $currentStep->id, 'department' => null],
+            $logPayload
         );
 
         // 3. Get all steps under this training
@@ -239,6 +266,7 @@ class UserTrainingController extends Controller
         $completedCount = DB::table('user_trainings')
             ->where('user_id', $user->id)
             ->whereIn('training_module_id', $stepIds)
+            ->whereNull('department')
             ->where('is_completed', 1)
             ->count();
 
@@ -303,9 +331,24 @@ class UserTrainingController extends Controller
          */
         $completedIds = DB::table('user_trainings')
             ->where('user_id', $user->id)
+            ->whereNull('department')
             ->where('is_completed', true)
             ->pluck('training_module_id') // This captures the individual step IDs
             ->toArray();
+
+        $stepIds = $program->steps->pluck('id');
+        $stepRecords = DB::table('user_trainings')
+            ->where('user_id', $user->id)
+            ->whereIn('training_module_id', $stepIds)
+            ->whereNull('department')
+            ->get()
+            ->keyBy('training_module_id');
+        $authorizedDepartmentCode = $this->inductionApprovalDepartment(auth()->user());
+        $canLogStepIds = $program->steps
+            ->filter(fn (TrainingModule $step) => $authorizedDepartmentCode === 'SA'
+                || $authorizedDepartmentCode === $this->inductionStepDepartmentCode($step))
+            ->pluck('id');
+        $isInduction = $slug === TrainingWorkflowService::INDUCTION;
 
         // Drives the banner and the disabled "Log Step" buttons in the view.
         $eligibility = $this->workflow->eligibility($program, $user);
@@ -327,10 +370,83 @@ class UserTrainingController extends Controller
             'user',
             'program',
             'completedIds',
+            'stepRecords',
+            'authorizedDepartmentCode',
+            'canLogStepIds',
+            'isInduction',
             'interactionDefaults',
             'eligibility',
             'eligibilityChecklist'
         ));
+    }
+
+    private function inductionApprovalDepartment(?User $user): ?string
+    {
+        if (! $user) {
+            return null;
+        }
+
+        if ($user->hasRole(['Super Admin', 'super admin', 'super-admin'])) {
+            return 'SA';
+        }
+
+        if (! $user->department) {
+            return null;
+        }
+
+        // Department codes are optional in some production databases. Resolve
+        // the same department from its configured code or its display name.
+        $code = $this->inductionDepartmentCode(
+            $user->department->code,
+            $user->department->name
+        );
+        if (! $code) {
+            return null;
+        }
+        $roles = [
+            'AMD' => ['executive'],
+            'DQA' => ['executive', 'manager', 'executive-e3'],
+            'ASD' => ['manager 1', 'manager 2'],
+        ];
+
+        foreach ($roles[$code] ?? [] as $roleName) {
+            $hasRole = $user->roles->contains(fn ($role) => mb_strtolower($role->name) === $roleName);
+            $permission = 'training.induction.approve.' . $code . '.' . str_replace(' ', '-', $roleName);
+            if ($hasRole && $user->can($permission)) {
+                return $code;
+            }
+        }
+
+        return null;
+    }
+
+    private function inductionStepDepartmentCode(TrainingModule $step): ?string
+    {
+        return match (strtolower(trim($step->name))) {
+            'administration and maintenance:' => 'AMD',
+            'development quality assurance' => 'DQA',
+            'analytical services' => 'ASD',
+            default => null,
+        };
+    }
+
+    private function inductionDepartmentCode(?string $departmentCode, ?string $departmentName): ?string
+    {
+        $code = strtoupper(trim((string) $departmentCode));
+        if (in_array($code, ['AMD', 'DQA', 'ASD'], true)) {
+            return $code;
+        }
+
+        $name = mb_strtolower(trim((string) $departmentName));
+        $name = preg_replace('/[^a-z0-9]+/u', ' ', $name);
+        $name = trim(preg_replace('/\s+/', ' ', $name));
+
+        return match ($name) {
+            'administration and maintenance', 'administration maintenance' => 'AMD',
+            'development quality assurance' => 'DQA',
+            'analytical services' => 'ASD',
+            default => null,
+        };
     }
 
     // public function store(Request $request, User $user, TrainingModule $training)

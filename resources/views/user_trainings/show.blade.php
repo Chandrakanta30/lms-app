@@ -53,7 +53,22 @@
                                     {{ $step->name }}
                                 </div>
                                 
-                                @if(in_array($step->id, $completedIds))
+                                @if($isInduction && isset($stepRecords[$step->id]))
+                                    @php $stepRecord = $stepRecords[$step->id]; @endphp
+                                    <div class="text-right">
+                                        @if($stepRecord->is_completed)
+                                            <span class="badge badge-success px-3 py-2">Completed</span>
+                                        @elseif(! $canLogStepIds->contains($step->id))
+                                            <span class="badge badge-secondary px-3 py-2">Department restricted</span>
+                                        @else
+                                            <button type="button" class="btn btn-sm btn-info"
+                                                    data-toggle="modal" data-target="#modalStep{{$step->id}}"
+                                                    data-bs-toggle="modal" data-bs-target="#modalStep{{$step->id}}">
+                                                Log Step
+                                            </button>
+                                        @endif
+                                    </div>
+                                @elseif(in_array($step->id, $completedIds))
                                     <span class="badge badge-success px-3 py-2">
                                         <i class="mdi mdi-check-circle"></i> Completed
                                     </span>
@@ -62,6 +77,8 @@
                                             title="{{ $eligibility['reason'] }}">
                                         <i class="mdi mdi-lock-outline"></i> Locked
                                     </button>
+                                @elseif($isInduction && ! $canLogStepIds->contains($step->id))
+                                    <span class="badge badge-secondary px-3 py-2">Department restricted</span>
                                 @else
                                     {{-- Using both BS4 and BS5 data attributes for safety --}}
                                     <button type="button" class="btn btn-sm btn-info" 
@@ -80,7 +97,7 @@
 
 {{-- MODALS LOOP: Keep this at the bottom, just before @endsection --}}
 
-    @foreach($eligibility['can_log_steps'] ? $program->steps : collect() as $step)
+    @foreach($eligibility['can_log_steps'] ? $program->steps->filter(fn ($step) => ! $isInduction || $canLogStepIds->contains($step->id)) : collect() as $step)
         <div class="modal fade" id="modalStep{{$step->id}}" tabindex="-1" role="dialog" aria-labelledby="label{{$step->id}}" aria-hidden="true">
             <div class="modal-dialog" role="document">
                 <div class="modal-content">

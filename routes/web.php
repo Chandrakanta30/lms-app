@@ -86,7 +86,6 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::get('trainee-progress/{user}/{training}', [UserTrainingController::class, 'show'])->name('user.training.show');
     Route::post('trainee-progress/{user}/{training}', [UserTrainingController::class, 'store'])->name('user.training.store');
-
     Route::get('report/user/{user}/training/{training_id}', [UserTrainingController::class, 'report'])->name('user.training.report');
 
     Route::get('report/training-certificate/{user}', [UserTrainingController::class, 'certificate'])

@@ -25,8 +25,8 @@ class TrainingWorkflowService
     |--------------------------------------------------------------------------
     | Assessment stages
     |--------------------------------------------------------------------------
-    | A trainee walks enrol -> attendance -> read documents -> exam -> pass.
-    | Steps may only be logged once that walk has reached STAGE_READY.
+    | GLP and Functional require attendance, reading and a passed exam.
+    | Induction is an internal process and is available after enrolment.
     */
     public const STAGE_NOT_ENROLLED  = 'not_enrolled';
     public const STAGE_NO_ASSESSMENT = 'no_assessment';
@@ -130,8 +130,7 @@ class TrainingWorkflowService
         $total = (int) $trainings->sum('total');
         $percent = $total > 0 ? (int) round(($completed / $total) * 100) : 0;
 
-        // Complete only when every training for this programme is complete
-        // (all steps logged AND its assessment passed).
+        // Complete only when every training for this programme is complete.
         $isCompleted = $trainings->isNotEmpty()
             && $trainings->every(fn (array $training) => $training['is_completed']);
 
@@ -172,9 +171,8 @@ class TrainingWorkflowService
     /**
      * Progress for a single parent program, or null if it is not one of the three.
      *
-     * When $user is given the programme is also gated on the assessment: the
-     * steps only count as a finished programme once the trainee has passed the
-     * programme's exam. Passing $user as null keeps the old, ungated behaviour.
+     * When $user is given the programme is gated by its workflow. Induction
+     * steps are available on enrolment; other programmes require a passed exam.
      */
     public function progressForProgram(TrainingModule $program, array $completedModuleIds, ?User $user = null): ?array
     {
@@ -304,8 +302,8 @@ class TrainingWorkflowService
     }
 
     /**
-     * Where a trainee stands on one parent programme's assessment walk:
-     * enrol -> attendance -> read documents -> attempt exam -> pass.
+     * Where a trainee stands in the programme workflow. Induction is an
+     * internal process, so enrolment alone unlocks its management steps.
      *
      * Steps may only be logged once that walk is finished, so this is the one
      * place that decides it. The exam outcome itself is not recomputed here --
@@ -326,6 +324,23 @@ class TrainingWorkflowService
 
         $assignment = $program->currentAssignmentForUser($user);
         $enrolled = $assignment !== null;
+
+        $isInduction = $this->slugForName($program->name) === self::INDUCTION;
+
+        if ($isInduction) {
+            return $this->eligibilityCache[$cacheKey] = [
+                'enrolled'          => $enrolled,
+                'attendance_marked' => false,
+                'reading_completed' => false,
+                'exam_attempted'    => false,
+                'exam_passed'       => false,
+                'exam_configured'   => false,
+                'exam_status'       => 'not_required',
+                'can_log_steps'     => $enrolled,
+                'stage'             => $enrolled ? self::STAGE_READY : self::STAGE_NOT_ENROLLED,
+                'reason'            => $enrolled ? '' : $this->stageReason(self::STAGE_NOT_ENROLLED, $program->name),
+            ];
+        }
 
         // Trainings without attached documents do not require document reading.
         $hasDocuments = $program->documents()->exists();

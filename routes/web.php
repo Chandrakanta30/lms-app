@@ -134,6 +134,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/admin/exams/logs/{resultId}', [QuestionController::class, 'showExamDetails'])->name('admin.exams.details');
 
     Route::resource('master-documents', MasterDocumentController::class);
+    Route::get('/master-documents/{id}/results', [MasterDocumentController::class, 'results'])->name('master-documents.results');
     Route::post('/master-documents/{id}/review', [MasterDocumentController::class, 'review'])->name('master-documents.review');
 
     Route::get('/exam/list', [UserExamController::class, 'index'])->name('exam.list');

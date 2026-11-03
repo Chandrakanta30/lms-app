@@ -68,6 +68,11 @@
                                                 </button>
                                             @ENDIF
 
+                                            <a href="{{ route('master-documents.results', $doc->id) }}"
+                                                class="btn btn-primary btn-sm">
+                                                <i class="mdi mdi-chart-box-outline"></i> View Results
+                                            </a>
+
                                             <form action="{{ route('master-documents.destroy', $doc->id) }}"
                                                 method="POST">
                                                 @csrf

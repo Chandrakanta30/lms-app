@@ -51,6 +51,40 @@ class MasterDocumentController extends Controller
         return view('documents.show', compact('document', 'isPreviewable'));
     }
 
+    public function results($id)
+    {
+        $document = MasterDocument::with(['modules.examResults' => function ($query) {
+            $query->where('is_passed', true)->with('user')->orderBy('created_at');
+        }])->findOrFail($id);
+
+        $allResults = $document->modules->flatMap(function ($module) {
+            return $module->examResults->map(function ($result) use ($module) {
+                return [
+                    'user_id' => $result->user_id,
+                    'user' => $result->user->name ?? 'N/A',
+                    'training' => $module->name,
+                    'training_type' => $module->annual_parent_id
+                        ? 'Refreshment / Annual Training'
+                        : ($module->training_type === 'self_training' ? 'Self Training' : 'Normal'),
+                    'date' => $result->created_at?->format('Y-m-d'),
+                ];
+            });
+        })->values();
+
+        $users = $allResults->unique('user_id')->sortBy('user')->values();
+        $trainingTypes = collect([
+            'Refreshment / Annual Training',
+            'Self Training',
+            'Normal',
+        ]);
+        $results = $allResults
+            ->when(request('user'), fn ($rows) => $rows->where('user_id', request('user')))
+            ->when(request('training_type'), fn ($rows) => $rows->where('training_type', request('training_type')))
+            ->values();
+
+        return view('documents.results', compact('document', 'results', 'users', 'trainingTypes'));
+    }
+
     public function store(Request $request)
     {
         try {

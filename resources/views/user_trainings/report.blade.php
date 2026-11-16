@@ -68,9 +68,10 @@
                                         {{ $log ? $log->pivot->comments : '' }}
                                     </div>
 
-                                    {{-- Contacted Person: left blank for now, to be populated later --}}
                                     <p class="mt-3"><strong>Contacted Person:</strong>
-                                        {{ $contactedPerson ?? '___________________________' }}
+                                        <span style="font-family: 'Dancing Script', cursive; font-size: 1.2rem; color: #003366;">
+                                            {{ $log ? $log->pivot->interacted_person : '___________________________' }}
+                                        </span>
                                     </p>
                                 </div>
                             </div>

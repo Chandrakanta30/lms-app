@@ -98,6 +98,11 @@ class MasterDocumentController extends Controller
                 'section_id' => 'required|array|min:1',
                 'section_id.*' => 'integer|exists:sections,sec_id',
                 'read_time' => 'nullable|string|max:50',
+            ], [
+                'file.required' => 'Please select a document to upload.',
+                'file.uploaded' => 'The document could not be uploaded. It may exceed the server upload limit; choose a file under 10 MB and try again.',
+                'file.mimes' => 'Unsupported file type. Upload a PDF, DOC, DOCX, PPT, or PPTX file.',
+                'file.max' => 'The document is too large. The maximum allowed file size is 10 MB.',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withInput()->with('error', implode(' ', $e->validator->errors()->all()));

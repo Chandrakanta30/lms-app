@@ -102,7 +102,7 @@
 
     <div class="modal fade" id="addDocModal" tabindex="-1" aria-labelledby="addDocModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <form action="{{ route('master-documents.store') }}" method="POST" enctype="multipart/form-data">
+            <form id="masterDocumentUploadForm" action="{{ route('master-documents.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-content">
                     <div class="modal-header">
@@ -266,7 +266,10 @@
 
                         <div class="form-group mb-3">
                             <label class="form-label">Select File (PDF/Doc)</label>
-                            <input type="file" name="file" class="form-control" required>
+                            <input id="masterDocumentFile" type="file" name="file" class="form-control"
+                                accept=".pdf,.doc,.docx,.ppt,.pptx" required aria-describedby="masterDocumentFileHelp masterDocumentFileError">
+                            <small id="masterDocumentFileHelp" class="form-text text-muted">PDF, DOC, DOCX, PPT, or PPTX. Maximum size: 10 MB.</small>
+                            <div id="masterDocumentFileError" class="invalid-feedback" role="alert"></div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -317,6 +320,39 @@
     </div>
 
     <script>
+        (function() {
+            var form = document.getElementById('masterDocumentUploadForm');
+            var fileInput = document.getElementById('masterDocumentFile');
+            var error = document.getElementById('masterDocumentFileError');
+            var allowedExtensions = ['pdf', 'doc', 'docx', 'ppt', 'pptx'];
+            var maxFileSize = 10 * 1024 * 1024;
+
+            function validateDocumentFile() {
+                var file = fileInput.files && fileInput.files[0];
+                var message = '';
+
+                if (file) {
+                    var extension = file.name.split('.').pop().toLowerCase();
+                    if (!allowedExtensions.includes(extension)) {
+                        message = 'Unsupported file type. Upload a PDF, DOC, DOCX, PPT, or PPTX file.';
+                    } else if (file.size > maxFileSize) {
+                        message = 'The document is too large. The maximum allowed file size is 10 MB.';
+                    }
+                }
+
+                error.textContent = message;
+                fileInput.classList.toggle('is-invalid', Boolean(message));
+                return !message;
+            }
+
+            fileInput.addEventListener('change', validateDocumentFile);
+            form.addEventListener('submit', function(event) {
+                if (!validateDocumentFile()) {
+                    event.preventDefault();
+                }
+            });
+        })();
+
         (function() {
             var reviewSignModal = document.getElementById('reviewSignModal');
             var reviewTargetDocName = document.getElementById('reviewTargetDocName');

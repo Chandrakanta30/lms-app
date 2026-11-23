@@ -4,19 +4,24 @@
     <div class="content-wrapper">
         <div class="card">
             <div class="card-body">
-                <div style="display: table; width: 100%; border: 1px solid #9aa0a6; border-collapse: collapse; margin-bottom: 1.5rem; background: #fff;">
-                    <div style="display: table-cell; width: 18%; text-align: center; vertical-align: middle; border-right: 1px solid #9aa0a6; padding: 14px 10px; color: #7a7a7a; font-weight: 600; line-height: 1.2;">
+                <div
+                    style="display: table; width: 100%; border: 1px solid #9aa0a6; border-collapse: collapse; margin-bottom: 1.5rem; background: #fff;">
+                    <div
+                        style="display: table-cell; width: 18%; text-align: center; vertical-align: middle; border-right: 1px solid #9aa0a6; padding: 14px 10px; color: #7a7a7a; font-weight: 600; line-height: 1.2;">
                         <div style="font-size: 20px;">SMS</div>
                         <div style="font-size: 17px;">Central Lab</div>
                     </div>
 
-                    <div style="display: table-cell; width: 58%; text-align: center; vertical-align: middle; border-right: 1px solid #9aa0a6; padding: 14px 10px;">
-                        <h4 class="mb-0" style="font-family: Georgia, 'Times New Roman', serif; font-size: 28px; font-weight: 700; color: #7a7a7a;">
+                    <div
+                        style="display: table-cell; width: 58%; text-align: center; vertical-align: middle; border-right: 1px solid #9aa0a6; padding: 14px 10px;">
+                        <h4 class="mb-0"
+                            style="font-family: Georgia, 'Times New Roman', serif; font-size: 28px; font-weight: 700; color: #7a7a7a;">
                             Staff Training Log Book
                         </h4>
                     </div>
 
-                    <div style="display: table-cell; width: 24%; text-align: center; vertical-align: middle; padding: 8px 10px;">
+                    <div
+                        style="display: table-cell; width: 24%; text-align: center; vertical-align: middle; padding: 8px 10px;">
                         <img src="{{ asset('assets/images/sms-logo.jpg') }}" alt="SMS Logo"
                             style="width: 82px; height: 82px; object-fit: contain;">
                     </div>
@@ -84,7 +89,7 @@
                                 <th>Employee Code</th>
                                 <th>Name of the Trainee</th>
                                 <th>Department</th>
-                                <th>Training Module</th>
+                                <th>Type of Training</th>
                                 <th>Topic Name</th>
                                 <th>Duration</th>
                                 <th>Name of the Trainer</th>
@@ -103,21 +108,19 @@
                                     <td class="text-left">
                                         @php
                                             $topicNames = $assignment->module && $assignment->module->documents
-                                                ? $assignment->module->documents->pluck('doc_name')->filter()->implode(', ')
+                                                ? $assignment->module->documents
+                                                    ->map(fn ($document) => trim(($document->doc_name ?? '') . ($document->doc_number ? ' - ' . $document->doc_number : '')))
+                                                    ->filter()
+                                                    ->implode(', ')
                                                 : '';
                                         @endphp
                                         {{ $topicNames !== '' ? $topicNames : 'N/A' }}
                                     </td>
                                     <td>
                                         @php
-                                            $startDate = $assignment->start_date
-                                                ? \Carbon\Carbon::parse($assignment->start_date)->format('d-m-Y')
-                                                : null;
-                                            $endDate = $assignment->end_date
-                                                ? \Carbon\Carbon::parse($assignment->end_date)->format('d-m-Y')
-                                                : null;
+                                            $durationMinutes = $assignment->attendance_duration;
                                         @endphp
-                                        {{ $startDate && $endDate ? $startDate . ' to ' . $endDate : ($startDate ?? $endDate ?? 'N/A') }}
+                                        {{ $durationMinutes !== null ? intdiv($durationMinutes, 60) . 'h ' . $durationMinutes % 60 . 'm' : 'N/A' }}
                                     </td>
                                     <td>{{ $assignment->trainer_name ?? 'N/A' }}</td>
 
@@ -224,14 +227,16 @@
                                                     ]);
                                                 $isAssignedTrainer =
                                                     $currentUser && $assignment->module && $assignment->module->trainers
-                                                        ? $assignment->module->trainers->contains('id', $currentUser->id)
+                                                        ? $assignment->module->trainers->contains(
+                                                            'id',
+                                                            $currentUser->id,
+                                                        )
                                                         : false;
                                                 $canShowApproval = $isPrivilegedApprover || $isAssignedTrainer;
                                             @endphp
 
                                             @if ($canShowApproval)
-                                                <form
-                                                    action="{{ route('sessions.approve', $assignment->id) }}"
+                                                <form action="{{ route('sessions.approve', $assignment->id) }}"
                                                     method="POST">
                                                     @csrf
                                                     @method('PATCH')

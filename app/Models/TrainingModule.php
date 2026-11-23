@@ -186,7 +186,7 @@ class TrainingModule extends Model
     public function trainees()
     {
         return $this->belongsToMany(User::class, 'training_user', 'training_module_id', 'user_id')
-            ->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by', 'reassigned_at', 'reassignment_mode', 'reassignment_note', 'reassigned_from_training_id')
+            ->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by', 'attendance_duration', 'reassigned_at', 'reassignment_mode', 'reassignment_note', 'reassigned_from_training_id')
             ->withTimestamps();
     }
 
@@ -216,7 +216,7 @@ class TrainingModule extends Model
     public function users()
     {
         return $this->belongsToMany(User::class, 'training_user', 'training_module_id', 'user_id')
-            ->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by', 'reassigned_at', 'reassignment_mode', 'reassignment_note', 'reassigned_from_training_id');
+            ->withPivot('status', 'start_date', 'end_date', 'attendance_status', 'attendance_marked_at', 'attendance_marked_by', 'attendance_duration_minutes', 'reassigned_at', 'reassignment_mode', 'reassignment_note', 'reassigned_from_training_id');
     }
 
     public function resolveTrainingStatusForUser(User|int $user): string

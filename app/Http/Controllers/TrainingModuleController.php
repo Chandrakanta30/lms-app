@@ -1307,6 +1307,7 @@ class TrainingModuleController extends Controller
         $attendanceMap = $validated['attendance'] ?? [];
         $trainerId = optional($module->trainers()->first())->id ?? $user->id;
         $sessionTopic = $module->name . ' - ' . $validated['session_brief_type'];
+        $durationMinutes = Carbon::parse($validated['start_time'])->diffInMinutes(Carbon::parse($validated['end_time']));
 
         // Update only trainees that belong to this module.
         $submittedAt = now();
@@ -1316,6 +1317,7 @@ class TrainingModuleController extends Controller
                 'attendance_status' => $isPresent ? 'present' : 'absent',
                 'attendance_marked_at' => $submittedAt,
                 'attendance_marked_by' => $user->id,
+                'attendance_duration' => $durationMinutes,
             ]);
 
 
